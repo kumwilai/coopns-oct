@@ -1,0 +1,6 @@
+outputs/
+figures/
+weights/*.pth
+data/*.tif
+__pycache__/
+*.pyc
