@@ -1,0 +1,57 @@
+============================================================
+NSND-OCT Low-RAM Training/Testing
+============================================================
+Mode: train
+Device: cpu
+Batch size: 2
+Data root: /home/kumwilai/OCT/oct
+============================================================
+
+Model parameters: 28,416
+
+Loading data...
+Found 3 image pairs for train
+
+============================================================
+Training NSND (Self-Supervised B2U)
+============================================================
+Trainable parameters: 28418
+Epoch 1/10 - Average Loss: 0.0642
+Epoch 2/10 - Average Loss: 0.0644
+Epoch 3/10 - Average Loss: 0.0623
+Epoch 4/10 - Average Loss: 0.0583
+Epoch 5/10 - Average Loss: 0.0557
+Epoch 6/10 - Average Loss: 0.0608
+Epoch 7/10 - Average Loss: 0.0597
+Epoch 8/10 - Average Loss: 0.0487
+Epoch 9/10 - Average Loss: 0.0503
+Epoch 10/10 - Average Loss: 0.0461
+Training complete!
+
+Model saved to: /home/kumwilai/OCT/nsnd_oct/checkpoints/nsnd_64x64_lightweight.pth
+Found 48 image pairs for val
+
+============================================================
+Testing NSND on Real OCT Images
+============================================================
+
+Sample 1:
+  Noisy PSNR:    10.05 dB
+  Denoised PSNR: 13.05 dB
+  PSNR Gain:     3.00 dB
+  SSIM:          0.1236
+
+  Detected Noise:
+    Speckle:  39.7%
+    Banding:  23.2%
+    Gaussian: 15.0%
+    Shot:     22.0%
+
+============================================================
+Test Results Summary
+============================================================
+Noisy PSNR:     16.77 ± 5.15 dB
+Denoised PSNR:  19.48 ± 4.83 dB
+PSNR Gain:      2.72 dB
+SSIM:           0.2268 ± 0.1296
+============================================================

@@ -1,0 +1,60 @@
+\section{Related Work}
+\label{sec:related}
+
+\subsection{Denoising of OCT images}
+Learned denoisers for OCT fall into three families. Convolutional networks such as
+DnCNN~\cite{zhang2017beyond} and DRUNET~\cite{devalla2018drunet} learn a residual between the noisy
+and the clean image. Attention based designs such as NAFNet~\cite{chen2022simple} and
+KBNet~\cite{zhang2023kbnet} reweight features before combining them. Transformer designs such as
+SwinIR~\cite{liang2021swinir} use windowed self attention. Classical estimators remain in use,
+including non local means~\cite{buades2005non} and wavelet shrinkage~\cite{mayer2012wavelet}, and
+self supervised training removes the need for clean targets~\cite{krull2019noise2void}. Methods
+built for OCT address the scarcity of paired data directly, through triplet cross
+fusion~\cite{geng2022triplet} and through sparse representation~\cite{fang2012sparsity,fang2013fast}.
+
+All of these methods share one property. They are trained to reduce a pixel error, so the quantity
+they optimise is not the quantity a clinician reads. Work on automated quality assessment for
+OCT~\cite{wang2019quality,stein2006quality,tewarie2012oscar} measures clinical quality but does not
+act on it. The present paper closes that loop by turning measured quality into a correction that is
+applied under stated limits.
+
+\subsection{Confidence and uncertainty in medical imaging}
+Dropout used as an approximate Bayesian posterior~\cite{gal2016dropout}, task weighting driven by
+learned variance~\cite{kendall2018multi}, and deep ensembles~\cite{lakshminarayanan2017simple} are
+the standard ways to attach a confidence value to a prediction. In OCT, such values have been used
+to flag unreliable layer segmentation~\cite{devalla2018drunet} and poor scan
+quality~\cite{wang2019quality}. In almost all of this work the confidence value is reported and then
+left alone. It marks a region as doubtful without changing what happens there. The method in this
+paper uses a confidence value as one input to a correction decision, and
+Section~\ref{sec:confidence_check} tests whether that value behaves like a real error predictor
+rather than a free gating map.
+
+\subsection{Symbolic reasoning and expert networks joined with neural networks}
+Neuro symbolic computing~\cite{garcez2023neurosymbolic} couples a learned model with explicit rules.
+Differentiable fuzzy logic makes that coupling trainable, because the connectives become smooth
+functions of continuous truth values~\cite{vankrieken2022analyzing}. In medical imaging the pattern
+has been used to generate spinal reports from images by pairing a generative network with a symbolic
+graph of domain knowledge~\cite{han2021unifying}, to predict patient deterioration by placing a
+probabilistic logic program on top of a convolutional feature extractor~\cite{fadja2022neural}, and
+to interpret corneal topography through a knowledge graph attached to a learned feature
+model~\cite{wang2026explainable}. Fuzzy membership functions have also been embedded inside networks
+that process OCT directly, where a rough fuzzy discretisation guides layer
+segmentation~\cite{chen2023deep}, and pixel level fuzzy rules have replaced a learned attention block
+so that the resulting map can be read as a logical statement~\cite{kim2025pixel}.
+
+A parallel line of work builds an image model as a set of cooperating experts. Steered mixtures of
+experts model an image by local regressors combined through an explicit steering
+term~\cite{ozkan2023steered}, and the same idea has been applied to OCT speckle
+removal~\cite{ozkan2024denoising}. Recent restoration networks route an input through experts of
+different capacity according to how hard the input is~\cite{zamfir2025complexity}. Outside imaging,
+evolving fuzzy models have been used to identify actuator dynamics from
+data~\cite{precup2021evolving}, learned models have been combined with a physical forward operator in
+ultrasound computed tomography~\cite{fan2022model}, and the sensitivity of a differential model to
+its initial conditions has been studied as a source of uncertainty in
+simulation~\cite{casquilho2025effect}. These works show the same underlying principle that we rely
+on, which is that a learned component becomes easier to trust when part of the decision is written
+in a language a person can read.
+
+What is still missing in this literature is a rule layer that acts on the output of a strong
+denoiser, that names the clinical properties it is protecting, and that limits how far it may move
+the image. That is the object studied here.

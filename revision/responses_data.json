@@ -1,0 +1,196 @@
+{
+ "Comment 1.1": {
+  "response": "\nThe reviewer is right that nothing in the objective forces the map to behave like a confidence, and\nthe submitted paper should not have called it calibrated. We now test the claim directly rather\nthan assert it. Section VII H compares the map against the absolute error of the backbone output\nwith respect to the clean reference on every test image and reports three quantities. The rank\ncorrelation between the map and the error, the sparsification error, and the expected calibration\nerror after a single affine fit.\n\n[FILL from outputs/revision/diagnostics_nafnet.json, key calibration. Spearman rank correlation\npooled over the test split, macro CalibRho. Sparsification error, macro CalibAuse. Expected\ncalibration error after the affine fit.]\n\n[DECISION after the numbers. If the rank correlation is clearly positive and the sparsification\nerror is well below the random baseline, keep the word confidence and say the map is validated\nrather than calibrated by construction. If not, rename it to a learned attention map in Sections\nIV B and VI and say plainly that it predicts where the correction acts and not how wrong the\nbackbone is. Do not keep the word calibrated in either case unless the affine fit error is small.]\n\nThe cooperation term in Section VI B is the only place the map is trained toward a meaning. It\nrewards agreement between the map and the estimated correction potential, so the map is pushed to be\nhigh where the correction has room to act. Whether that coincides with backbone error is exactly\nwhat Section VII H measures.\n",
+  "changes": [
+   "Section VII H is new, file 07_results, lines 83 to 88.",
+   "[FILL] The name of the map in Sections IV B and VI adjusted according to the result."
+  ]
+ },
+ "Comment 1.2": {
+  "response": "\nWe added the study the reviewer asked for. Section VII D removes one property at a time at test\ntime, which sets its score to the satisfied value and its failure map to zero, and re evaluates the\nwhole 173 image test set with the reported NAFNet model. Fig. 3 left reports the result and the\nfull table is in the supplementary file.\n\nThe honest summary is that the six properties are not equally important. Removing the speckle\nproperty P1 costs [FILL ENL from lopo_drop_P1 minus lopo_none, currently 10.1 percent] of the\nequivalent number of looks gain and [FILL SNR, currently 4.53 percent] of the signal to noise gain.\nRemoving P2 costs [FILL ENL and CNR from lopo_drop_P2]. Removing P5 costs [FILL TCI from\nlopo_drop_P5]. Removing P3 or P6 changes no measure by more than [FILL max abs delta, currently 0.09\npercent on boundary sharpness for P6 and 0.006 for P3], and removing P4 changes no measure by more\nthan [FILL, currently 0.26 percent on ENL].\n\n[FILL confirm against the final lopo_*.json files once the studies are rerun on the selected\nseeded checkpoint. The numbers above come from outputs/revision/lopo_*.json produced on\noutputs/revision/final_nafnet, which is not the selected checkpoint.]\n\nWe have kept all six rather than pruning the three that are close to inert, for a reason we state in\nthe paper. The properties are the vocabulary of the rule layer and of the explanation shown to the\nreader, and a property that rarely changes the output on this test set can still be the one that\nfires on a different scanner or a pathological scan. But we say plainly that on PKU37 three of the\nsix carry almost all of the effect, and that a reader who wants a smaller rule set can drop P3, P4\nand P6 at no measurable cost.\n",
+  "changes": [
+   "Section VII D is new, file 07_results, lines 57 to 61, and Fig. 3 left.",
+   "The full leave one out table is in the supplementary file, generated as tab_lopo.tex.",
+   "Section VIII D, Limitations, states that half the property set is close to inert on this test set."
+  ]
+ },
+ "Comment 1.3": {
+  "response": "\nWe agree that this is the right question to ask of any method that raises contrast, and the\nsubmitted paper did not answer it. Section VII J is new and measures the risk directly, using the\nclean reference that PKU37 provides. Four quantities are reported over the whole test set.\n\nThe rate at which an edge appears in the corrected image where the reference has none, before and\nafter correction. [FILL macros EdgeInvBack and EdgeInvCorr from diagnostics_nafnet.json.]\n\nThe retention of weak structures, defined as structures whose contrast in the reference lies in the\nlowest decile, before and after correction. [FILL macros WeakRetBack and WeakRetCorr.]\n\nThe behaviour inside dark fluid like regions enclosed by tissue, reported as the fraction of the\nimage they occupy and the mean absolute change inside them. [FILL macros DarkFrac and DarkChange.]\n\nThe worst case per image change across the test set, and the shift of the two strongest layer\nboundaries. [FILL macros GlobalChange, IlmShiftBack, IlmShiftCorr, RpeShiftBack, RpeShiftCorr.]\n\n[DECISION. If the invented edge rate rises or weak retention falls after correction, say so in the\nfirst sentence of Section VII J and in the limitations, and do not soften it.]\n\nTwo structural facts also bound the risk. The relative change from the backbone output is capped by\nthe third safety constraint, and the gate suppresses change in the dark region, so a boundary can\nonly be moved by the additive edge branch within that cap. Section VIII D states plainly that no\nclinician read these images and that a reader study is the correct next step.\n",
+  "changes": [
+   "Section VII J is new, file 07_results, lines 100 to 111.",
+   "Fig. 3 reports the safety quantities.",
+   "Section VIII D states that no expert reading was performed."
+  ]
+ },
+ "Comment 1.4": {
+  "response": "\nThe reviewer's question is what led us to the defect described at the start of this letter, and we\nanswer it in three parts.\n\nWhat the constants were. The weights 1.5 and 2.0 in the submitted paper were the initial values of\nlearnable parameters that never moved, because the rule layer was saturated and received no\ngradient. They were not chosen at all.\n\nWhat they are now. Section IV E states the allocation rule in full. The five budgets are fixed by\none identity, that the base ceiling plus the positive budgets equals one and the base floor minus\nthe negative budgets equals zero, which keeps the allocation inside the unit interval without\nclipping and lets the rule weights train. The rule weights themselves are learned, and Section VI D\nsays which quantities were selected on validation. Only one is, the fidelity dead zone, together\nwith the choice of background rule.\n\nWhether any of it does hidden work. Section VII E varies the base level, each rule weight, and the\nconjunction, and re evaluates. [FILL from fuzz_base_*.json, fuzz_usecorr_*.json, fuzz_boost_*.json\nand fuzz_tnorm_*.json against fuzz_ref.json. Report the largest change in any measure across the\nsweep and whether product and minimum differ from Lukasiewicz.] [DECISION. If the largest change is\nsmall, say the rule layer is insensitive to its constants and that the specific logic does not\nmatter, which is a limitation as much as a reassurance. If it is large, name the constant that\nmatters.]\n",
+  "changes": [
+   "Section IV E states the allocation rule and the identity that fixes its budgets, file 04_method, lines 78 to 120.",
+   "Section VI D states what was selected and how, file 06_training, lines 127 to 156.",
+   "Section VII E is the sensitivity study, file 07_results, lines 63 to 68, and Fig. 3."
+  ]
+ },
+ "Comment 1.5": {
+  "response": "\nWe agree and we have expanded both the review and the discussion. Section II C, on symbolic\nreasoning and expert networks joined with neural networks, is new. It covers three strands. The\nfirst is neuro symbolic work in medical imaging, including report generation that pairs a generative\nnetwork with a symbolic knowledge graph, a probabilistic logic program layered on a convolutional\nfeature extractor, and a knowledge graph attached to a learned model for corneal topography. The\nsecond is fuzzy rule systems embedded inside networks, including rough fuzzy discretisation inside a\nnetwork that processes OCT directly, and pixel level fuzzy rules used in place of a learned attention\nblock. The third is expert network work, including steered mixtures of experts for denoising, its\napplication to OCT speckle, and restoration networks that route an input through experts of\ndifferent capacity.\n\nEleven references were added. Section VIII C positions our method against them. The common principle\nis that a learned component becomes easier to trust when part of the decision is written in a\nlanguage a person can read. What is missing in that literature is a rule layer that acts on the\noutput of a strong denoiser, names the clinical properties it protects, and limits how far it may\nmove the image.\n",
+  "changes": [
+   "Section II C is new, file 02_related, lines 32 to 56.",
+   "Eleven references added.",
+   "Section VIII C positions the method against that literature."
+  ]
+ },
+ "Comment 1.6": {
+  "response": "\nThe manuscript has been rewritten rather than proof read. Every section was rebuilt from the top\ndown, which removed the errors along with the text that contained them. We also adopted three\nmechanical writing rules and enforced them with a script that runs over the source, namely no em\ndash, no colon and no semicolon in body prose. The script reports zero violations in the revised\nsource. The same pass removed every use of the words experiment and experimental, which is Reviewer\n3 comment 15.\n",
+  "changes": [
+   "The whole manuscript was rewritten.",
+   "revision/style_check.py in the released code enforces the rules."
+  ]
+ },
+ "Comment 2.1": {
+  "response": "\nThe reviewer is right, and the two descriptions in the submitted paper were not consistent. We\ninvestigated and the code is the authority. The submitted cross dataset numbers were produced by a\nscript that resumes from the corrector trained on PKU37 and then fine tunes it for fifteen epochs on\nthe other images of the target dataset in every fold, with elastic weight consolidation and with the\nbackbone frozen except for the confidence head. That is few shot adaptation on the target scanner.\nIt is not the transfer without training that the text claimed.\n\nWe corrected this in the strongest way available, which is to make the honest protocol the primary\none. Section VII A 2 states the protocol exactly. The upper block of Table 7 reports the model\ntrained once on PKU37 and applied directly to Duke17 and Duke2013, with no parameter updated, no\nthreshold recalibrated, and no statistic of the target images used to select anything. The only per\nimage quantity is the background gate, which is part of the method and is computed identically on\nPKU37. [CHECK. If the selected setting uses the Otsu gate, the sentence in Section VII A 2 line 26\nabout the intensity percentile must be changed to describe the Otsu mask.]\n\nThe adapted protocol is reported in the lower block of the same table, clearly labelled, so the gap\nbetween the two is visible. [FILL upper block from zeroshot_BACKBONE_sSEED.json, mean and spread\nover three seeds. FILL lower block from outputs/revision/adapted_DATASET_BACKBONE/loo_results.json.\nNote that revision/make_tables.py does not yet read the adapted files.]\n",
+  "changes": [
+   "Section VII A 2 is new, file 07_results, lines 19 to 33.",
+   "Table 7 has two labelled blocks, without adaptation and with adaptation.",
+   "Both protocols have a driver in the released code, scripts/eval_transfer.sh and scripts/eval_transfer_adapted.sh."
+  ]
+ },
+ "Comment 2.2": {
+  "response": "\nSection VIII A is new and explains the trade off and when it is worth accepting.\n\nThe mechanism is not accidental. A denoiser trained on squared error sits at a local optimum of that\nerror, so any change to its output moves away from that optimum. The wrapper raises contrast and\nboundary definition, and those are not free in squared error terms. The question is therefore not\nhow to avoid the loss but when to accept it. Two things decide that. The first is the size of the\nloss relative to the variation between acquisitions. A few tenths of a decibel is smaller than the\ndifference between two scans of the same eye. The second is whether the quantity that improves is\nthe one the reader uses. Layer boundary definition and tissue to background separation are what a\ngrader uses to place a boundary or judge a fluid pocket.\n\nOn the transformer backbone we owe the reviewer a correction as well as an explanation. Part of the\nSwinIR drop in the submitted version was ours. That corrector had been trained against a half\nresolution cache of the backbone output and then tested against the full resolution output, and\nthe two references differ by 1.61 dB. The cache now runs at full resolution. The revised SwinIR\nnumber is therefore not comparable with the submitted one, and the discussion in Section VIII A\nexplains the remaining drop by the windowed attention, which smooths aggressively inside a window\nand so gives away the most contrast for the correction to restore.\n\nThe safety layer already provides the control for a deployment that cannot accept any loss.\nTightening the third constraint reduces the admitted change and the output moves back toward the\nbackbone. The dead zone of the fidelity term is the training time counterpart, and Section VI D\nreports how the result moves with it.\n",
+  "changes": [
+   "Section VIII A is new, file 08_discussion, lines 4 to 27.",
+   "The SwinIR reference mismatch is stated and corrected, see the opening of this letter.",
+   "Section VI D reports the dead zone as the one tuned fidelity budget."
+  ]
+ },
+ "Comment 3.1": {
+  "response": "\nThe introduction has been rebuilt. Section I B now gives a numbered list of exactly five new ideas,\neach with a pointer to the section that delivers it. They are the statement of post correction as a\nconstrained optimisation problem, the six clinical properties in closed form, the fuzzy allocation\nrule with a proved and measured sensitivity bound, the safety layer that decides how much of a\nproposal to keep, and transfer evidence that separates transfer without training from transfer\nwith adaptation. The list also says what is not new. Edge filters, confidence maps and fuzzy\noperators are not claimed as contributions on their own.\n",
+  "changes": [
+   "Section I B is new, file 01_intro, lines 31 to 64."
+  ]
+ },
+ "Comment 3.2": {
+  "response": "\nSection I A now argues the motivation from the clinical problem downward. The gap is not a missing\ndenoiser, since strong denoisers already exist. It is the absence of anything between the denoiser\nand the reader that states what a good OCT image should look like and repairs the specific ways a\ndenoised image falls short. We also say why building that missing part as another neural block\nwould reproduce the original problem, because the reason for every change would again be hidden in\nlearned weights.\n",
+  "changes": [
+   "Section I A rewritten, file 01_intro, lines 3 to 29."
+  ]
+ },
+ "Comment 3.3": {
+  "response": "\nAll three works are now cited and discussed where they are relevant rather than listed. The evolving\nfuzzy model work is cited in the subsection on fuzzy and expert systems as an example of identifying\nmodel structure from data. The model and data driven reconstruction work is cited as an example of\ncombining a learned component with a physical forward operator. The work on the sensitivity of a\ndifferential model to its initial values is cited in the same paragraph as an example of studying how\na model responds to perturbation of its inputs, which is the same question our stability analysis\nasks of the rule layer.\n\nWe were unable to verify a digital object identifier for the first of the three on the publisher\npages we could reach, so that entry is given with its volume, issue, pages and year and without a\ndigital object identifier. We will add it if the editorial office can supply it.\n",
+  "changes": [
+   "Three references added and discussed in Section II C."
+  ]
+ },
+ "Comment 3.4": {
+  "response": "\nThis was a fair criticism, because the submitted paper used the word without defining it. Section\nV A now gives Definition 1 before the theorem and says what the word does not mean here. It is not\nstability in the sense of Lyapunov and we claim no fixed point.\n\nThe definition is Lipschitz stability of the allocation with respect to the vector of the five rule\ntruth values, in the maximum norm. A small change in the evidence produces a proportionally small\nchange in the decision, and the constant is the worst case ratio between the two. We chose that\nnotion because the rule truth values are exactly what shift when the backbone is replaced or the\nscanner changes, so bounding the response to them is the property that matters for the transfer\nclaim. Section VII I then measures the realised ratio on real images against the constant.\n",
+  "changes": [
+   "Section V A, Definition 1 and Equation 14, file 05_stability, lines 9 to 30.",
+   "Section VII I measures the constant, see the response to comment 3.12."
+  ]
+ },
+ "Comment 3.5": {
+  "response": "\nSection III B is new and states the problem in the standard form. The decision variables are the\nwrapper parameters, with the backbone parameters held fixed. The objective is the expectation over\npaired data of a weighted sum of five terms, Equation 2, each of which is defined in Section VI B.\nThe three constraints are stated and then given formally in Section IV G. The problem is solved by\nmini batch stochastic gradient descent with AdamW, which is possible because every logical\nconnective is replaced by a smooth piecewise linear surrogate.\n\nThe reviewer notes that optimisation could be well linked to learning, and we have made that link\nexplicit. The constraints are handled in two ways that the section now distinguishes. During\ntraining they enter the objective as penalties, which is the learning part. At test time they are\nevaluated exactly on each image and the number that hold decides how much of the proposed change is\napplied, which is what makes them binding rather than advisory.\n",
+  "changes": [
+   "Section III B is new, file 03_problem, lines 58 to 99."
+  ]
+ },
+ "Comment 3.6": {
+  "response": "\nWe agree that the notation was dense. Section III A is new and fixes it. Every symbol used anywhere\nin the paper is defined in Table 1, in the order in which the paper introduces it, before its first\nuse. Nested subscripts have been removed. Quantities that were written with a descriptive subscript\ninside a hat are now single letters. As one example, the corrected candidate is now simply q.\n",
+  "changes": [
+   "Section III A and Table 1, file 03_problem, lines 7 to 56.",
+   "Nested and descriptive subscripts replaced by single letters throughout."
+  ]
+ },
+ "Comment 3.7": {
+  "response": "\nThe operator is the Hadamard product, which multiplies two arrays of the same shape entry by entry.\nIt is now defined in Section III A, in words and in symbols, before its first use anywhere in the\npaper.\n",
+  "changes": [
+   "The Hadamard product is defined in Section III A, file 03_problem, lines 14 to 16."
+  ]
+ },
+ "Comment 3.8": {
+  "response": "\nYes, it was ordinary algebraic multiplication, and we have dropped it as the reviewer suggests.\nProducts of scalars are now written by juxtaposition. The only product operator left in the paper\nis the Hadamard product, which is a different operation and is defined in Section III A. A search of\nthe revised source finds no remaining multiplication dot.\n",
+  "changes": [
+   "The multiplication dot was removed throughout. The revised source contains none."
+  ]
+ },
+ "Comment 3.9": {
+  "response": "\nTwo things were asked, a justification of each property and a sensitivity study. Both are now in\nthe paper.\n\nJustification. Table 3 in Section IV D gives, for each of the six properties, the clinical failure\nit names, the closed form score, and the failure map. The scores are all computed from the noisy\ninput and the backbone output alone and each is written as a formula so it can be recomputed from\nthe released code. The mathematical reason for the form of each is given in the text of Section IV D.\n\nSensitivity. Section VII D reports the leave one property out study, see the response to Reviewer 1\ncomment 2, which found that P1, P2 and P5 carry almost all of the effect on PKU37 and that P3, P4\nand P6 are close to inert. Section VII E varies the constants of the rule layer that consume the\nproperties, see the response to comment 3.17. The failure maps themselves enter the allocation only\nthrough rule 3, so the sensitivity of the correction to each map is the sensitivity to the budget\nof that rule, which is one of the quantities varied in Section VII E.\n\n[FILL from lopo_*.json as in the response to comment 1.2, and from fuzz_boost_*.json for the\nbudget of rule 3.]\n",
+  "changes": [
+   "Table 3 and Section IV D, file 04_method, lines 62 to 77 and 222 to 245.",
+   "Section VII D and Section VII E, file 07_results, lines 57 to 68."
+  ]
+ },
+ "Comment 3.10": {
+  "response": "\nSection VI is new and gives the training procedure in full. It has five parts.\n\nSection VI A answers the question about paired data directly, because we agree it was not clear.\nTraining uses paired data. The clean reference enters the fidelity term and the clinical term and it\nsupervises the additive edge branch. Nothing in the method is unsupervised. Testing uses no clean\nimage at any point. The six clinical properties are computed from the noisy input and the backbone\noutput alone, which is what ground truth free means in this paper. It refers to the inputs of the\nrule layer at test time and not to the training procedure.\n\nSection VI B gives the five loss terms as Equations 17 to 21 with what each measures and why that\nform was chosen. Section VI C gives the schedule, the two stages, the optimiser and the three\nlearning rates, and Algorithm 1 states the procedure step by step, including the seed, the dead\nzone and the frozen normalisation statistics of the backbone as explicit inputs. Section VI D\nstates how the operating point was chosen. Section VI E gives initialisation and Table 4 lists every\nconstant with its origin, marked fixed, measured, selected or learned.\n\nWe also record the exact training command in the released code, because we found while preparing\nthis revision that the command used for the submitted results had not been recorded. Every number in\nthe revised paper comes from a checkpoint produced by that recorded script, selected on validation\nby a recorded rule, and scored on test without retraining.\n",
+  "changes": [
+   "Section VI is new, file 06_training. Paired data lines 7 to 19, loss terms 21 to 72, schedule 74 to 125, operating point 127 to 156, initialisation and Table 4 158 to 201.",
+   "Algorithm 1, file 06_training, lines 88 to 118.",
+   "The training and selection scripts are in the released code, scripts/train_all.sh and scripts/select_config.sh."
+  ]
+ },
+ "Comment 3.11": {
+  "response": "\nWe have added a quantitative safety study and we state plainly what it does not cover. Section VII J\nmeasures invented edges against the clean reference, retention of weak structures, the change inside\ndark fluid like regions enclosed by tissue, and the worst case per image change. The response to\nReviewer 1 comment 3 lists the quantities. [FILL the same macros from diagnostics_nafnet.json.]\n\nOn lesions and expert assessment we have to be direct. PKU37, Duke17 and Duke2013 are denoising\ndatasets and carry no lesion annotation, and no clinician read the outputs of this method. The dark\nregion analysis is our proxy for fluid, and the weak structure analysis is our proxy for thin layers\nand subtle features, and we say in Section VII J and in Section VIII D that they are proxies. A\nreader study on annotated pathology is the correct next step and is outside the scope of this\nrevision.\n",
+  "changes": [
+   "Section VII J is new, file 07_results, lines 100 to 111.",
+   "Section VIII D, Limitations, states that no expert reading was performed and that the safety study uses proxies."
+  ]
+ },
+ "Comment 3.12": {
+  "response": "\nSection VII I is new and tests each theoretical claim of Section V numerically on the test set, and\nSection I B, Section V B and Section V C each now point forward to it. Three things are checked.\n\nFor the stability result, Theorem 1, we perturb the rule truth values by a controlled amount and\nmeasure the ratio of Definition 1, then compare it with the constant of Equation 15 computed from\nthe trained weights. [FILL macros LipTheory and LipMeasured from diagnostics_nafnet.json.]\n\nFor the contrast result, Theorem 2, we measure the tissue gain, the background leakage and the ratio\nof background standard deviations on every image and report on how many images the hypotheses hold.\n[FILL macros EtaT, EtaB, SigmaRatio, CondMargin and CondSigma out of NImages.]\n\nFor the safety layer we report how often each of the three constraints fails and which one binds.\n[FILL macro BoundOK and the constraint counts.]\n\nThe allocation map itself is also reported, its mean, spread, minimum and maximum, and the fraction\nof pixels at either clamp, which is zero by construction after the repair. [FILL macros AllocMean,\nAllocStd, AllocMin, AllocMax, AllocClamp.]\n",
+  "changes": [
+   "Section VII I is new, file 07_results, lines 90 to 98.",
+   "Sections I B, V B and V C point forward to it.",
+   "The macros are generated from outputs/revision/diagnostics_nafnet.json by revision/make_tables.py."
+  ]
+ },
+ "Comment 3.13": {
+  "response": "\nThe release is public, requires no password, and is linked in the paper. It contains the model\ncode, the frozen backbones, the correctors of the submitted version, the selected correctors of the\nrevised version, the split lists, and one driver per table and per figure. A manifest maps every\ntable, figure and quoted number to the script and the result file that produced it. The result\nfiles themselves are included, so a reader can rebuild every table without running anything.\n\nBecause the review is double blind the release is anonymised. Author names, institutional paths and\nrepository history have been removed. A permanent citable archive will replace it on acceptance.\n\nPreparing this release is what led us to find the defects described at the start of this letter.\nThe release documents each of them, what it affected, how it was fixed, and gives a script that\nchecks each fix, because we think a reader of the code should be told rather than left to discover\nthem.\n",
+  "changes": [
+   "A repository link is given in the paper.",
+   "The release includes the code, the weights, the data lists, the result files, and the scripts that regenerate every number.",
+   "The release README documents the five defects found during the revision and how to verify each fix."
+  ]
+ },
+ "Comment 3.14": {
+  "response": "\nWe agree, and this turned out to be the most useful comment in the review for the quality of the\nwork. Preparing the release meant instrumenting the code, and that exposed the constant allocation\ndescribed at the start of this letter and four further defects in how the models were trained and\nselected, which are listed there as well. The validation is stronger as a result. The rule layer now\nacts, the stability constant is exact rather than loose, every setting is trained at three seeds\nwith the spread reported, the selected model is the reported model, and every table is regenerated\nfrom a recorded and released script.\n",
+  "changes": [
+   "See the response to comment 3.13 and the opening of this letter."
+  ]
+ },
+ "Comment 3.15": {
+  "response": "\nDone throughout. The results section is now titled Tests and Results and is Section VII of the\nrevised paper. Every occurrence of the words experiment and experimental has been removed from the\ntitles and the body and replaced by test, result or study. This is checked by a script included in\nthe released code, which reports zero occurrences in the revised source.\n",
+  "changes": [
+   "All uses of the words experiment and experimental were removed and the section was renamed.",
+   "revision/style_check.py in the released code checks this and reports zero."
+  ]
+ },
+ "Comment 3.16": {
+  "response": "\nWe agree and we have added the comparison. Our object is a correction layer attached to a frozen\ndenoiser, so a fair competitor has to act on the same input rather than replace the denoiser. We\ncompare in two directions.\n\nAcross backbones of matched size. The four backbones are all scaled to about seven million\nparameters and trained on the same split with the same schedule, so the wrapper is added to four\ncomparable denoisers rather than to one convenient one.\n\nAgainst post correction of matched complexity, which is what we read the comment to ask. Section\nVII G adds three competitors that all read the same frozen backbone output. The first is a corrector\nof the same size trained with the same objective, the same warm start, the same dead zone, the same\ngate and the same seed, but with the rule layer replaced by a uniform allocation for the whole of\ntraining. [CHECK. This is what scripts/eval_studies.sh trains, with --ablation no_negotiator. The\npaper text in Section VII G currently says no properties, no rules and no safety layer. Either the\ntext must be narrowed to match the code, or a second baseline with the properties and the safety\nlayer also removed must be trained. Do not leave the mismatch.] The second and third are classical\noperators, unsharp masking and contrast limited adaptive histogram equalisation, with their\nstrength tuned on the forty image validation subset under the same rule used for our own constants.\n\nTable 8 reports all of them. [FILL from matched_plain_eval.json, classical_unsharp.json and\nclassical_clahe.json against test_nafnet_s0.json.]\n",
+  "changes": [
+   "Section VII G is new, file 07_results, lines 74 to 81.",
+   "Table 8 lower block reports the comparison.",
+   "The tuning of the classical operators is in revision/classical_baselines.py in the released code."
+  ]
+ },
+ "Comment 3.17": {
+  "response": "\nThis question and Reviewer 1 comment 4 are the reason we found the defect described at the start of\nthis letter, so we answer plainly.\n\nIn the submitted version the constants of the fuzzy layer were the initial values of learnable\nparameters that never moved, because the layer was saturated and received no gradient. The honest\nanswer to how they were computed is that they were not.\n\nIn the revised version there are two kinds of constant, listed with their origin in Table 4. The\nbudgets are fixed by the identity stated in Section IV E rather than chosen, and their relative\nsizes preserve the ordering of the submitted version so the rule that dominated still dominates.\nThe rule weights and the base level are learned. Section VI D states that exactly one quantity of\nthe objective was tuned, the fidelity dead zone, together with the choice of background rule, and\nthat both were selected on the validation split at three seeds by a recorded rule. We also found\nthat three further weight flags in the training script were parsed and never used, so the four\nsettings of the earlier search differed in the dead zone alone. The release documents that.\n\nSection VII E reports the sensitivity study. [FILL as in the response to Reviewer 1 comment 4.]\n",
+  "changes": [
+   "Section IV E and Table 4, files 04_method lines 78 to 120 and 06_training lines 173 to 201.",
+   "Section VI D, file 06_training, lines 127 to 156.",
+   "Section VII E, file 07_results, lines 63 to 68.",
+   "The release README documents the inert flags and the selection defect."
+  ]
+ },
+ "Comment 3.18": {
+  "response": "\nThe reviewer is right that adapting the confidence head is training and that its cost should be\nstated. Section VII K is new and reports, for each backbone, the size of the head, the data used to\nfit it, the number of epochs, the wall clock time, and the spread across the three seeds.\n\n[FILL per backbone. Head parameters from the model, the same for all four heads except the input\nchannel count, see Table 2. Data, the PKU37 training split of 1388 pairs. Epochs, ten from the warm\nstart. Wall clock, from the training logs of the selected settings, logs/sw_BACKBONE_SETTING_sSEED.\nSpread, the seed to seed standard deviation already printed in Table 6 and Table 7.]\n\nWe also separate two claims that the submitted paper mixed. What transfers with no training at all\nis the whole wrapper applied to another scanner, Table 7 upper block. What needs training is the\nmove to a new backbone, because the head reads that backbone's features, and that cost is what\nSection VII K reports. [FILL. If the seed to seed spread for any backbone is larger than its mean\nimprovement, say so here and in Section VII K.]\n",
+  "changes": [
+   "Section VII K is new, file 07_results, lines 113 to 116.",
+   "Table 2 gives the feature tensor read by the head for each backbone."
+  ]
+ },
+ "Comment 3.19": {
+  "response": "\nYes, and this is now Section VII I, see the response to comment 3.12. The Lipschitz constant is\ncomputed from the trained weights by a method of the released code and the realised ratio is\nmeasured on real images. [FILL LipTheory and LipMeasured.] The margins of Theorem 2, the tissue\ngain and the background leakage, and the background standard deviation ratio are measured on every\ntest image. [FILL EtaT, EtaB, SigmaRatio, and the count of images on which the hypotheses hold,\nCondMargin and CondSigma out of NImages.]\n\nWe also say what the check does not show. The bound of Theorem 1 is exact for the allocation as a\nfunction of the rule truth values. It is not a bound on the whole pipeline, and we do not claim one.\n",
+  "changes": [
+   "Section VII I, file 07_results, lines 90 to 98.",
+   "Section V D, What is not claimed, file 05_stability, lines 115 to 122."
+  ]
+ }
+}

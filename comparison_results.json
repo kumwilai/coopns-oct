@@ -1,0 +1,18 @@
+{
+  "CASA (Ours)": {
+    "psnr": 28.11,
+    "ssim": 0.872
+  },
+  "DRUNet": {
+    "psnr": 26.19,
+    "ssim": 0.8026
+  },
+  "SwinIR": {
+    "psnr": 28.84,
+    "ssim": 0.8577
+  },
+  "Noise2Void": {
+    "psnr": 24.73,
+    "ssim": 0.7241
+  }
+}

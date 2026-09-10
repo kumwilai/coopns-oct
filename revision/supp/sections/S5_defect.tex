@@ -1,0 +1,44 @@
+\section{A defect found during revision, and its repair}
+\label{sec:supp_defect}
+
+We record this because the released code contains a switch that restores the earlier behaviour, and a
+reader who finds that switch deserves to know what it is for.
+
+\subsection{What was wrong}
+In the version of this work that was first submitted, the allocation was formed by adding the rule
+contributions to a base level and then clipping the result to the unit interval. The positive
+contributions could reach $0.884$ and $0.762$ on top of a base of $0.818$, so the value arriving at
+the clip could be as large as $2.46$. The clip was therefore active at every pixel of every image and
+the allocation was the constant one.
+
+Two consequences follow. The rule layer had no influence on any output, since multiplying by one
+changes nothing. And the derivative of a clip at its bound is zero, so no gradient reached the rule
+parameters and they stayed at their initial values for the whole of training. We confirmed both
+directly, by reading the allocation map out of the trained model and by comparing every rule
+parameter in the saved weights against its initialiser after 2082 optimiser steps.
+
+\subsection{The repair}
+The allocation is now a bounded weighted vote. Writing $r_k \in [0,1]$ for the truth value of rule
+$k$ and $w_k \in (0,1)$ for its learned weight,
+\begin{equation}
+a = B_{\min} + (B_{\max}-B_{\min})\,\sigma(\beta)
+    - C_1 w_1 r_1 + C_2 w_2 r_2 + C_3 w_3 r_3 + C_4 w_4 r_4 - C_5 w_5 r_5 ,
+\end{equation}
+with $B_{\min} = 0.25$, $B_{\max} = 0.50$ and budgets $C_1 = 0.15$, $C_2 = 0.25$, $C_3 = 0.15$,
+$C_4 = 0.10$ and $C_5 = 0.10$. The budgets satisfy
+\begin{equation}
+B_{\max} + C_2 + C_3 + C_4 = 1, \qquad B_{\min} - C_1 - C_5 = 0 ,
+\end{equation}
+so the value lies in the unit interval before any clipping, for every input and every parameter
+setting. Clipping is therefore never active, saturation is impossible rather than unlikely, and the
+gradient reaches every rule parameter.
+
+The repair also tightens the theory. Because the allocation is affine in the rule truth values with
+signed coefficients and no clipping intervenes, the Lipschitz constant of Theorem~1 of the main paper
+is attained rather than merely an upper bound.
+
+\subsection{Reproducing the earlier behaviour}
+Setting the environment variable \texttt{LEGACY\_SATURATING\_ALLOCATION} to $1$ restores the original
+computation exactly. We verified this against a copy of the pre revision source on twenty random
+inputs, comparing the allocation maps for equality and the rule traces for agreement. Both matched.
+The earlier numbers can therefore be recovered from the released code, which is why the switch exists.

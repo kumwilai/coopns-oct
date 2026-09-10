@@ -1,0 +1,77 @@
+============================================================
+NSND-OCT Low-RAM Training/Testing
+============================================================
+Mode: train
+Device: cpu
+Batch size: 4
+Data root: /home/kumwilai/OCT/oct
+============================================================
+
+Model parameters: 28,416
+
+Loading data...
+Found 21 image pairs for train
+
+============================================================
+Training NSND (Self-Supervised B2U)
+============================================================
+Trainable parameters: 28418
+Epoch 1/30 - Average Loss: 0.0546
+Epoch 2/30 - Average Loss: 0.0475
+Epoch 3/30 - Average Loss: 0.0418
+Epoch 4/30 - Average Loss: 0.0420
+Epoch 5/30 - Average Loss: 0.0378
+Epoch 6/30 - Average Loss: 0.0327
+Epoch 7/30 - Average Loss: 0.0349
+Epoch 8/30 - Average Loss: 0.0312
+Epoch 9/30 - Average Loss: 0.0293
+Epoch 10/30 - Average Loss: 0.0307
+Epoch 11/30 - Average Loss: 0.0274
+Epoch 12/30 - Average Loss: 0.0259
+Epoch 13/30 - Average Loss: 0.0275
+Epoch 14/30 - Average Loss: 0.0239
+Epoch 15/30 - Average Loss: 0.0283
+Epoch 16/30 - Average Loss: 0.0242
+Epoch 17/30 - Average Loss: 0.0263
+Epoch 18/30 - Average Loss: 0.0253
+Epoch 19/30 - Average Loss: 0.0270
+Epoch 20/30 - Average Loss: 0.0239
+Epoch 21/30 - Average Loss: 0.0266
+Epoch 22/30 - Average Loss: 0.0255
+Epoch 23/30 - Average Loss: 0.0237
+Epoch 24/30 - Average Loss: 0.0205
+Epoch 25/30 - Average Loss: 0.0220
+Epoch 26/30 - Average Loss: 0.0208
+Epoch 27/30 - Average Loss: 0.0233
+Epoch 28/30 - Average Loss: 0.0251
+Epoch 29/30 - Average Loss: 0.0231
+Epoch 30/30 - Average Loss: 0.0240
+Training complete!
+
+Model saved to: /home/kumwilai/OCT/nsnd_oct/checkpoints/nsnd_64x64_lightweight.pth
+Found 48 image pairs for val
+
+============================================================
+Testing NSND on Real OCT Images
+============================================================
+
+Sample 1:
+  Noisy PSNR:    10.31 dB
+  Denoised PSNR: 11.97 dB
+  PSNR Gain:     1.66 dB
+  SSIM:          0.0844
+
+  Detected Noise:
+    Speckle:  39.5%
+    Banding:  22.5%
+    Gaussian: 14.5%
+    Shot:     23.5%
+
+============================================================
+Test Results Summary
+============================================================
+Noisy PSNR:     15.66 ± 5.53 dB
+Denoised PSNR:  17.68 ± 5.85 dB
+PSNR Gain:      2.02 dB
+SSIM:           0.2247 ± 0.1426
+============================================================

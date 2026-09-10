@@ -1,0 +1,12 @@
+{
+  "cnr": {
+    "display_name": "CNR",
+    "backbone_mean": 10.83092291355133,
+    "corrected_mean": 10.775634789466858,
+    "delta_mean": -0.05528812408447266,
+    "delta_std": 0.0659807553602591,
+    "pct_improvement": -0.510465493344965,
+    "wilcoxon_stat": 25.0,
+    "p_value": 0.001689910888671875,
+    "cohens_d": -0.8379431818049975,
+    "significant_005": 

@@ -1,0 +1,18 @@
+\section{Visual comparison for all four backbones}
+\label{sec:supp_subjective}
+
+Fig.~\ref{fig:supp_subjective} repeats the visual comparison of the main paper for every backbone
+rather than the two extremes. The layout is the same. Every cell is a zoomed region chosen
+automatically as the window with the strongest layer structure in the clean reference, because the
+differences that matter sit at layer boundaries and are invisible at full scale. The last column
+shows the change the wrapper applied, on a scale symmetric about zero, so the reader can see where
+the correction acted rather than inferring it.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_subjective_all.pdf}
+\caption{Visual comparison on PKU37 for all four backbones. Columns are the noisy input, the backbone
+output, the corrected output, the clean reference, and the change applied. Blue means the wrapper
+lowered the value and orange means it raised it.}
+\label{fig:supp_subjective}
+\end{figure*}

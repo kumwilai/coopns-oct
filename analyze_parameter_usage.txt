@@ -1,0 +1,47 @@
+NSND PARAMETER USAGE ANALYSIS
+================================================================================
+
+FORWARD PASS (what actually runs):
+
+1. Analyzer: Predicts weights [w_speckle, w_banding, w_gaussian, w_shot]
+   Cost: 0.61M parameters
+
+2. Base NAFNet-48: Denoises image → base_denoised
+   Cost: 4.26M parameters ✓ (runs once)
+
+3. Shared Trunk: Processes residual → shared features
+   Cost: 2.59M parameters ✓ (runs once)
+
+4. 4× Adapters: EACH adapter processes shared features
+   - Speckle adapter → speckle_refined
+   - Banding adapter → banding_refined  
+   - Gaussian adapter → gaussian_refined
+   - Shot adapter → shot_refined
+   Cost: 0.78M parameters ✗ (ALL 4 RUN, not just 1!)
+
+5. Joint Expert: Processes for all 4
+   Cost: 0.07M parameters ✓ (runs once)
+
+6. Weighted Blend:
+   output = w_speckle * speckle_refined + w_banding * banding_refined + ...
+
+TOTAL INFERENCE COST: ALL parameters are used!
+================================================================================
+
+COMPARISON:
+
+NAFNet-64:
+  - One denoising path: 7.55M
+  - Total: 7.55M
+
+NSND (base=48):
+  - Shared processing: 4.26M (base) + 2.59M (trunk) + 0.07M (joint) = 6.92M
+  - 4× Adapters: 0.78M (ALL 4 execute!)
+  - Total: 7.71M (but processes 4 experts!)
+
+EFFECTIVE COMPARISON:
+  NAFNet: 7.55M for 1 denoising path
+  NSND: 7.71M for 4 denoising paths (adaptive ensemble)
+
+Is this fair?
+================================================================================

@@ -1,0 +1,51 @@
+================================================================================
+Testing Adaptive Ensemble for Supervised-Level Performance
+================================================================================
+
+Loading validation data...
+Loaded 48 image pairs
+
+Initializing NSND model...
+Loading checkpoint (untrained works better, but loading for completeness)...
+
+================================================================================
+Baseline Performance
+================================================================================
+NSND (base)                   : PSNR =  15.89 ± 1.67 dB, SSIM = 0.1661 ± 0.0774
+
+================================================================================
+Adaptive Ensemble Performance
+================================================================================
+
+1. Testing Fixed-Weight Ensemble...
+Ensemble (fixed weights)      : PSNR =  23.94 ± 1.80 dB, SSIM = 0.5576 ± 0.0984
+
+  Fixed weight distribution:
+    Gaussian σ=1.5      :  45.0%
+    Gaussian σ=1.0      :  25.0%
+    BM3D                :  20.0%
+    NSND                :  10.0%
+
+2. Testing Learnable-Weight Ensemble (before training)...
+Ensemble (learnable, untrained): PSNR =  21.85 ± 1.62 dB, SSIM = 0.4224 ± 0.1103
+
+3. Training Adaptive Ensemble Weights...
+
+Training Adaptive Ensemble Weights (Optimizing for PSNR)
+============================================================
+Traceback (most recent call last):
+  File "/home/kumwilai/OCT/nsnd_oct/scripts/test_adaptive_ensemble.py", line 244, in <module>
+    main()
+  File "/home/kumwilai/OCT/nsnd_oct/scripts/test_adaptive_ensemble.py", line 177, in main
+    ensemble_learnable = train_ensemble_weights(
+                         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kumwilai/OCT/nsnd_oct/nsnd/models/adaptive_ensemble.py", line 282, in train_ensemble_weights
+    loss.backward()
+  File "/home/kumwilai/osmnx-env/lib/python3.12/site-packages/torch/_tensor.py", line 626, in backward
+    torch.autograd.backward(
+  File "/home/kumwilai/osmnx-env/lib/python3.12/site-packages/torch/autograd/__init__.py", line 347, in backward
+    _engine_run_backward(
+  File "/home/kumwilai/osmnx-env/lib/python3.12/site-packages/torch/autograd/graph.py", line 823, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Found dtype Float but expected Double

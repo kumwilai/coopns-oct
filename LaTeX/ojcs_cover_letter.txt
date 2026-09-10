@@ -1,0 +1,16 @@
+Dear Editor-in-Chief,
+
+Please consider our manuscript, "Backbone-Modular Neuro-Symbolic Post-Correction for OCT Denoising with Explicit Predicate Maps and Stable Fuzzy Allocation," for publication in the IEEE Open Journal of the Computer Society.
+
+This work is submitted as a computing-methodology paper on transparent and safety-constrained post-correction for learned image restoration systems. Rather than proposing another OCT denoising backbone, the manuscript studies how a clinically meaningful correction policy can be attached to strong pretrained denoisers in a reproducible, auditable, and backbone-modular manner. The technical contribution is the coupling of three components into one formal wrapper: (1) explicit ground-truth-free predicate definitions with both scalar scores and spatial failure maps, (2) a differentiable fuzzy negotiator that routes correction through stable symbolic allocation, and (3) safety-gated correction rules with theorem-backed guarantees tied to the stated clinical objectives.
+
+We believe OJ-CS is an appropriate venue because the central contribution is not limited to one medical dataset or one denoising architecture. The manuscript addresses a broader computer-systems and AI-methodology question: how to build reusable post-correction policies that remain interpretable and stable when attached to different learned backbones. OCT serves as a demanding application domain in which these properties are clinically meaningful and quantitatively verifiable.
+
+The manuscript is original, has not been published previously, and is not under consideration elsewhere. All authors have approved the submission.
+
+We respectfully request double-anonymous review. The paper is a substantially repositioned manuscript following prior handling elsewhere, and we request author anonymity during review to reduce the risk of identity-based bias while the work is evaluated on its technical merits.
+
+Thank you for your consideration.
+
+Sincerely,
+Anonymous Authors

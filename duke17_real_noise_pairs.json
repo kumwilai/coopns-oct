@@ -1,0 +1,87 @@
+[
+  {
+    "subject": "1",
+    "noisy_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/1/1_Raw Image.tif",
+    "clean_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/1/1_Averaged Image.tif"
+  },
+  {
+    "subject": "10",
+    "noisy_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/10/10_Raw Image.tif",
+    "clean_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/10/10_Averaged Image.tif"
+  },
+  {
+    "subject": "11",
+    "noisy_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/11/11_Raw Image.tif",
+    "clean_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/11/11_Averaged Image.tif"
+  },
+  {
+    "subject": "12",
+    "noisy_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/12/12_Raw Image.tif",
+    "clean_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/12/12_Averaged Image.tif"
+  },
+  {
+    "subject": "13",
+    "noisy_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/13/13_Raw Image.tif",
+    "clean_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/13/13_Averaged Image.tif"
+  },
+  {
+    "subject": "14",
+    "noisy_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/14/14_Raw Image.tif",
+    "clean_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/14/14_Averaged Image.tif"
+  },
+  {
+    "subject": "15",
+    "noisy_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/15/15_Raw Image.tif",
+    "clean_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/15/15_Averaged Image.tif"
+  },
+  {
+    "subject": "16",
+    "noisy_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/16/16_Raw Image.tif",
+    "clean_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/16/16_Averaged Image.tif"
+  },
+  {
+    "subject": "17",
+    "noisy_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/17/17_Raw Image.tif",
+    "clean_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/17/17_Averaged Image.tif"
+  },
+  {
+    "subject": "2",
+    "noisy_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/2/2_R_Raw Image.tif",
+    "clean_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/2/2_R_Averaged Image.tif"
+  },
+  {
+    "subject": "3",
+    "noisy_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/3/3_Raw Image.tif",
+    "clean_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/3/3_Averaged Image.tif"
+  },
+  {
+    "subject": "4",
+    "noisy_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/4/4_Raw Image.tif",
+    "clean_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/4/4_Averaged Image.tif"
+  },
+  {
+    "subject": "5",
+    "noisy_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/5/5_Raw Image.tif",
+    "clean_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/5/5_Averaged Image.tif"
+  },
+  {
+    "subject": "6",
+    "noisy_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/6/6_Raw Image.tif",
+    "clean_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/6/6_Averaged Image.tif"
+  },
+  {
+    "subject": "7",
+    "noisy_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/7/7_Raw Image.tif",
+    "clean_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/7/7_Averaged Image.tif"
+  },
+  {
+    "subject": "8",
+    "noisy_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/8/8_Raw Image.tif",
+    "clean_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/8/8_Averaged Image.tif"
+  },
+  {
+    "subject": "9",
+    "noisy_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/9/9_Raw Image.tif",
+    "clean_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/9/9_Averaged Image.tif"
+  }
+]

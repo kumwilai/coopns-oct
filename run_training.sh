@@ -1,0 +1,34 @@
+#!/bin/bash
+python3 train_tmi_enhanced.py \
+    --train_jsonl combined_train.jsonl \
+    --val_jsonl combined_val.jsonl \
+    --epochs 10 \
+    --batch_size 1 \
+    --device cpu \
+    --output_dir outputs/adaptive_fix_test \
+    --lr 5e-5 \
+    --nafnet_ckpt outputs/nafnet_calibrated/nafnet_best.pth \
+    --nafnet_width 64 \
+    --dsp_only \
+    --use_layer_specific_heads \
+    --use_adaptive_strength_map \
+    --lambda_strength_map 1.0 \
+    --lambda_strength_reg 0.1 \
+    --use_strength_curriculum \
+    --use_seg_guided_attention \
+    --use_columnar_attention \
+    --use_neuro_symbolic \
+    --lambda_symbolic_ordering 0.35 \
+    --lambda_symbolic_thickness 0.05 \
+    --lambda_symbolic_intensity 0.05 \
+    --lambda_symbolic_continuity 0.05 \
+    --lambda_symbolic_anatomy 0.02 \
+    --lambda_layer_supervision 0.5 \
+    --lambda_dsp_boundary 2.0 \
+    --dsp_smoothness_weight 1.0 \
+    --dsp_temperature 0.1 \
+    --dsp_min_gap 5 \
+    --freeze_backbone_initially \
+    --max_train 500 \
+    --max_val 30 \
+    2>&1 | tee outputs/adaptive_fix_log.txt

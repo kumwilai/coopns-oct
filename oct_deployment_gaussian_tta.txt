@@ -1,0 +1,75 @@
+============================================================
+Initial Memory Status:
+  ram_used_gb: 0.53 GB
+============================================================
+
+================================================================================
+OCT DEPLOYMENT TEST - REAL DATA EVALUATION
+================================================================================
+Dataset: oct/normal/val
+Noise type: noisy_gaussian
+Number of test images: 8
+Model base channels: 32
+Test-Time Adaptation: ENABLED (steps=15, lr=0.0008)
+================================================================================
+
+Found 8 image pairs
+
+Building model...
+Loading checkpoint: ./checkpoints/finetuned.pth
+
+[1/8] Processing NORMAL-1004480-2.png...
+  Noisy: 26.50 dB | Model (TTA): 29.50 dB | Gain: +3.00 dB
+
+[2/8] Processing NORMAL-1016042-22.png...
+  Noisy: 26.09 dB | Model (TTA): 24.40 dB | Gain: -1.69 dB
+
+[3/8] Processing NORMAL-1016042-50.png...
+  Noisy: 26.19 dB | Model (TTA): 24.88 dB | Gain: -1.31 dB
+
+[4/8] Processing NORMAL-1017885-1.png...
+  Noisy: 26.86 dB | Model (TTA): 29.92 dB | Gain: +3.07 dB
+
+[5/8] Processing NORMAL-1022943-1.png...
+  Noisy: 26.92 dB | Model (TTA): 30.23 dB | Gain: +3.31 dB
+
+[6/8] Processing NORMAL-1025847-6.png...
+  Noisy: 26.80 dB | Model (TTA): 30.03 dB | Gain: +3.23 dB
+
+[7/8] Processing NORMAL-1027133-2.png...
+  Noisy: 26.73 dB | Model (TTA): 25.79 dB | Gain: -0.94 dB
+
+[8/8] Processing NORMAL-1044791-5.png...
+  Noisy: 26.20 dB | Model (TTA): 25.62 dB | Gain: -0.58 dB
+
+================================================================================
+AGGREGATE RESULTS (Average across all test images)
+================================================================================
+Method                          PSNR (dB)            SSIM Category       
+--------------------------------------------------------------------------------
+Noisy                         26.536±0.31     0.4490±0.044 Baseline       
+Box3x3                        33.475±1.75     0.8648±0.012 Simple         
+Gaussian5x5                   34.190±1.86     0.8904±0.006 Simple         
+Median3x3                     33.222±0.37     0.7985±0.023 Simple         
+Lee Filter                    29.015±0.44     0.6358±0.079 OCT-Specific   
+Kuan Filter                   29.015±0.44     0.6358±0.079 OCT-Specific   
+Frost Filter                  30.042±0.88     0.6900±0.109 OCT-Specific   
+Bilateral Filter              28.536±0.76     0.6572±0.023 OCT-Specific   
+Guided Filter                 26.718±0.34     0.4606±0.047 OCT-Specific   
+Model (TTA)                   27.547±2.42     0.8231±0.059 Deep Learning  
+--------------------------------------------------------------------------------
+IMPROVEMENT (Model (TTA)):          +1.011 dB         +0.3741
+================================================================================
+
+Best baseline: Gaussian5x5 (34.190 dB)
+Model performance: 27.547 dB
+Advantage over best baseline: -6.643 dB
+
+[INFO] Model is 6.643 dB below best baseline
+Consider fine-tuning on this specific noise type
+
+================================================================================
+Final memory status:
+  ram_used_gb: 2.15 GB
+================================================================================
+

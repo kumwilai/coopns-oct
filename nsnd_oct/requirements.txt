@@ -1,0 +1,37 @@
+# NSND-OCT Requirements
+
+# Core dependencies
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+
+# Image processing
+scipy>=1.10.0
+scikit-image>=0.20.0
+opencv-python>=4.7.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Training utilities
+tqdm>=4.65.0
+tensorboard>=2.12.0
+wandb>=0.15.0  # Optional: for experiment tracking
+
+# Data handling
+pillow>=9.5.0
+h5py>=3.8.0
+
+# Configuration
+pyyaml>=6.0
+omegaconf>=2.3.0
+
+# Testing
+pytest>=7.3.0
+pytest-cov>=4.1.0
+
+# Typing and linting (development)
+mypy>=1.3.0
+black>=23.3.0
+flake8>=6.0.0

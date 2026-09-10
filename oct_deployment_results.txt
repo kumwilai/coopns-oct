@@ -1,0 +1,30 @@
+
+- CASA: Coherence‑aware spatial adapter with coherent/incoherent decomposition and per‑pixel FiLM;
+now robust to odd sizes and skip‑alignment.
+- Spatial/Global Adapters: Swappable FiLM adapters (global, spatial, CASA) driven by the same
+backbone interface.
+
+Physics‑Informed Losses
+
+- Depth‑weighted fidelity: depth_weighted_fidelity_loss emphasizes low‑SNR deeper layers.
+- A‑scan continuity (PSF): ascan_continuity_loss enforces axial smoothness via Gaussian PSF.
+- Speckle statistics: speckle_statistics_loss matches local contrast and higher‑order moments.
+- Combined loss: oct_physics_informed_loss with tunable weights (--physics_lambda_depth,
+--physics_lambda_ascan, --physics_lambda_speckle, --physics_psf_sigma, --physics_patch_size).
+
+Blind/Adaptive Noise Handling
+
+- Spectral noise estimator: SpectralNoiseCharacterizer (radial PSD + phase features), heterogeneity
+map, self‑supervised training (self_supervised_noise_estimation_loss).
+intervention policy; supports counterfactual sampling and causal_meta_learning_loss.
+
+Test‑Time Adaptation
+
+- Self‑supervised TTA: Dihedral consistency + TV, adapter‑only optimization, EMA, early stopping,
+and dihedral self‑ensemble inference.
+
+Stability/Infra Upgrades
+
+- Odd‑size robustness: FiLM map resizing and U‑Net skip pad/crop; final output aligned to input
+size.
+- Tile inference + memory guards for large images and constrained hardware.

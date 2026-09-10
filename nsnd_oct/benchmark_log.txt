@@ -1,0 +1,169 @@
+================================================================================
+NSND vs SOTA Benchmark Suite
+================================================================================
+
+Finding test images...
+Found 20 test image pairs
+
+Registering denoising methods...
+  - Gaussian Filter
+  - Wiener Filter
+  - Bilateral Filter
+  - Non-Local Means
+  - BM3D (SOTA classical)
+  - NSND (Untrained)
+  - NSND (Trained - old rules)
+
+================================================================================
+Running benchmark...
+================================================================================
+
+[1/10] Testing CNV-1016042-119.png
+  Noisy: PSNR=12.30 dB
+  BM3D                : PSNR= 23.69 dB (+11.39), SSIM=0.5978, Time= 587.0ms
+  Bilateral           : PSNR= 13.17 dB (+ 0.87), SSIM=0.0660, Time=   2.8ms
+  Gaussian (σ=0.5)    : PSNR= 16.08 dB (+ 3.78), SSIM=0.1104, Time=   0.2ms
+  Gaussian (σ=1.0)    : PSNR= 22.96 dB (+10.67), SSIM=0.3792, Time=   0.1ms
+  Gaussian (σ=1.5)    : PSNR= 25.80 dB (+13.50), SSIM=0.5652, Time=   0.1ms
+  NLM                 : PSNR= 24.76 dB (+12.46), SSIM=0.5858, Time=   9.9ms
+  NSND (old rules)    : PSNR= 15.52 dB (+ 3.22), SSIM=0.0951, Time=  12.3ms
+  NSND (untrained)    : PSNR= 15.61 dB (+ 3.31), SSIM=0.0956, Time=  18.5ms
+  Wiener              : PSNR= 20.49 dB (+ 8.20), SSIM=0.3474, Time=   6.4ms
+
+[2/10] Testing CNV-1016042-179.png
+  Noisy: PSNR=10.93 dB
+  BM3D                : PSNR= 23.11 dB (+12.18), SSIM=0.5843, Time= 634.5ms
+  Bilateral           : PSNR= 11.47 dB (+ 0.54), SSIM=0.0507, Time=   1.8ms
+  Gaussian (σ=0.5)    : PSNR= 14.67 dB (+ 3.74), SSIM=0.0923, Time=   0.1ms
+  Gaussian (σ=1.0)    : PSNR= 21.00 dB (+10.07), SSIM=0.3146, Time=   0.1ms
+  Gaussian (σ=1.5)    : PSNR= 23.32 dB (+12.39), SSIM=0.4862, Time=   0.2ms
+  NLM                 : PSNR= 23.62 dB (+12.69), SSIM=0.5773, Time=   8.3ms
+  NSND (old rules)    : PSNR= 13.91 dB (+ 2.98), SSIM=0.0726, Time=  10.2ms
+  NSND (untrained)    : PSNR= 14.02 dB (+ 3.09), SSIM=0.0735, Time=  12.0ms
+  Wiener              : PSNR= 19.85 dB (+ 8.92), SSIM=0.3135, Time=   1.0ms
+
+[3/10] Testing CNV-1016042-220.png
+  Noisy: PSNR=16.50 dB
+  BM3D                : PSNR= 20.90 dB (+ 4.39), SSIM=0.4841, Time= 734.3ms
+  Bilateral           : PSNR= 17.66 dB (+ 1.16), SSIM=0.3289, Time=   2.2ms
+  Gaussian (σ=0.5)    : PSNR= 19.44 dB (+ 2.93), SSIM=0.4575, Time=   0.2ms
+  Gaussian (σ=1.0)    : PSNR= 22.14 dB (+ 5.64), SSIM=0.6623, Time=   0.1ms
+  Gaussian (σ=1.5)    : PSNR= 21.78 dB (+ 5.28), SSIM=0.6164, Time=   0.1ms
+  NLM                 : PSNR= 19.82 dB (+ 3.31), SSIM=0.4477, Time=   7.6ms
+  NSND (old rules)    : PSNR= 18.19 dB (+ 1.68), SSIM=0.3463, Time=  10.9ms
+  NSND (untrained)    : PSNR= 18.29 dB (+ 1.79), SSIM=0.3492, Time=  12.5ms
+  Wiener              : PSNR= 19.95 dB (+ 3.45), SSIM=0.4975, Time=   1.1ms
+
+[4/10] Testing CNV-1016042-55.png
+  Noisy: PSNR=10.24 dB
+  BM3D                : PSNR= 20.36 dB (+10.12), SSIM=0.4110, Time= 605.9ms
+  Bilateral           : PSNR= 10.55 dB (+ 0.31), SSIM=0.0684, Time=   1.6ms
+  Gaussian (σ=0.5)    : PSNR= 13.79 dB (+ 3.55), SSIM=0.1292, Time=   0.1ms
+  Gaussian (σ=1.0)    : PSNR= 19.30 dB (+ 9.06), SSIM=0.3615, Time=   0.1ms
+  Gaussian (σ=1.5)    : PSNR= 20.84 dB (+10.61), SSIM=0.4632, Time=   0.1ms
+  NLM                 : PSNR= 20.73 dB (+10.50), SSIM=0.4000, Time=   7.1ms
+  NSND (old rules)    : PSNR= 12.91 dB (+ 2.67), SSIM=0.1021, Time=  12.6ms
+  NSND (untrained)    : PSNR= 13.06 dB (+ 2.82), SSIM=0.1036, Time=  13.9ms
+  Wiener              : PSNR= 18.89 dB (+ 8.66), SSIM=0.3657, Time=   0.9ms
+
+[5/10] Testing CNV-103044-107.png
+  Noisy: PSNR=11.91 dB
+  BM3D                : PSNR= 20.91 dB (+ 9.01), SSIM=0.4804, Time= 752.5ms
+  Bilateral           : PSNR= 12.53 dB (+ 0.62), SSIM=0.1607, Time=   1.8ms
+  Gaussian (σ=0.5)    : PSNR= 15.46 dB (+ 3.56), SSIM=0.2608, Time=   0.3ms
+  Gaussian (σ=1.0)    : PSNR= 21.00 dB (+ 9.09), SSIM=0.5263, Time=   0.2ms
+  Gaussian (σ=1.5)    : PSNR= 22.51 dB (+10.60), SSIM=0.5867, Time=   0.1ms
+  NLM                 : PSNR= 21.16 dB (+ 9.25), SSIM=0.4606, Time=   8.5ms
+  NSND (old rules)    : PSNR= 14.66 dB (+ 2.75), SSIM=0.2025, Time=  10.5ms
+  NSND (untrained)    : PSNR= 14.79 dB (+ 2.88), SSIM=0.2040, Time=  13.0ms
+  Wiener              : PSNR= 18.94 dB (+ 7.04), SSIM=0.4182, Time=   0.9ms
+
+[6/10] Testing DME-1083927-1.png
+  Noisy: PSNR=13.98 dB
+  BM3D                : PSNR= 19.18 dB (+ 5.20), SSIM=0.5645, Time= 786.2ms
+  Bilateral           : PSNR= 14.67 dB (+ 0.68), SSIM=0.2181, Time=   2.2ms
+  Gaussian (σ=0.5)    : PSNR= 17.50 dB (+ 3.52), SSIM=0.2951, Time=   0.1ms
+  Gaussian (σ=1.0)    : PSNR= 22.95 dB (+ 8.96), SSIM=0.5684, Time=   0.1ms
+  Gaussian (σ=1.5)    : PSNR= 24.66 dB (+10.67), SSIM=0.6597, Time=   0.2ms
+  NLM                 : PSNR= 17.94 dB (+ 3.95), SSIM=0.4809, Time=   8.5ms
+  NSND (old rules)    : PSNR= 17.29 dB (+ 3.30), SSIM=0.2512, Time=  12.4ms
+  NSND (untrained)    : PSNR= 17.46 dB (+ 3.47), SSIM=0.2571, Time=  12.3ms
+  Wiener              : PSNR= 18.71 dB (+ 4.73), SSIM=0.4764, Time=   1.3ms
+
+[7/10] Testing DME-1083927-11.png
+  Noisy: PSNR=16.17 dB
+  BM3D                : PSNR= 25.20 dB (+ 9.03), SSIM=0.4759, Time= 788.7ms
+  Bilateral           : PSNR= 17.80 dB (+ 1.63), SSIM=0.2376, Time=   1.9ms
+  Gaussian (σ=0.5)    : PSNR= 19.90 dB (+ 3.73), SSIM=0.3734, Time=   0.1ms
+  Gaussian (σ=1.0)    : PSNR= 25.79 dB (+ 9.62), SSIM=0.6402, Time=   0.1ms
+  Gaussian (σ=1.5)    : PSNR= 26.93 dB (+10.77), SSIM=0.6389, Time=   0.1ms
+  NLM                 : PSNR= 24.50 dB (+ 8.33), SSIM=0.4161, Time=   7.4ms
+  NSND (old rules)    : PSNR= 18.31 dB (+ 2.14), SSIM=0.2448, Time=  20.0ms
+  NSND (untrained)    : PSNR= 18.41 dB (+ 2.25), SSIM=0.2453, Time=  14.4ms
+  Wiener              : PSNR= 23.02 dB (+ 6.85), SSIM=0.4595, Time=   0.7ms
+
+[8/10] Testing DME-1169820-4.png
+  Noisy: PSNR=13.32 dB
+  BM3D                : PSNR= 24.37 dB (+11.06), SSIM=0.6491, Time= 796.8ms
+  Bilateral           : PSNR= 14.38 dB (+ 1.06), SSIM=0.0716, Time=   3.2ms
+  Gaussian (σ=0.5)    : PSNR= 17.02 dB (+ 3.70), SSIM=0.1074, Time=   0.2ms
+  Gaussian (σ=1.0)    : PSNR= 23.67 dB (+10.35), SSIM=0.3644, Time=   0.1ms
+  Gaussian (σ=1.5)    : PSNR= 26.53 dB (+13.22), SSIM=0.5533, Time=   0.2ms
+  NLM                 : PSNR= 25.55 dB (+12.24), SSIM=0.6209, Time=  11.9ms
+  NSND (old rules)    : PSNR= 16.47 dB (+ 3.15), SSIM=0.0925, Time=   9.2ms
+  NSND (untrained)    : PSNR= 16.56 dB (+ 3.24), SSIM=0.0925, Time=  10.1ms
+  Wiener              : PSNR= 20.91 dB (+ 7.60), SSIM=0.3376, Time=   1.3ms
+
+[9/10] Testing DME-119840-4.png
+  Noisy: PSNR=19.96 dB
+  BM3D                : PSNR= 30.83 dB (+10.87), SSIM=0.7774, Time= 587.4ms
+  Bilateral           : PSNR= 23.84 dB (+ 3.88), SSIM=0.3196, Time=   1.6ms
+  Gaussian (σ=0.5)    : PSNR= 23.75 dB (+ 3.79), SSIM=0.2392, Time=   0.1ms
+  Gaussian (σ=1.0)    : PSNR= 30.70 dB (+10.74), SSIM=0.6076, Time=   0.1ms
+  Gaussian (σ=1.5)    : PSNR= 33.73 dB (+13.77), SSIM=0.7658, Time=   0.1ms
+  NLM                 : PSNR= 31.84 dB (+11.88), SSIM=0.7670, Time=   6.9ms
+  NSND (old rules)    : PSNR= 23.01 dB (+ 3.05), SSIM=0.2132, Time=   9.7ms
+  NSND (untrained)    : PSNR= 23.23 dB (+ 3.27), SSIM=0.2196, Time=  10.4ms
+  Wiener              : PSNR= 27.07 dB (+ 7.11), SSIM=0.5547, Time=   0.8ms
+
+[10/10] Testing DME-15307-2.png
+  Noisy: PSNR=21.65 dB
+  BM3D                : PSNR= 31.05 dB (+ 9.40), SSIM=0.6657, Time= 546.7ms
+  Bilateral           : PSNR= 25.45 dB (+ 3.80), SSIM=0.4031, Time=   1.5ms
+  Gaussian (σ=0.5)    : PSNR= 25.58 dB (+ 3.94), SSIM=0.4621, Time=   0.1ms
+  Gaussian (σ=1.0)    : PSNR= 32.23 dB (+10.58), SSIM=0.7669, Time=   0.1ms
+  Gaussian (σ=1.5)    : PSNR= 33.45 dB (+11.80), SSIM=0.7879, Time=   0.1ms
+  NLM                 : PSNR= 29.40 dB (+ 7.75), SSIM=0.6027, Time=   6.7ms
+  NSND (old rules)    : PSNR= 23.66 dB (+ 2.01), SSIM=0.3212, Time=   9.2ms
+  NSND (untrained)    : PSNR= 23.93 dB (+ 2.28), SSIM=0.3340, Time=  11.2ms
+  Wiener              : PSNR= 28.33 dB (+ 6.69), SSIM=0.5872, Time=   0.7ms
+
+✓ Saved results to /home/kumwilai/OCT/nsnd_oct/benchmark_results/benchmark_results.json
+
+================================================================================
+BENCHMARK SUMMARY
+================================================================================
+Method                    PSNR (dB)       SSIM            Time (ms)    Category
+--------------------------------------------------------------------------------
+Gaussian (σ=1.5)           25.96 ± 4.27  0.6123 ± 0.1009       0.1    classical
+Gaussian (σ=1.0)           24.17 ± 4.02  0.5191 ± 0.1473       0.1    classical
+BM3D                       23.96 ± 3.93  0.5690 ± 0.1044     682.0    classical
+NLM                        23.93 ± 4.09  0.5359 ± 0.1089       8.3    classical
+Wiener                     21.62 ± 3.28  0.4358 ± 0.0898       1.5    classical
+Gaussian (σ=0.5)           18.32 ± 3.68  0.2527 ± 0.1359       0.2    classical
+NSND (untrained)           17.54 ± 3.45  0.1974 ± 0.0968      12.8    neuro-symbolic
+NSND (old rules)           17.39 ± 3.41  0.1941 ± 0.0943      11.7    neuro-symbolic
+Bilateral                  16.15 ± 4.81  0.1925 ± 0.1220       2.1    classical
+--------------------------------------------------------------------------------
+Noisy (baseline)           14.70 ± 3.63  0.1438 ± 0.0918         -    baseline
+================================================================================
+✓ Saved plots to /home/kumwilai/OCT/nsnd_oct/benchmark_results/benchmark_comparison.png
+
+================================================================================
+Benchmark Complete!
+================================================================================
+
+Results saved to: /home/kumwilai/OCT/nsnd_oct/benchmark_results
+  - benchmark_results.json
+  - benchmark_summary.json
+  - benchmark_comparison.png

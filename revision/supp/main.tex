@@ -1,0 +1,40 @@
+\documentclass{ieeetj}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts,amsthm,mathtools}
+\usepackage{graphicx,color,xcolor}
+\usepackage{booktabs,multirow,url,bm,siunitx}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{hyperref}
+\hypersetup{hidelinks=true}
+\AtBeginDocument{\definecolor{tmlcncolor}{cmyk}{0.93,0.59,0.15,0.02}\definecolor{NavyBlue}{RGB}{0,86,125}}
+\makeatletter \let\@revised\@empty \makeatother
+\def\OJlogo{}\def\seclogo{}
+\def\authorrefmark#1{\ensuremath{^{\textbf{#1}}}}
+\newtheorem{theorem}{Theorem}
+\renewcommand{\thetheorem}{S\arabic{theorem}}
+\renewcommand{\thesection}{S\arabic{section}}
+\renewcommand{\thetable}{S\arabic{table}}
+\renewcommand{\thefigure}{S\arabic{figure}}
+\renewcommand{\theequation}{S\arabic{equation}}
+
+\begin{document}
+\markboth{}{Anonymous et al.}
+\title{Supplementary Material for Backbone-Modular Neuro-Symbolic Post-Correction for OCT Denoising}
+\author{Anonymous Author(s)\authorrefmark{1}}
+\affil{\authorrefmark{1} Anonymous Affiliation}
+\corresp{Correspondence withheld for double blind review.}
+\maketitle
+
+This document holds the material that does not fit inside the page limit of the main paper. It adds
+nothing to the claims. It gives the closed form of every clinical property, the proof of the second
+theorem, the training algorithm, the full list of constants, the visual comparison for all four
+backbones, and a note on a defect found and repaired during revision.
+
+\input{sections/S1_predicates}
+\input{sections/S2_proof}
+\input{sections/S3_training}
+\input{sections/S4_subjective}
+\input{sections/S5_defect}
+
+\end{document}

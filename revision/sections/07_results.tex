@@ -1,0 +1,210 @@
+\section{Tests and Results}
+\label{sec:tests}
+
+\subsection{Setup}
+\label{sec:setup}
+
+\subsubsection{Data}
+Three retinal OCT datasets from three different sources are used, listed in
+Table~\ref{tab:datasets}. Paired data is expensive in OCT because a clean reference requires many
+repeated acquisitions under steady fixation~\cite{geng2022triplet}, so these are among the largest
+public paired sets available. PKU37~\cite{geng2022triplet} provides 37 cross sections from a
+spectral domain scanner with references averaged over 50 frames. We split it by clean image identity
+into 27 for training, 5 for validation and 5 for testing, which yields 1388, 173 and 173 noisy and
+clean pairs. Splitting by identity rather than by pair is what prevents a noisy realisation of a
+training image from appearing in the test set. Duke17~\cite{fang2012sparsity} provides 16 paired B
+scans from a clinical scanner at a different institution. Duke2013~\cite{fang2013fast} provides 18
+volumes with controlled degradation.
+
+\subsubsection{The transfer protocol, stated exactly}
+\label{sec:protocol}
+This point was ambiguous in the previous version of this paper and we state it precisely here.
+
+Every model is trained once on the PKU37 training split. The Duke17 and Duke2013 results in
+Table~\ref{tab:transfer} are produced by applying that model directly to the external images. No
+parameter is updated on Duke data. No threshold is recalibrated on Duke data. No statistic of the
+Duke images is used to select anything. The only quantity computed per image is the intensity
+percentile inside the gate of Equation~\eqref{eq:gate}, which is part of the method itself and is
+computed identically on PKU37.
+
+For completeness we also report the alternative protocol, in which the model is allowed a short
+adaptation on the other images of the same external dataset before being applied to a held out image.
+Reporting both separates what transfers without cost from what has to be paid for, and
+Section~\ref{sec:results_ood} gives the gap between them.
+
+\subsubsection{Measures}
+Seven quantities are reported. Peak signal to noise ratio measures fidelity against the clean
+reference. The other six are clinical and are reported as a percentage change from the backbone
+output to the corrected output. Contrast to noise ratio measures the separation of tissue from
+background. Tissue contrast index measures dynamic range inside tissue. Edge preservation index
+measures agreement of the edge map with the reference. Boundary sharpness measures the gradient
+across layer boundaries. Equivalent number of looks measures speckle suppression. Signal to noise
+ratio measures signal strength against the noise floor. Every measure is computed per image and then
+averaged, never pooled across a batch, because pooling inflates the result.
+
+\subsubsection{Cost}
+The wrapper adds \num{168630} trainable parameters to a frozen backbone of about seven million,
+which is an increase of about 2.4 percent, summarised at the foot of Table~\ref{tab:datasets}.
+
+\subsection{In distribution results}
+\label{sec:results_id}
+Table~\ref{tab:pku37} reports the PKU37 test set. TBDRESULTS
+
+\subsection{Transfer to other scanners}
+\label{sec:results_ood}
+Table~\ref{tab:transfer} reports both protocols on Duke17 and Duke2013. TBDRESULTS
+
+\subsection{Contribution of each clinical property}
+\label{sec:predicate_ablation}
+Reviewer feedback asked whether all six properties are needed. We remove one property at a time at
+test time, which sets its score to the satisfied value and its failure map to zero, and re evaluate
+the whole test set. Fig.~\ref{fig:studies} reports the result. TBDRESULTS
+
+\subsection{Sensitivity to the rule constants}
+\label{sec:sensitivity}
+The rule layer contains a base level, five rule weights and five budgets. We vary each in turn and
+re evaluate. Fig.~\ref{fig:studies} reports the result. We also replace the Lukasiewicz
+conjunction by the product and by the minimum, which are the two other standard choices, to test
+whether the specific logic matters. TBDRESULTS
+
+\subsection{Contribution of each component}
+\label{sec:component_ablation}
+Table~\ref{tab:ablation} removes one component at a time. TBDRESULTS
+
+\subsection{Comparison at matched complexity}
+\label{sec:matched}
+A reviewer asked for a comparison against methods of similar complexity built with the same design
+approach. We therefore compare against three alternatives that all act on the same frozen backbone
+output. The first is a plain convolutional post corrector with the same parameter budget, trained
+with the same objective, with no properties, no rules and no safety layer. The second and third are
+classical post processing operators, namely unsharp masking and contrast limited adaptive histogram
+equalisation, tuned on the validation split. The lower block of Table~\ref{tab:ablation} reports the result. TBDRESULTS
+
+\subsection{Does the confidence map predict error}
+\label{sec:confidence_check}
+A reviewer observed that nothing in the objective forces the confidence map to behave like a
+confidence. We test it directly. For every test image we compare the map against the absolute error
+of the backbone output with respect to the clean reference. The rank correlation, the sparsification error and the expected calibration error after a single affine
+fit. TBDRESULTS
+
+\subsection{Do the theoretical conditions hold on real data}
+\label{sec:theory_check}
+This subsection connects Section~\ref{sec:stability} to measurements, which is what a reviewer asked
+for. Three things are checked. For the stability result we perturb the rule truth values by a
+controlled amount and measure the ratio in Equation~\eqref{eq:stability_def}, then compare it with
+the constant of Equation~\eqref{eq:lipschitz}. For the contrast result we measure the tissue gain,
+the background leakage and the ratio of background standard deviations on every image, and report how
+often the hypotheses of Theorem~\ref{thm:cnr} hold. For the safety layer we report how often each of
+the three constraints fails and which one is binding. TBDRESULTS
+
+\subsection{Safety, and whether the correction invents structure}
+\label{sec:safety_check}
+A correction that raises contrast could in principle sharpen a boundary that is not there, or erase a
+faint one that is. Because PKU37 provides a clean reference we can measure both directly. We report
+the rate at which an edge appears in the corrected image where the reference has none, the retention
+of weak structures whose contrast in the reference is in the lowest decile, the behaviour inside dark
+fluid like regions enclosed by tissue, and the worst case per image change across the whole test set.
+Fig.~\ref{fig:studies} reports the result. TBDRESULTS
+
+We state one limitation plainly. No clinician read these images. The analysis above is quantitative
+and uses the averaged reference as the standard of truth. A reader study is the correct next step and
+is outside the scope of this revision.
+
+\subsection{Cost of moving to a new backbone}
+\label{sec:transfer_cost}
+Only the confidence head depends on the backbone, and adapting it is additional training, so its cost
+should be stated rather than assumed away. For each of the four backbones we report the size of the head, the data used to fit it, the number of epochs, the wall clock time and the spread across repeated runs. TBDRESULTS
+
+\begin{table}[!tb]
+\centering
+\caption{The three datasets. PKU37 is the training domain. The two Duke sets are used only for
+transfer and no parameter is fitted on them.}
+\label{tab:datasets}
+\setlength{\tabcolsep}{3pt}
+\footnotesize
+\begin{tabular}{llcc}
+\toprule
+Dataset & Scanner & Image size & Images \\
+\midrule
+PKU37~\cite{geng2022triplet} & spectral domain, PKU & $640 \times 640$ & 1388 / 173 / 173 \\
+Duke17~\cite{fang2012sparsity} & spectral domain, Duke & $970 \times 520$ & 16 \\
+Duke2013~\cite{fang2013fast} & synthetic degradation & $900 \times 450$ & 18 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+
+\begin{table*}[!tb]
+\centering
+\caption{Results on the PKU37 test set of 173 images. The peak signal to noise ratio is absolute and
+its change is in decibels. The six clinical measures are reported as the percentage change from the
+backbone output to the corrected output. TBDRESULTS}
+\label{tab:pku37}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccccccc}
+\toprule
+Backbone & PSNR (dB) & $\Delta$PSNR (dB) & $\Delta$CNR & $\Delta$TCI & $\Delta$EPI & $\Delta$BS & $\Delta$ENL & $\Delta$SNR \\
+\midrule
+\input{../sections/generated/tab_in_distribution}
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[!tb]
+\centering
+\caption{Transfer to two other scanners. The upper block applies the model trained on PKU37 with no
+adaptation of any kind. The lower block allows a short adaptation on the other images of the same
+dataset before testing on the held out image. The gap between the blocks is the price of the
+adaptation. TBDRESULTS}
+\label{tab:transfer}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llccccccc}
+\toprule
+Protocol & Backbone & $\Delta$PSNR (dB) & $\Delta$CNR & $\Delta$TCI & $\Delta$EPI & $\Delta$BS & $\Delta$ENL & $\Delta$SNR \\
+\midrule
+\input{../sections/generated/tab_transfer}
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure*}[!tb]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_studies.pdf}
+\caption{Left, the effect of removing one clinical property at a time on the full PKU37 test set.
+Middle, sensitivity of the result to the constants of the rule layer. Right, the safety analysis.
+TBDRESULTS}
+\label{fig:studies}
+\end{figure*}
+
+
+
+\begin{table}[!tb]
+\centering
+\caption{Upper block, removing one component at a time. Lower block, alternatives of similar
+complexity acting on the same frozen backbone output. TBDRESULTS}
+\label{tab:ablation}
+\setlength{\tabcolsep}{2.5pt}
+\footnotesize
+\begin{tabular}{lcccccc}
+\toprule
+Configuration & $\Delta$PSNR & $\Delta$CNR & $\Delta$TCI & $\Delta$EPI & $\Delta$BS & $\Delta$ENL \\
+\midrule
+\input{../sections/generated/tab_ablation}
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+
+
+
+\begin{figure*}[!tb]
+\centering
+\includegraphics[width=0.98\textwidth]{figures/fig_subjective_pku37.pdf}
+\caption{Visual comparison on PKU37 for the two extreme cases. Rows are NAFNet, which loses the least
+fidelity, and SwinIR, which gains the most contrast. Columns are the noisy input, the backbone
+output, the corrected output and the clean reference. The remaining two backbones are shown in the
+supplementary file.}
+\label{fig:subjective_pku37}
+\end{figure*}

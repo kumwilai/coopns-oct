@@ -1,0 +1,54 @@
+# Training and evaluation artefacts. 18 GB, and every file in it is reproducible
+# from the code plus the checkpoints that are tracked.
+outputs/
+logs/
+__pycache__/
+*.pyc
+
+# The image data. 721 MB, and it is not ours to redistribute.
+pku37_oct_dataset/
+duke*_loo*/
+*.npy
+*.npz
+
+# Working copies and backups made while fixing the revision defects.
+*.bak
+*.bak_*
+*.orig
+*.tmp
+.venv/
+venv/
+
+# LaTeX build products.
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.bbl
+*.blg
+*.xdv
+
+# The release bundle keeps its own git history and its own remote.
+revision/release/.git/
+
+# Third party data. The Duke sets belong to their authors and are obtained from
+# them, not redistributed here.
+duke_sota_datasets/
+duke17_*/
+*.mat
+
+# Archives and duplicated weight copies. checkpointpaper holds the canonical set.
+*.tar.gz
+*.zip
+benchmarks/pretrained/
+NukeModel/
+
+# Bulk result dumps, reproducible from the code.
+results/
+subjective_quality/
+experiments/
+
+# The website is a separate repository.
+website/

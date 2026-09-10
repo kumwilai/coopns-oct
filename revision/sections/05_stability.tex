@@ -1,0 +1,122 @@
+\section{Stability and Guarantees}
+\label{sec:stability}
+
+This section states what the method guarantees. We first define the notion of stability that is used,
+because the word carries several meanings, then prove that the rule layer has it, and then give the
+condition under which the correction cannot reduce contrast. Section~\ref{sec:theory_check} tests
+both results numerically on real images.
+
+\subsection{What stability means here}
+\label{sec:stability_def}
+This is not stability in the sense of Lyapunov and we claim no fixed point. The quantity that must
+not behave erratically is the decision the rule layer makes, which is a function of the five rule
+truth values. Those values are exactly what shift when the backbone or the scanner changes.
+
+\begin{definition}[Stability of the allocation]
+\label{def:stability}
+Let $\mathbf{r} = (r_1, \ldots, r_5) \in [0,1]^5$ be the vector of rule truth values at one pixel and
+let $a(\mathbf{r})$ be the allocation of Equation~\eqref{eq:allocation} at that pixel with the
+parameters held fixed. The allocation is said to be stable with constant $L$ if
+\begin{equation}
+\big| a(\mathbf{r}) - a(\mathbf{r}') \big| \;\le\; L \, \lVert \mathbf{r} - \mathbf{r}' \rVert_\infty
+\qquad \text{for all } \mathbf{r}, \mathbf{r}' \in [0,1]^5 .
+\label{eq:stability_def}
+\end{equation}
+\end{definition}
+
+In words, a small change in the evidence produces a proportionally small change in the decision, and
+$L$ is the worst case ratio between the two. A method without such a bound could swing from applying
+no correction to applying all of it because one property score moved slightly, which is precisely the
+behaviour a clinical user cannot audit.
+
+\subsection{The rule layer is stable, with an exact constant}
+
+\begin{theorem}[Allocation stability]
+\label{thm:stability}
+The allocation of Equation~\eqref{eq:allocation} satisfies Definition~\ref{def:stability} with
+\begin{equation}
+L \;=\; C_1 w_1 + C_2 w_2 + C_3 w_3 + C_4 w_4 + C_5 w_5 ,
+\label{eq:lipschitz}
+\end{equation}
+where $w_k = \sigma(\theta_k)$ are the learned rule weights. The constant is attained, so it is the
+exact Lipschitz constant and not merely an upper bound. Moreover $L < C_1 + C_2 + C_3 + C_4 + C_5 =
+0.75$ for every possible setting of the parameters.
+\end{theorem}
+
+\begin{proof}
+Write $s_k = -1$ for $k \in \{1,5\}$ and $s_k = +1$ otherwise, so that
+Equation~\eqref{eq:allocation} reads $a(\mathbf{r}) = b + \sum_{k} s_k C_k w_k r_k$ with $b$
+independent of $\mathbf{r}$. Subtracting two such expressions gives
+\begin{equation*}
+a(\mathbf{r}) - a(\mathbf{r}') = \sum_{k} s_k C_k w_k (r_k - r'_k).
+\end{equation*}
+Taking absolute values and applying the triangle inequality,
+\begin{equation*}
+\big| a(\mathbf{r}) - a(\mathbf{r}') \big|
+\le \sum_{k} C_k w_k \, |r_k - r'_k|
+\le \Big( \sum_{k} C_k w_k \Big) \lVert \mathbf{r} - \mathbf{r}' \rVert_\infty ,
+\end{equation*}
+which is Equation~\eqref{eq:stability_def} with $L$ as claimed. The bound is attained by taking
+$r_k - r'_k = s_k t$ for any $t$ small enough to keep both vectors in the unit cube, since then every
+term of the sum has the same sign. Because each $C_k$ is positive and each $w_k = \sigma(\theta_k)$
+lies strictly in $(0,1)$, the sum is strictly less than $\sum_k C_k = 0.75$.
+\end{proof}
+
+Two properties do the work. The allocation is affine in the rule truth values, which makes the
+constant exact rather than conservative. The budgets satisfy $B_{\max} + C_2 + C_3 + C_4 = 1$ and
+$B_{\min} - C_1 - C_5 = 0$, so no clipping is ever applied. Had a clip been active the bound would
+still hold, but the gradient would vanish wherever it was tight and the rule weights could not be
+trained at all.
+
+\begin{corollary}[Behaviour under a change of backbone]
+\label{cor:transfer}
+Suppose replacing one backbone by another changes the rule truth values at a pixel by at most
+$\epsilon$ in the maximum norm, with the parameters unchanged. Then the allocation at that pixel
+changes by at most $L\epsilon$, with $L$ from Equation~\eqref{eq:lipschitz}.
+\end{corollary}
+
+This is a statement about the routing rule alone. It says the decision layer degrades gracefully when
+the evidence shifts. It is not a claim that image quality transfers, which is an empirical question
+answered in Section~\ref{sec:results_ood}.
+
+\subsection{When the correction cannot reduce contrast}
+Contrast to noise ratio is the measure this method targets most directly. Write
+$\mathrm{CNR}(\mathbf{v}) = (\mu_\mathcal{T}(\mathbf{v}) - \mu_\mathcal{B}(\mathbf{v})) / \sigma_\mathcal{B}(\mathbf{v})$
+for the separation between tissue and background divided by the variability of the background.
+
+\begin{theorem}[Contrast margin]
+\label{thm:cnr}
+Let $\eta_\mathcal{T} = \mu_\mathcal{T}(\mathbf{q}) - \mu_\mathcal{T}(\mathbf{b}) \ge 0$ be the gain in
+tissue mean and let $\eta_\mathcal{B} \ge \mu_\mathcal{B}(\mathbf{q}) - \mu_\mathcal{B}(\mathbf{b})$
+bound the leakage into the background. If the correction does not raise the background variability,
+that is $\sigma_\mathcal{B}(\mathbf{q}) \le \sigma_\mathcal{B}(\mathbf{b})$, then the output of
+Equation~\eqref{eq:blend} satisfies
+\begin{equation}
+\mathrm{CNR}(\hat{\mathbf{x}}) \;\ge\;
+\frac{\big(\mu_\mathcal{T}(\mathbf{b}) - \mu_\mathcal{B}(\mathbf{b})\big) + w\,(\eta_\mathcal{T} - \eta_\mathcal{B})}
+     {\sigma_\mathcal{B}(\mathbf{b})} .
+\label{eq:cnr_bound}
+\end{equation}
+In particular, whenever $\eta_\mathcal{T} > \eta_\mathcal{B}$ the correction cannot reduce the
+contrast to noise ratio.
+\end{theorem}
+
+\noindent The proof is a convex combination argument for the numerator and Minkowski's
+inequality for the denominator. It is given in full in the supplementary file.
+
+
+Three parts of the design work to make the hypotheses of Theorem~\ref{thm:cnr} hold in practice. The
+gate of Equation~\eqref{eq:gate} keeps $\eta_\mathcal{B}$ small by suppressing change in the dark
+region. The brightness branch of the gain network cannot be negative, which keeps $\eta_\mathcal{T}$
+non negative. The background smoothing lowers $\sigma_\mathcal{B}(\mathbf{q})$ rather than raising it.
+Section~\ref{sec:theory_check} measures all three quantities on every test image and reports how often
+the hypotheses actually hold.
+
+\subsection{What is not claimed}
+These results are deliberately narrow. Theorem~\ref{thm:stability} bounds how much the routing
+decision can move when the evidence moves, and says nothing about whether the decision is correct.
+Theorem~\ref{thm:cnr} gives a sufficient condition for contrast not to fall, and says nothing about
+the other five measures. Neither result promises that the corrected image is closer to the clean
+reference, and in fact Section~\ref{sec:results_id} reports that peak signal to noise ratio usually
+falls slightly. The guarantees are about the behaviour of the policy, not about the quality of the
+denoiser underneath it.

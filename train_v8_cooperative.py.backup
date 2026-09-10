@@ -1,0 +1,2251 @@
+#!/usr/bin/env python3
+"""
+Train V8 Cooperative Neuro-Symbolic Denoising Framework
+
+IEEE TMI Publication-Worthy Training Script
+
+This script implements the Cooperative Neuro-Symbolic Denoising framework where:
+1. NAFNet backbone handles the base denoising
+2. Specialized correctors COOPERATE based on NAFNet's uncertainty
+3. A negotiator allocates work between NAFNet and correctors
+4. Correctors specialize in regions where NAFNet is uncertain
+
+Key Innovation: COOPERATION, NOT COMPETITION
+- Correctors have high potential where NAFNet is uncertain
+- Work allocation based on confidence/uncertainty regions
+- Efficiency: No redundant computation where NAFNet is confident
+
+Training Targets (for IEEE TMI):
+- All 5 predicates pass (P5 excluded - incompatible with denoising)
+- +10-15% clinical improvement
+- < 0.5 dB PSNR drop
+- Clear cooperation patterns (not all correctors active everywhere)
+
+Author: Neuro-Symbolic OCT Team
+Date: 2026-02-03
+"""
+
+import argparse
+import os
+import sys
+import json
+import gc
+import math
+import numpy as np
+from PIL import Image
+from typing import Dict, Tuple, Optional, List
+from collections import defaultdict
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import Dataset, DataLoader
+from torch.cuda.amp import autocast, GradScaler
+from tqdm import tqdm
+
+# Add paths
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nsnd_oct'))
+
+# Import cooperative module
+from neuro_symbolic_corrector_v8_cooperative import NeuroSymbolicCorrectorV8Cooperative
+
+# Import CNR-preserving spatial loss (smart algorithmic approach for CNR preservation)
+from uncertainty_guided_correction import CNRPreservingSpatialLoss
+
+
+# =============================================================================
+# Backbone Wrapper with Feature Extraction and Uncertainty Estimation
+# =============================================================================
+
+class BackboneWithFeatures(nn.Module):
+    """
+    NAFNet backbone that returns intermediate encoder features AND uncertainty estimates.
+
+    Returns:
+        denoised: Final denoised output [B, 1, H, W]
+        features: Dict with 'enc1' [B, width, H, W] and 'enc2' [B, width*2, H/2, W/2]
+        uncertainty: Per-pixel uncertainty estimate [B, 1, H, W]
+    """
+
+    def __init__(self, width: int = 40):
+        super().__init__()
+
+        from nsnd.models.nafnet import NAFNetSmall
+        self.backbone = NAFNetSmall(img_channel=1, width=width)
+        self.width = width
+
+        # Uncertainty estimation head (uses encoder features)
+        # Predicts epistemic uncertainty based on feature variability
+        # Architecture: Conv -> BN -> ReLU -> Conv -> (calibrated sigmoid)
+        self.uncertainty_conv1 = nn.Conv2d(width, width // 2, 3, padding=1, bias=False)
+        self.uncertainty_bn = nn.BatchNorm2d(width // 2)
+        self.uncertainty_conv2 = nn.Conv2d(width // 2, 1, 1)
+
+        # Learned calibration parameters for uncertainty
+        # temperature controls the sharpness: higher = more spread, lower = more confident
+        # bias_offset shifts the distribution: more negative = lower uncertainty
+        self.uncertainty_temperature = nn.Parameter(torch.tensor(1.0))
+        self.uncertainty_bias_offset = nn.Parameter(torch.tensor(-1.5))  # Start with low uncertainty
+
+        self._init_uncertainty_head()
+
+    def _init_uncertainty_head(self):
+        """Initialize uncertainty head for well-calibrated outputs."""
+        # First conv: standard Kaiming init (before ReLU)
+        nn.init.kaiming_normal_(self.uncertainty_conv1.weight, mode='fan_out', nonlinearity='relu')
+
+        # BatchNorm: standard init
+        nn.init.constant_(self.uncertainty_bn.weight, 1)
+        nn.init.constant_(self.uncertainty_bn.bias, 0)
+
+        # Last conv: Xavier/Glorot init (before sigmoid) with small weights
+        # This ensures outputs are near 0 before sigmoid, giving ~0.5 uncertainty
+        # Combined with bias_offset, this gives well-calibrated low initial uncertainty
+        nn.init.xavier_uniform_(self.uncertainty_conv2.weight, gain=0.1)  # Small gain for conservative start
+        nn.init.constant_(self.uncertainty_conv2.bias, 0.0)  # Bias handled by uncertainty_bias_offset
+
+    def compute_uncertainty(self, enc_feat: torch.Tensor) -> torch.Tensor:
+        """Compute calibrated uncertainty from encoder features."""
+        x = self.uncertainty_conv1(enc_feat)
+        x = self.uncertainty_bn(x)
+        x = F.relu(x, inplace=True)
+        x = self.uncertainty_conv2(x)
+
+        # Apply learned calibration: temperature scaling + bias offset
+        # Clamp temperature to positive values for stability
+        temp = self.uncertainty_temperature.clamp(min=0.1)
+        calibrated = (x + self.uncertainty_bias_offset) / temp
+
+        # Sigmoid for [0, 1] output
+        uncertainty = torch.sigmoid(calibrated)
+
+        return uncertainty
+
+    def load_pretrained(self, path: str) -> bool:
+        """Load pretrained weights."""
+        if not os.path.exists(path):
+            print(f"Pretrained weights not found: {path}")
+            return False
+
+        try:
+            ckpt = torch.load(path, map_location='cpu', weights_only=False)
+            state_dict = ckpt.get('model_state_dict', ckpt.get('state_dict', ckpt))
+
+            model_state = self.backbone.state_dict()
+            compatible = {k: v for k, v in state_dict.items()
+                         if k in model_state and v.shape == model_state[k].shape}
+
+            if len(compatible) == 0:
+                print("No compatible weights found")
+                return False
+
+            self.backbone.load_state_dict(compatible, strict=False)
+            print(f"Loaded {len(compatible)}/{len(model_state)} backbone weights")
+
+            if 'psnr' in ckpt:
+                print(f"  Checkpoint PSNR: {ckpt['psnr']:.2f} dB, SSIM: {ckpt.get('ssim', 'N/A')}")
+            return True
+        except Exception as e:
+            print(f"Failed to load backbone: {e}")
+            return False
+
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
+        """Forward pass with feature extraction and uncertainty estimation."""
+        bb = self.backbone
+        B, C, H, W = x.shape
+
+        padder_size = 2 ** len(bb.encoders)
+        mod_h = H % padder_size
+        mod_w = W % padder_size
+        if mod_h != 0 or mod_w != 0:
+            pad_h = padder_size - mod_h if mod_h != 0 else 0
+            pad_w = padder_size - mod_w if mod_w != 0 else 0
+            inp = F.pad(x, (0, pad_w, 0, pad_h), mode='reflect')
+        else:
+            inp = x
+
+        feat = bb.intro(inp)
+
+        encs = []
+        encs_for_features = []
+        for i, (encoder, down) in enumerate(zip(bb.encoders, bb.downs)):
+            feat = encoder(feat)
+            encs.append(feat)
+            if i < 2:
+                encs_for_features.append(feat)
+            feat = down(feat)
+
+        feat = bb.middle_blks(feat)
+
+        for decoder, up, enc_skip in zip(bb.decoders, bb.ups, encs[::-1]):
+            feat = up(feat)
+            feat = feat + enc_skip
+            feat = decoder(feat)
+
+        out = bb.ending(feat) + inp
+        out = out[:, :, :H, :W]
+
+        # Extract features (detached for corrector input)
+        enc1_feat = encs_for_features[0][:, :, :H, :W]
+        features = {
+            'enc1': enc1_feat.detach(),
+            'enc2': encs_for_features[1][:, :, :min(H//2, encs_for_features[1].shape[2]),
+                                          :min(W//2, encs_for_features[1].shape[3])].detach(),
+        }
+
+        # Estimate uncertainty from encoder features (using calibrated method)
+        uncertainty = self.compute_uncertainty(enc1_feat)
+
+        del encs, encs_for_features
+
+        return out.clamp(0, 1), features, uncertainty
+
+
+# =============================================================================
+# Dataset
+# =============================================================================
+
+class PKU37Dataset(Dataset):
+    """PKU37 real noise dataset."""
+
+    def __init__(self, jsonl_path: str, max_samples: int = None,
+                 patch_size: int = 96, is_train: bool = True):
+        self.samples = []
+        self.patch_size = patch_size
+        self.is_train = is_train
+
+        with open(jsonl_path, 'r') as f:
+            for line in f:
+                entry = json.loads(line.strip())
+                if 'clean_path' in entry and 'noisy_path' in entry:
+                    if os.path.exists(entry['clean_path']) and os.path.exists(entry['noisy_path']):
+                        self.samples.append({
+                            'clean': entry['clean_path'],
+                            'noisy': entry['noisy_path'],
+                        })
+
+        if max_samples:
+            self.samples = self.samples[:max_samples]
+
+        print(f"Loaded {len(self.samples)} PKU37 samples")
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        sample = self.samples[idx]
+
+        clean = np.array(Image.open(sample['clean'])).astype(np.float32)
+        noisy = np.array(Image.open(sample['noisy'])).astype(np.float32)
+
+        if clean.max() > 1.0:
+            clean = clean / 255.0
+        if noisy.max() > 1.0:
+            noisy = noisy / 255.0
+
+        if self.patch_size > 0 and self.is_train:
+            H, W = clean.shape
+            if H > self.patch_size and W > self.patch_size:
+                y = np.random.randint(0, H - self.patch_size)
+                x = np.random.randint(0, W - self.patch_size)
+                clean = clean[y:y+self.patch_size, x:x+self.patch_size]
+                noisy = noisy[y:y+self.patch_size, x:x+self.patch_size]
+
+        if self.is_train:
+            if np.random.rand() > 0.5:
+                clean = np.flip(clean, axis=1).copy()
+                noisy = np.flip(noisy, axis=1).copy()
+            if np.random.rand() > 0.5:
+                clean = np.flip(clean, axis=0).copy()
+                noisy = np.flip(noisy, axis=0).copy()
+
+        clean = torch.from_numpy(clean).unsqueeze(0)
+        noisy = torch.from_numpy(noisy).unsqueeze(0)
+
+        return {'clean': clean, 'noisy': noisy}
+
+
+# =============================================================================
+# Model with Cooperative Correction
+# =============================================================================
+
+class NeuroSymbolicDenoiserV8Cooperative(nn.Module):
+    """
+    V8 Cooperative Neuro-Symbolic Denoiser.
+
+    Key Innovation: NAFNet and correctors COOPERATE based on uncertainty.
+    - NAFNet handles confident regions
+    - Correctors handle uncertain regions
+    - Negotiator allocates work efficiently
+
+    This creates a principled division of labor:
+    1. NAFNet does the heavy lifting in most regions
+    2. Correctors specialize in difficult cases
+    3. No redundant computation
+    """
+
+    def __init__(self, backbone_width: int = 48, pretrained_backbone: str = None):
+        super().__init__()
+
+        # Backbone with feature extraction and uncertainty estimation
+        self.backbone = BackboneWithFeatures(width=backbone_width)
+
+        # Cooperative Corrector
+        self.corrector = NeuroSymbolicCorrectorV8Cooperative(
+            in_channels=1,
+            hidden_channels=32,
+            enc1_channels=backbone_width,
+            enc2_channels=backbone_width * 2
+        )
+
+        # Load pretrained backbone
+        if pretrained_backbone and os.path.exists(pretrained_backbone):
+            self.backbone.load_pretrained(pretrained_backbone)
+
+        self._print_params()
+
+    def _print_params(self):
+        backbone_params = sum(p.numel() for p in self.backbone.parameters())
+        corrector_params = sum(p.numel() for p in self.corrector.parameters())
+        total_params = backbone_params + corrector_params
+
+        print(f"\nNeuroSymbolicDenoiserV8Cooperative Parameters:")
+        print(f"  Backbone (width={self.backbone.width}): {backbone_params:,} ({backbone_params/1e6:.2f}M)")
+        print(f"  Cooperative Corrector: {corrector_params:,} ({corrector_params/1e6:.2f}M)")
+        print(f"  Total: {total_params:,} ({total_params/1e6:.2f}M)")
+
+    def forward(self, noisy: torch.Tensor, return_details: bool = False):
+        """
+        Forward pass with cooperative correction.
+
+        Returns:
+            corrected: Final output
+            backbone_out: Backbone-only output
+            info: Detailed information dict including cooperation stats
+        """
+        # Get backbone output, features, and uncertainty
+        backbone_out, backbone_features, nafnet_uncertainty = self.backbone(noisy)
+
+        # Apply cooperative correction
+        corrected, info = self.corrector(
+            backbone_out, noisy, backbone_features,
+            nafnet_uncertainty=nafnet_uncertainty,
+            return_details=return_details
+        )
+
+        # Add backbone uncertainty to info
+        info['nafnet_uncertainty'] = nafnet_uncertainty
+
+        return corrected, backbone_out, info
+
+
+# =============================================================================
+# Cooperative Loss Function
+# =============================================================================
+
+class CooperativeLoss(nn.Module):
+    """
+    Loss function for Cooperative Neuro-Symbolic Denoising.
+
+    Components:
+    1. Base reconstruction loss (MSE)
+    2. Predicate alignment loss (corrected predicates -> GT predicates)
+    3. Cooperation loss: Encourage correctors to have high potential where NAFNet is uncertain
+    4. Allocation efficiency loss: Penalize redundancy (both NAFNet and corrector active)
+    5. Clinical metrics loss (contrast, edge, boundary)
+    6. PSNR preservation constraint
+
+    Uses uncertainty weighting (Kendall et al., 2018) for automatic balancing.
+    """
+
+    def __init__(self,
+                 cooperation_weight: float = 0.3,
+                 efficiency_weight: float = 0.2,
+                 clinical_weight: float = 0.5,
+                 cnr_weight: float = 0.5,
+                 psnr_slack: float = 0.5,
+                 use_uncertainty_weighting: bool = True):
+        super().__init__()
+
+        self.cooperation_weight = cooperation_weight
+        self.efficiency_weight = efficiency_weight
+        self.clinical_weight = clinical_weight
+        self.cnr_weight = cnr_weight
+        self.psnr_slack = psnr_slack
+        self.use_uncertainty_weighting = use_uncertainty_weighting
+
+        # Uncertainty parameters (learned)
+        # ENHANCED: Lower initial values for contrast-related terms = higher initial weight
+        self.log_sigma = nn.ParameterDict({
+            'recon': nn.Parameter(torch.tensor(0.0)),
+            'backbone': nn.Parameter(torch.tensor(1.0)),
+            'cooperation': nn.Parameter(torch.tensor(0.5)),
+            'efficiency': nn.Parameter(torch.tensor(0.5)),
+            'contrast': nn.Parameter(torch.tensor(-0.5)),  # LOWER = higher weight for contrast
+            'contrast_improve': nn.Parameter(torch.tensor(-1.0)),  # NEW: very high weight for improvement
+            'cnr_preserve': nn.Parameter(torch.tensor(-0.5)),  # CNR preservation - high weight
+            'cnr_spatial': nn.Parameter(torch.tensor(-0.5)),  # NEW: CNR spatial loss (smart algorithmic)
+            'edge': nn.Parameter(torch.tensor(1.0)),
+            'boundary': nn.Parameter(torch.tensor(1.0)),
+            'psnr_preserve': nn.Parameter(torch.tensor(-2.0)),  # VERY high weight for PSNR preservation (target: <=0.5 dB drop)
+            'predicate_align': nn.Parameter(torch.tensor(-1.0)),  # LOWER = higher weight
+            'texture_preserve': nn.Parameter(torch.tensor(-0.5)),  # Texture preservation - high weight
+        })
+
+        # CNR-Preserving Spatial Loss (smart algorithmic approach)
+        # Uses soft segmentation and region-aware penalties
+        # All loss components are positive penalties, ensuring total loss >= 0
+        self.cnr_spatial_loss = CNRPreservingSpatialLoss(
+            background_penalty_weight=10.0,  # Strong penalty for bg noise increase
+            tissue_reward_weight=2.0,        # Weight for contrast penalty (reduced when contrast improves)
+            cnr_weight=1.0                   # Direct CNR optimization
+        )
+
+        # Sobel filters for edge computation
+        sobel_x = torch.tensor([[-1., 0., 1.], [-2., 0., 2.], [-1., 0., 1.]]).view(1, 1, 3, 3)
+        sobel_y = torch.tensor([[-1., -2., -1.], [0., 0., 0.], [1., 2., 1.]]).view(1, 1, 3, 3)
+        self.register_buffer('sobel_x', sobel_x)
+        self.register_buffer('sobel_y', sobel_y)
+
+        # Laplacian filter for texture computation (high-frequency content)
+        laplacian = torch.tensor([[0., 1., 0.], [1., -4., 1.], [0., 1., 0.]]).view(1, 1, 3, 3)
+        self.register_buffer('laplacian', laplacian)
+
+        # Pre-register averaging kernels for local_std (called 9 times in compute_clinical_loss)
+        # This avoids recreating kernels on every call
+        for ks in [5, 7, 11]:
+            kernel = torch.ones(1, 1, ks, ks) / (ks ** 2)
+            self.register_buffer(f'avg_kernel_{ks}', kernel)
+
+        # Texture preservation weight
+        self.texture_weight = 0.3
+
+    def _weighted_loss(self, loss: torch.Tensor, name: str) -> torch.Tensor:
+        """Apply uncertainty weighting to a loss term.
+
+        BUG FIX 1: The regularization term (0.5 * log_sig) can be negative when
+        log_sig < 0, causing negative total loss. We apply F.relu to ensure
+        the weighted loss is always non-negative.
+
+        BUG FIX 2: Clamp log_sigma to prevent precision_weight explosion.
+        Without clamping, if log_sigma becomes very negative (e.g., -10),
+        precision_weight = 0.5 * exp(10) ≈ 11,013, causing loss spikes.
+
+        BUG FIX 3: Validate loss values - skip NaN/Inf to prevent corruption.
+        """
+        # Validate loss value first - skip if NaN or Inf
+        if not torch.isfinite(loss).all():
+            # Return zero loss for invalid values to prevent corruption
+            return torch.zeros_like(loss)
+
+        if self.use_uncertainty_weighting:
+            log_sig = self.log_sigma[name]
+            # Clamp log_sigma to reasonable range [-4, 4]
+            # At log_sig = -4: precision_weight = 0.5 * exp(4) ≈ 27.3 (max weight)
+            # At log_sig = +4: precision_weight = 0.5 * exp(-4) ≈ 0.009 (min weight)
+            log_sig_clamped = torch.clamp(log_sig, min=-4.0, max=4.0)
+            precision_weight = 0.5 * torch.exp(-log_sig_clamped)
+            # Additional safety: clamp precision_weight to [0.01, 50.0]
+            precision_weight = torch.clamp(precision_weight, min=0.01, max=50.0)
+            regularization = 0.5 * log_sig_clamped
+            # BUG FIX: Ensure weighted loss is always non-negative
+            # When log_sig < 0, regularization is negative, which can make
+            # the total weighted loss negative. Apply F.relu to prevent this.
+            weighted = precision_weight * loss + regularization
+            return F.relu(weighted)
+        else:
+            return loss
+
+    def get_learned_weights(self) -> dict:
+        """Get current learned weights."""
+        weights = {}
+        for name, log_sig in self.log_sigma.items():
+            sigma_sq = torch.exp(log_sig)
+            weight = 0.5 / sigma_sq
+            weights[name] = weight.item()
+        return weights
+
+    def local_std(self, x: torch.Tensor, kernel_size: int = 5) -> torch.Tensor:
+        """Compute local standard deviation using pre-registered kernels."""
+        kernel = getattr(self, f'avg_kernel_{kernel_size}')
+        if kernel.dtype != x.dtype:
+            kernel = kernel.to(dtype=x.dtype)
+        padding = kernel_size // 2
+        local_mean = F.conv2d(x, kernel, padding=padding)
+        local_sq_mean = F.conv2d(x ** 2, kernel, padding=padding)
+        local_var = local_sq_mean - local_mean ** 2
+        return torch.sqrt(local_var.clamp(min=1e-8))
+
+    def compute_cooperation_loss(self, nafnet_uncertainty: torch.Tensor,
+                                  corrector_potentials: Dict[str, torch.Tensor]) -> Tuple[torch.Tensor, Dict]:
+        """
+        Cooperation Loss: Encourage correctors to have high potential where NAFNet is uncertain.
+
+        Goal: Correctors should "pick up slack" where NAFNet struggles.
+        Loss = -correlation(uncertainty, total_potential)
+             = encourage high corrector potential in high uncertainty regions
+        """
+        # Sum corrector potentials (extract 'map' from dict if present)
+        # FIX: Avoid creating torch.tensor(0.0) in hot loop - use zeros_like instead
+        if corrector_potentials:
+            potential_maps = []
+            for name, val in corrector_potentials.items():
+                if isinstance(val, dict) and 'map' in val:
+                    potential_maps.append(val['map'])
+                elif isinstance(val, torch.Tensor):
+                    potential_maps.append(val)
+            if not potential_maps:
+                # FIX: Return scalar 0.0 directly, loss function handles it
+                zero_loss = nafnet_uncertainty.new_zeros(())
+                return zero_loss, {}
+            total_potential = sum(potential_maps)
+            del potential_maps  # FIX: Free list after use
+        else:
+            zero_loss = nafnet_uncertainty.new_zeros(())
+            return zero_loss, {}
+
+        # Normalize both to [0, 1] for correlation
+        uncertainty_norm = (nafnet_uncertainty - nafnet_uncertainty.min()) / (
+            nafnet_uncertainty.max() - nafnet_uncertainty.min() + 1e-8)
+        potential_norm = (total_potential - total_potential.min()) / (
+            total_potential.max() - total_potential.min() + 1e-8)
+
+        # Pearson correlation: we want POSITIVE correlation
+        # (high uncertainty -> high potential)
+        u_centered = uncertainty_norm - uncertainty_norm.mean()
+        p_centered = potential_norm - potential_norm.mean()
+
+        # FIX: Epsilon inside sqrt to prevent sqrt(0) before adding epsilon
+        correlation = (u_centered * p_centered).sum() / (
+            torch.sqrt((u_centered ** 2).sum() * (p_centered ** 2).sum() + 1e-16))
+
+        # Loss: negative correlation (we want to maximize correlation)
+        # Clamp correlation to [-1, 1] to avoid numerical issues, then ensure loss >= 0
+        correlation = correlation.clamp(-1.0, 1.0)
+        cooperation_loss = F.relu(1.0 - correlation)  # Always non-negative
+
+        metrics = {
+            'uncertainty_potential_corr': correlation.item(),
+            'mean_uncertainty': nafnet_uncertainty.mean().item(),
+            'mean_potential': total_potential.mean().item(),
+        }
+
+        return cooperation_loss, metrics
+
+    def compute_efficiency_loss(self, nafnet_confidence: torch.Tensor,
+                                 corrector_potentials: Dict[str, torch.Tensor]) -> Tuple[torch.Tensor, Dict]:
+        """
+        Efficiency Loss: Penalize redundancy where both NAFNet and correctors are active.
+
+        Goal: If NAFNet is confident (low uncertainty), correctors should have low potential.
+        This prevents wasted computation.
+
+        Loss = mean(confidence * total_potential)
+             = penalize corrector activity in confident regions
+        """
+        # Sum corrector potentials (extract 'map' from dict if present)
+        # FIX: Avoid creating torch.tensor(0.0) in hot loop
+        if corrector_potentials:
+            potential_maps = []
+            for name, val in corrector_potentials.items():
+                if isinstance(val, dict) and 'map' in val:
+                    potential_maps.append(val['map'])
+                elif isinstance(val, torch.Tensor):
+                    potential_maps.append(val)
+            if not potential_maps:
+                zero_loss = nafnet_confidence.new_zeros(())
+                return zero_loss, {}
+            total_potential = sum(potential_maps)
+            del potential_maps  # FIX: Free list after use
+        else:
+            zero_loss = nafnet_confidence.new_zeros(())
+            return zero_loss, {}
+
+        # Redundancy: confident regions with high corrector potential
+        redundancy = nafnet_confidence * total_potential
+
+        # Average redundancy
+        efficiency_loss = redundancy.mean()
+
+        # Also track allocation statistics
+        confident_mask = (nafnet_confidence > 0.7).float()
+        uncertain_mask = (nafnet_confidence < 0.3).float()
+
+        # FIX: Safe division with proper handling of empty masks
+        confident_count = confident_mask.sum().item()
+        uncertain_count = uncertain_mask.sum().item()
+
+        metrics = {
+            'redundancy': redundancy.mean().item(),
+            'potential_in_confident': (total_potential * confident_mask).sum().item() / confident_count if confident_count > 0.5 else 0.0,
+            'potential_in_uncertain': (total_potential * uncertain_mask).sum().item() / uncertain_count if uncertain_count > 0.5 else 0.0,
+            'confident_coverage': confident_mask.mean().item(),
+            'uncertain_coverage': uncertain_mask.mean().item(),
+        }
+        del confident_mask, uncertain_mask, redundancy  # FIX: Free intermediate tensors
+
+        return efficiency_loss, metrics
+
+    def compute_predicate_alignment_loss(self, pred_scores_corrected: Dict[str, float],
+                                          target_scores: Optional[Dict[str, float]] = None) -> torch.Tensor:
+        """
+        Predicate Alignment Loss: Push corrected predicate scores toward passing threshold.
+
+        For each predicate (except P5):
+        - If score < 0.5: penalize proportionally to how far below threshold
+        - If score >= 0.5: no penalty (or small reward)
+
+        ENHANCED for IEEE TMI: Much stronger penalty for P2 (contrast) to achieve
+        +10-15% clinical contrast improvement target.
+        """
+        # Use a reference tensor for device/dtype inference (avoids torch.tensor overhead)
+        ref_param = next(iter(self.log_sigma.values()))
+
+        # Target: all predicates should pass (score >= 0.5)
+        evaluated_predicates = ['P1', 'P2', 'P3', 'P4', 'P6']  # P5 excluded
+
+        # Weight multipliers for each predicate (higher = more important)
+        # P2 gets 5x weight (increased from 3x) since contrast improvement is critical
+        pred_weights = {'P1': 1.0, 'P2': 5.0, 'P3': 1.0, 'P4': 1.0, 'P6': 1.0}
+
+        # Higher target for P2 to push it well above threshold
+        pred_targets = {'P1': 0.55, 'P2': 0.60, 'P3': 0.55, 'P4': 0.55, 'P6': 0.55}
+
+        total_loss = ref_param.new_zeros(())
+        total_weight = 0.0
+
+        for pred in evaluated_predicates:
+            score = pred_scores_corrected.get(pred, 0.5)
+            if isinstance(score, torch.Tensor):
+                score_val = score
+            else:
+                score_val = ref_param.new_tensor(score)
+
+            # Target varies by predicate - P2 has higher target
+            target = pred_targets.get(pred, 0.55)
+            deficit = F.relu(target - score_val)
+
+            # Weight varies by predicate - P2 has much higher weight
+            weight = pred_weights.get(pred, 1.0)
+
+            # Use linear + quadratic + cubic penalty for very strong gradient on P2
+            if pred == 'P2':
+                # Extra aggressive penalty for contrast
+                penalty = deficit + 2.0 * deficit ** 2 + deficit ** 3
+            else:
+                # Standard linear + quadratic for others
+                penalty = deficit + deficit ** 2
+
+            total_loss = total_loss + weight * penalty
+            total_weight += weight
+
+        return total_loss / total_weight
+
+    def compute_clinical_loss(self, corrected: torch.Tensor, clean: torch.Tensor,
+                               backbone: torch.Tensor) -> Tuple[torch.Tensor, Dict]:
+        """
+        Clinical metrics loss for OCT-specific quality.
+
+        ENHANCED for IEEE TMI: Targeting +10-15% clinical contrast improvement.
+
+        Components:
+        1. Contrast preservation (multi-scale)
+        2. Direct contrast improvement incentive (NEW)
+        3. Edge preservation
+        4. Boundary sharpness (vertical gradients)
+        5. Relative contrast boost term (NEW)
+        """
+        # ===== MULTI-SCALE CONTRAST ANALYSIS =====
+        # Use multiple scales to capture both fine and coarse contrast
+        clean_std_5 = self.local_std(clean, 5)
+        clean_std_7 = self.local_std(clean, 7)
+        clean_std_11 = self.local_std(clean, 11)
+
+        corrected_std_5 = self.local_std(corrected, 5)
+        corrected_std_7 = self.local_std(corrected, 7)
+        corrected_std_11 = self.local_std(corrected, 11)
+
+        backbone_std_5 = self.local_std(backbone, 5)
+        backbone_std_7 = self.local_std(backbone, 7)
+        backbone_std_11 = self.local_std(backbone, 11)
+
+        # Multi-scale contrast matching loss (corrected should match clean)
+        contrast_loss_5 = F.mse_loss(corrected_std_5, clean_std_5)
+        contrast_loss_7 = F.mse_loss(corrected_std_7, clean_std_7)
+        contrast_loss_11 = F.mse_loss(corrected_std_11, clean_std_11)
+        contrast_loss = (contrast_loss_5 + contrast_loss_7 + contrast_loss_11) / 3.0
+        # SPIKE FIX: Clamp contrast_loss to prevent extreme values
+        contrast_loss = torch.clamp(contrast_loss, max=5.0)
+
+        # ===== DIRECT CONTRAST IMPROVEMENT INCENTIVE (NEW) =====
+        # This term directly encourages corrected contrast > backbone contrast
+        # where backbone has reduced contrast compared to clean
+
+        # Identify regions where backbone lost contrast (low-contrast regions)
+        backbone_contrast_deficit = F.relu(clean_std_7 - backbone_std_7)  # Where backbone is deficient
+
+        # Compute how much corrector improved over backbone in those regions
+        contrast_improvement_map = corrected_std_7 - backbone_std_7  # Positive = improvement
+
+        # Penalize LACK of improvement in deficit regions
+        # Loss = high when no improvement, low when improvement is good
+        deficit_mask = (backbone_contrast_deficit > 0.01).float()  # Regions needing improvement
+        improvement_amount = (contrast_improvement_map * deficit_mask).sum() / (deficit_mask.sum() + 1e-8)
+
+        # Convert to POSITIVE loss: penalize lack of improvement (target: 0.1 = 10% improvement)
+        # When improvement >= 0.1: loss = 0, when improvement = 0: loss = 0.2 * scale
+        target_improvement = 0.1
+        contrast_improvement_loss = F.relu(target_improvement - improvement_amount) * 2.0
+        # SPIKE FIX: Clamp to prevent extreme values when improvement_amount is very negative
+        contrast_improvement_loss = torch.clamp(contrast_improvement_loss, max=5.0)
+
+        # ===== RELATIVE CONTRAST BOOST TERM (NEW) =====
+        # Penalize if corrected contrast is LESS than backbone contrast
+        # This prevents the corrector from reducing contrast further
+
+        relative_contrast_deficit = F.relu(backbone_std_7 - corrected_std_7)  # Where corrected is worse
+        contrast_regression_penalty = relative_contrast_deficit.mean() * 3.0  # Strong penalty
+        # SPIKE FIX: Clamp to prevent extreme values
+        contrast_regression_penalty = torch.clamp(contrast_regression_penalty, max=5.0)
+
+        # ===== TARGETED LOW-CONTRAST REGION BOOST (NEW) =====
+        # Extra loss term to specifically boost very low contrast regions
+
+        # Find very low contrast regions in backbone output
+        backbone_std_norm = backbone_std_7 / (backbone_std_7.max() + 1e-8)
+        very_low_contrast_mask = (backbone_std_norm < 0.2).float()
+
+        # In these regions, encourage corrected_std to be closer to clean_std
+        # SPIKE FIX: Use minimum mask count threshold to avoid division by near-zero
+        # When mask is too small, fall back to mean over entire tensor to avoid spike
+        mask_sum = very_low_contrast_mask.sum()
+        min_mask_pixels = 100.0  # Minimum pixels for reliable averaging
+        if mask_sum > min_mask_pixels:
+            low_contrast_boost_loss = (
+                (clean_std_7 - corrected_std_7).abs() * very_low_contrast_mask
+            ).sum() / mask_sum * 2.0
+        else:
+            # Fallback: use mean over entire image when mask is too sparse
+            low_contrast_boost_loss = (clean_std_7 - corrected_std_7).abs().mean() * 0.5
+        # SPIKE FIX: Final clamp to ensure bounded value
+        low_contrast_boost_loss = torch.clamp(low_contrast_boost_loss, max=5.0)
+
+        # ===== EDGE PRESERVATION =====
+        sobel_x = self.sobel_x.to(dtype=corrected.dtype)
+        sobel_y = self.sobel_y.to(dtype=corrected.dtype)
+
+        clean_edge = torch.sqrt(
+            F.conv2d(clean, sobel_x, padding=1)**2 +
+            F.conv2d(clean, sobel_y, padding=1)**2 + 1e-6
+        )
+        corrected_edge = torch.sqrt(
+            F.conv2d(corrected, sobel_x, padding=1)**2 +
+            F.conv2d(corrected, sobel_y, padding=1)**2 + 1e-6
+        )
+        backbone_edge = torch.sqrt(
+            F.conv2d(backbone, sobel_x, padding=1)**2 +
+            F.conv2d(backbone, sobel_y, padding=1)**2 + 1e-6
+        )
+
+        edge_loss = F.mse_loss(corrected_edge, clean_edge)
+        # SPIKE FIX: Clamp edge_loss to prevent extreme values
+        edge_loss = torch.clamp(edge_loss, max=5.0)
+
+        # ===== BOUNDARY SHARPNESS (OCT layers are horizontal) =====
+        clean_vgrad = torch.abs(clean[:, :, 1:, :] - clean[:, :, :-1, :])
+        corrected_vgrad = torch.abs(corrected[:, :, 1:, :] - corrected[:, :, :-1, :])
+
+        boundary_loss = F.mse_loss(corrected_vgrad, clean_vgrad)
+        # SPIKE FIX: Clamp boundary_loss to prevent extreme values
+        boundary_loss = torch.clamp(boundary_loss, max=5.0)
+
+        # ===== COMBINED CLINICAL LOSS =====
+        # Weight contrast-related terms more heavily to achieve +10-15% improvement
+        total_clinical = (
+            contrast_loss * 1.5 +           # Multi-scale matching (max ~7.5)
+            contrast_improvement_loss +      # Direct improvement incentive (max 5.0)
+            contrast_regression_penalty +    # Prevent contrast reduction (max 5.0)
+            low_contrast_boost_loss +        # Boost very low contrast regions (max 5.0)
+            edge_loss +                      # Edge preservation (max 5.0)
+            boundary_loss                    # Boundary sharpness (max 5.0)
+        )
+        # SPIKE FIX: Clamp total_clinical loss to prevent extreme values
+        # Max theoretical: 7.5 + 5*5 = 32.5, clamp to 15.0 to prevent spikes
+        total_clinical = torch.clamp(total_clinical, max=15.0)
+
+        # ===== COMPUTE METRICS =====
+        backbone_contrast_pres = backbone_std_7.mean() / (clean_std_7.mean() + 1e-8)
+        corrected_contrast_pres = corrected_std_7.mean() / (clean_std_7.mean() + 1e-8)
+
+        backbone_edge_pres = backbone_edge.mean() / (clean_edge.mean() + 1e-8)
+        corrected_edge_pres = corrected_edge.mean() / (clean_edge.mean() + 1e-8)
+
+        contrast_improvement_pct = ((corrected_contrast_pres / (backbone_contrast_pres + 1e-8)) - 1.0) * 100
+
+        metrics = {
+            'contrast_loss': contrast_loss.item(),
+            'contrast_improvement_loss': contrast_improvement_loss.item(),
+            'contrast_improvement_loss_tensor': contrast_improvement_loss,  # BUG 9 FIX: Return tensor for gradient flow
+            'contrast_regression_penalty': contrast_regression_penalty.item(),
+            'low_contrast_boost_loss': low_contrast_boost_loss.item(),
+            'edge_loss': edge_loss.item(),
+            'boundary_loss': boundary_loss.item(),
+            'backbone_contrast_pres': backbone_contrast_pres.item(),
+            'corrected_contrast_pres': corrected_contrast_pres.item(),
+            'contrast_improvement': contrast_improvement_pct.item(),
+            'backbone_edge_pres': backbone_edge_pres.item(),
+            'corrected_edge_pres': corrected_edge_pres.item(),
+            'edge_improvement': ((corrected_edge_pres / (backbone_edge_pres + 1e-8)) - 1.0).item() * 100,
+            'low_contrast_region_coverage': very_low_contrast_mask.mean().item(),
+            'contrast_deficit_mean': backbone_contrast_deficit.mean().item(),
+        }
+
+        return total_clinical, metrics
+
+    def _compute_cnr(self, x: torch.Tensor, signal_mask: torch.Tensor,
+                      bg_mask: torch.Tensor) -> torch.Tensor:
+        """
+        Compute Contrast-to-Noise Ratio (CNR) for a given image.
+
+        CNR = (mean_signal - mean_background) / std_background
+
+        Args:
+            x: Image tensor [B, 1, H, W]
+            signal_mask: Binary mask for signal regions [B, 1, H, W]
+            bg_mask: Binary mask for background regions [B, 1, H, W]
+
+        Returns:
+            CNR value (differentiable)
+        """
+        eps = 1e-8
+
+        # Compute mean signal
+        signal_sum = (x * signal_mask).sum(dim=[1, 2, 3])
+        signal_count = signal_mask.sum(dim=[1, 2, 3]) + eps
+        signal_mean = signal_sum / signal_count
+
+        # Compute mean background
+        bg_sum = (x * bg_mask).sum(dim=[1, 2, 3])
+        bg_count = bg_mask.sum(dim=[1, 2, 3]) + eps
+        bg_mean = bg_sum / bg_count
+
+        # Compute background std
+        # std = sqrt(E[(x - mean)^2])
+        bg_mean_expanded = bg_mean.view(-1, 1, 1, 1)
+        bg_var = ((x - bg_mean_expanded) ** 2 * bg_mask).sum(dim=[1, 2, 3]) / bg_count
+        bg_std = torch.sqrt(bg_var + eps)
+
+        # CNR = (signal_mean - bg_mean) / bg_std
+        # Add eps to denominator for numerical stability and clamp result
+        cnr = (signal_mean - bg_mean) / (bg_std + 1e-6)
+        # Clamp CNR to prevent extreme values causing loss spikes
+        cnr = cnr.clamp(-100.0, 100.0)
+
+        return cnr.mean()  # Average over batch
+
+    def compute_cnr_loss(self, corrected: torch.Tensor, backbone: torch.Tensor,
+                         clean: torch.Tensor) -> Tuple[torch.Tensor, Dict]:
+        """
+        CNR Preservation Loss: Prevent corrections from degrading Contrast-to-Noise Ratio.
+
+        This loss addresses the -7.1% CNR drop issue by:
+        1. Computing CNR for both backbone and corrected outputs
+        2. Penalizing if corrected CNR < backbone CNR (CNR should not decrease)
+        3. Optionally rewarding CNR improvement over backbone
+
+        The loss is differentiable and encourages:
+        - Corrections that don't increase background noise
+        - Improved signal-to-background separation
+
+        Args:
+            corrected: Corrected output [B, 1, H, W]
+            backbone: Backbone output [B, 1, H, W]
+            clean: Clean reference [B, 1, H, W]
+
+        Returns:
+            loss: CNR preservation loss
+            metrics: Dict with CNR values and statistics
+        """
+        # Compute signal/background masks from clean image
+        # Signal = bright regions (above mean), Background = dark regions
+        clean_mean = clean.mean(dim=[2, 3], keepdim=True)
+        signal_mask = (clean > clean_mean).float()
+        bg_mask = 1.0 - signal_mask
+
+        # Compute CNR for backbone
+        backbone_cnr = self._compute_cnr(backbone, signal_mask, bg_mask)
+
+        # Compute CNR for corrected
+        corrected_cnr = self._compute_cnr(corrected, signal_mask, bg_mask)
+
+        # Compute CNR for clean (reference)
+        clean_cnr = self._compute_cnr(clean, signal_mask, bg_mask)
+
+        # ===== CNR Drop Penalty =====
+        # Penalize if corrected CNR drops below backbone CNR
+        # loss = relu(backbone_cnr - corrected_cnr)
+        cnr_drop = backbone_cnr - corrected_cnr
+        # SPIKE FIX: Clamp drop before relu to prevent extreme values
+        # CNR values are clamped to [-100, 100], so max theoretical drop is 200
+        # Clamp to 20 to keep penalty reasonable
+        cnr_drop = cnr_drop.clamp(max=20.0)
+        cnr_drop_penalty = F.relu(cnr_drop)
+
+        # ===== CNR Improvement Reward =====
+        # Small reward for improving CNR beyond backbone (toward clean)
+        # This encourages the corrector to improve CNR, not just preserve it
+        cnr_improvement_potential = clean_cnr - backbone_cnr  # How much room to improve
+        cnr_improvement_actual = corrected_cnr - backbone_cnr  # How much we improved
+
+        # Only reward if there's room to improve and we actually improved
+        improvement_reward = torch.where(
+            cnr_improvement_potential > 0,
+            F.relu(cnr_improvement_actual) * 0.1,  # Small reward weight
+            torch.zeros_like(cnr_improvement_actual)
+        )
+
+        # ===== Combined CNR Loss =====
+        # Primary: penalize drops, Secondary: reduced penalty for improvements
+        # Convert improvement_reward to reduced penalty (always positive)
+        improvement_bonus = improvement_reward.clamp(max=cnr_drop_penalty)  # Can't reduce below 0
+        cnr_loss = cnr_drop_penalty - improvement_bonus  # Always >= 0
+
+        # Also add a term to encourage closing the gap to clean CNR
+        cnr_gap_to_clean = F.relu(clean_cnr - corrected_cnr)
+        cnr_loss = cnr_loss + 0.05 * cnr_gap_to_clean  # Small weight for gap reduction
+        cnr_loss = F.relu(cnr_loss)  # Ensure non-negative
+
+        # Clamp final CNR loss to prevent loss spikes
+        cnr_loss = cnr_loss.clamp(max=5.0)
+
+        # Compute metrics
+        cnr_improvement_pct = ((corrected_cnr / (backbone_cnr + 1e-8)) - 1.0) * 100
+
+        metrics = {
+            'cnr_backbone': backbone_cnr.item(),
+            'cnr_corrected': corrected_cnr.item(),
+            'cnr_clean': clean_cnr.item(),
+            'cnr_drop': cnr_drop.item(),
+            'cnr_drop_penalty': cnr_drop_penalty.item(),
+            'cnr_improvement_pct': cnr_improvement_pct.item(),
+            'cnr_gap_to_clean': cnr_gap_to_clean.item(),
+        }
+
+        return cnr_loss, metrics
+
+    def psnr_preservation_loss(self, corrected: torch.Tensor, backbone: torch.Tensor,
+                                clean: torch.Tensor) -> Tuple[torch.Tensor, Dict]:
+        """
+        Penalize when corrected PSNR drops below backbone beyond threshold.
+
+        Uses aggressive hinge loss with margin:
+        - If PSNR drop < 0.3 dB: no penalty (safe zone with margin before 0.5 dB target)
+        - If PSNR drop >= 0.3 dB: strong penalty that scales quadratically with excess
+
+        The penalty is designed to keep PSNR drop within the 0.5 dB target by:
+        1. Starting penalty at 0.3 dB (0.2 dB margin before target)
+        2. Using quadratic + linear scaling for steep gradient
+        3. Adding exponential term for drops approaching/exceeding target
+        """
+        eps = 1e-8
+        mse_backbone = F.mse_loss(backbone, clean)
+        mse_corrected = F.mse_loss(corrected, clean)
+
+        psnr_backbone = 10 * torch.log10(1.0 / (mse_backbone + eps))
+        psnr_corrected = 10 * torch.log10(1.0 / (mse_corrected + eps))
+
+        psnr_drop = psnr_backbone - psnr_corrected
+
+        # Hinge threshold: start penalizing at 0.3 dB (margin before 0.5 dB target)
+        hinge_threshold = 0.3
+
+        # Excess drop beyond threshold
+        excess = F.relu(psnr_drop - hinge_threshold)
+
+        # SAFETY: Clamp excess to reasonable range to prevent explosion
+        # At excess=2.0: exp(2*2)=exp(4)≈54.6, which gives manageable penalty
+        excess_clamped = torch.clamp(excess, max=2.0)
+
+        # Simplified penalty: quadratic + linear (NO exponential - too unstable)
+        # Quadratic provides smooth increasing penalty
+        quadratic_penalty = excess_clamped ** 2
+
+        # Linear term for gradient at larger drops
+        linear_penalty = excess_clamped * 2.0
+
+        # Combined penalty - much more stable than exponential
+        # At excess=0.2 (0.5dB drop): penalty = 5*0.04 + 2*0.4 = 1.0
+        # At excess=0.7 (1.0dB drop): penalty = 5*0.49 + 2*1.4 = 5.25
+        # At excess=2.0 (2.3dB drop): penalty = 5*4 + 2*4 = 28 (max)
+        penalty = 5.0 * quadratic_penalty + 2.0 * linear_penalty
+
+        # Final safety clamp on total penalty
+        penalty = torch.clamp(penalty, max=50.0)
+
+        metrics = {
+            'psnr_backbone': psnr_backbone.item(),
+            'psnr_corrected': psnr_corrected.item(),
+            'psnr_delta': (psnr_corrected - psnr_backbone).item(),
+            'psnr_drop_excess': excess.item(),
+        }
+
+        return penalty, metrics
+
+    def compute_texture_preservation_loss(self, corrected: torch.Tensor, backbone: torch.Tensor,
+                                           clean: torch.Tensor) -> Tuple[torch.Tensor, Dict]:
+        """
+        Texture Preservation Loss: Penalize texture degradation from backbone to corrected.
+
+        Uses Laplacian filter to extract high-frequency content (texture).
+        Penalizes when corrected texture < backbone texture (texture should not degrade).
+
+        This addresses the texture ratio degradation issue (0.810 ratio, from 30.5% to 24.7%).
+
+        Args:
+            corrected: Corrected output [B, 1, H, W]
+            backbone: Backbone output [B, 1, H, W]
+            clean: Clean reference [B, 1, H, W]
+
+        Returns:
+            loss: Texture preservation loss
+            metrics: Dict with texture values and statistics
+        """
+        # Compute Laplacian (high-frequency content) for each image
+        laplacian = self.laplacian.to(dtype=corrected.dtype)
+
+        backbone_lap = F.conv2d(backbone, laplacian, padding=1).abs()
+        corrected_lap = F.conv2d(corrected, laplacian, padding=1).abs()
+        clean_lap = F.conv2d(clean, laplacian, padding=1).abs()
+
+        # Compute texture preservation ratios (relative to clean)
+        eps = 1e-8
+        backbone_texture = backbone_lap.mean()
+        corrected_texture = corrected_lap.mean()
+        clean_texture = clean_lap.mean()
+
+        backbone_texture_ratio = backbone_texture / (clean_texture + eps)
+        corrected_texture_ratio = corrected_texture / (clean_texture + eps)
+
+        # ===== Texture Drop Penalty =====
+        # Penalize if corrected texture drops below backbone texture
+        # This prevents the corrector from smoothing out texture
+        texture_drop = backbone_texture - corrected_texture
+        texture_drop_penalty = F.relu(texture_drop)
+
+        # ===== Texture Improvement Reward =====
+        # Small reward for improving texture toward clean level
+        texture_improvement_potential = clean_texture - backbone_texture  # Room to improve
+        texture_improvement_actual = corrected_texture - backbone_texture  # How much we improved
+
+        # Only reward if there's room to improve and we actually improved
+        improvement_reward = torch.where(
+            texture_improvement_potential > 0,
+            F.relu(texture_improvement_actual) * 0.1,  # Small reward weight
+            torch.zeros_like(texture_improvement_actual)
+        )
+
+        # ===== Pixel-wise Texture Drop Penalty =====
+        # Additional penalty for regions where texture dropped significantly
+        pixel_texture_drop = F.relu(backbone_lap - corrected_lap)
+        pixel_drop_penalty = pixel_texture_drop.mean() * 0.5
+
+        # ===== Combined Texture Loss =====
+        texture_loss = texture_drop_penalty + pixel_drop_penalty - improvement_reward
+        # BUG 2 FIX: Ensure non-negative loss when improvement_reward > penalties
+        texture_loss = F.relu(texture_loss)
+
+        # Compute texture ratio (corrected / backbone) for monitoring
+        texture_ratio = corrected_texture / (backbone_texture + eps)
+
+        metrics = {
+            'texture_backbone': backbone_texture.item(),
+            'texture_corrected': corrected_texture.item(),
+            'texture_clean': clean_texture.item(),
+            'texture_backbone_ratio': backbone_texture_ratio.item(),
+            'texture_corrected_ratio': corrected_texture_ratio.item(),
+            'texture_ratio_corr_vs_bb': texture_ratio.item(),
+            'texture_drop': texture_drop.item(),
+            'texture_drop_penalty': texture_drop_penalty.item(),
+            'texture_pixel_drop_penalty': pixel_drop_penalty.item(),
+        }
+
+        return texture_loss, metrics
+
+    def forward(self, corrected: torch.Tensor, backbone_out: torch.Tensor,
+                clean: torch.Tensor, noisy: torch.Tensor, info: Dict) -> Tuple[torch.Tensor, Dict]:
+        """
+        Compute combined cooperative loss.
+        """
+        device = corrected.device
+
+        # ===== 1. Basic Reconstruction Loss =====
+        recon_loss = F.mse_loss(corrected, clean)
+        backbone_loss = F.mse_loss(backbone_out, clean)
+
+        # ===== 2. Cooperation Loss =====
+        nafnet_uncertainty = info.get('nafnet_uncertainty', torch.zeros_like(corrected))
+        corrector_potentials = info.get('corrector_potentials', {})
+
+        cooperation_loss, coop_metrics = self.compute_cooperation_loss(
+            nafnet_uncertainty, corrector_potentials
+        )
+
+        # ===== 3. Efficiency Loss =====
+        nafnet_confidence = 1.0 - nafnet_uncertainty
+        efficiency_loss, eff_metrics = self.compute_efficiency_loss(
+            nafnet_confidence, corrector_potentials
+        )
+
+        # ===== 4. Predicate Alignment Loss =====
+        pred_scores = info.get('predicate_scores', {})
+        predicate_align_loss = self.compute_predicate_alignment_loss(pred_scores)
+
+        # ===== 5. Clinical Metrics Loss =====
+        clinical_loss, clinical_metrics = self.compute_clinical_loss(
+            corrected, clean, backbone_out
+        )
+
+        # ===== 6. PSNR Preservation Constraint =====
+        psnr_preserve_loss, psnr_metrics = self.psnr_preservation_loss(
+            corrected, backbone_out, clean
+        )
+
+        # ===== 7. CNR Preservation Loss (standard) =====
+        # Addresses -7.1% CNR drop issue by penalizing CNR degradation
+        cnr_loss, cnr_metrics = self.compute_cnr_loss(
+            corrected, backbone_out, clean
+        )
+
+        # ===== 8. CNR Spatial Loss (smart algorithmic approach) =====
+        # Uses soft segmentation and region-aware penalties:
+        # - Heavy penalty for background noise increase
+        # - Reward for tissue contrast improvement
+        # - Direct CNR metric optimization
+        cnr_spatial_loss, cnr_spatial_metrics = self.cnr_spatial_loss(
+            corrected, backbone_out, clean
+        )
+
+        # ===== 9. Texture Preservation Loss =====
+        # Penalize texture degradation (high-frequency content loss)
+        # Addresses texture ratio degradation (0.810 ratio, 30.5% -> 24.7%)
+        texture_preserve_loss, texture_metrics = self.compute_texture_preservation_loss(
+            corrected, backbone_out, clean
+        )
+
+        # ===== Extract contrast improvement loss component for separate weighting =====
+        # BUG 9 FIX: Use tensor directly from clinical_metrics for gradient flow
+        # Previously: created from .item() float which breaks gradient computation
+        # Memory Leak FIX: Use .new_zeros(()) instead of torch.tensor(0.0, device=...) to avoid allocation overhead
+        contrast_improve_loss = clinical_metrics.get('contrast_improvement_loss_tensor',
+                                                      corrected.new_zeros(()))
+
+        # ===== Combined Loss with Uncertainty Weighting =====
+        # ENHANCED: Separate weighting for contrast improvement to achieve +10-15% target
+        # Added CNR preservation loss to prevent contrast-to-noise ratio degradation
+        # Added CNR spatial loss for smart region-aware CNR preservation
+
+        # Compute individual weighted losses with safety clamping
+        def safe_weighted_loss(loss, name, extra_weight=1.0, max_val=10.0):
+            weighted = self._weighted_loss(loss, name) * extra_weight
+            return torch.clamp(weighted, max=max_val)
+
+        total_loss = (
+            safe_weighted_loss(recon_loss, 'recon', 1.0, 5.0) +
+            safe_weighted_loss(backbone_loss, 'backbone', 0.5, 5.0) +
+            safe_weighted_loss(cooperation_loss, 'cooperation', self.cooperation_weight, 5.0) +
+            safe_weighted_loss(efficiency_loss, 'efficiency', self.efficiency_weight, 5.0) +
+            safe_weighted_loss(predicate_align_loss, 'predicate_align', 1.5, 10.0) +
+            safe_weighted_loss(clinical_loss, 'contrast', self.clinical_weight, 10.0) +
+            safe_weighted_loss(contrast_improve_loss, 'contrast_improve', 2.0, 10.0) +
+            safe_weighted_loss(cnr_loss, 'cnr_preserve', self.cnr_weight, 10.0) +
+            safe_weighted_loss(cnr_spatial_loss, 'cnr_spatial', self.cnr_weight, 10.0) +
+            safe_weighted_loss(texture_preserve_loss, 'texture_preserve', self.texture_weight, 10.0) +
+            safe_weighted_loss(psnr_preserve_loss, 'psnr_preserve', 1.0, 10.0)
+        )
+
+        # Final safety: clamp total loss to reasonable range
+        total_loss = torch.clamp(total_loss, max=50.0)
+
+        # ===== Compute Metrics =====
+        metrics = {
+            'total': total_loss.item(),
+            'recon': recon_loss.item(),
+            'backbone': backbone_loss.item(),
+            'cooperation': cooperation_loss.item(),
+            'efficiency': efficiency_loss.item(),
+            'predicate_align': predicate_align_loss.item(),
+            'clinical': clinical_loss.item(),
+            'cnr_preserve': cnr_loss.item(),
+            'cnr_spatial': cnr_spatial_loss.item(),
+            'texture_preserve': texture_preserve_loss.item(),
+            'psnr_preserve': psnr_preserve_loss.item(),
+            **psnr_metrics,
+            **clinical_metrics,
+            **cnr_metrics,
+            **cnr_spatial_metrics,  # Add CNR spatial metrics
+            **texture_metrics,  # Add texture preservation metrics
+            **coop_metrics,
+            **eff_metrics,
+            'learned_weights': self.get_learned_weights(),
+        }
+
+        # Add predicate scores if available
+        if pred_scores:
+            metrics['pred_scores'] = pred_scores
+            passing = sum(1 for k, v in pred_scores.items()
+                         if k in ['P1', 'P2', 'P3', 'P4', 'P6'] and v >= 0.5)
+            metrics['predicates_passing'] = passing
+        else:
+            metrics['predicates_passing'] = 0
+
+        return total_loss, metrics
+
+
+# =============================================================================
+# Training Functions
+# =============================================================================
+
+def compute_psnr(pred, target):
+    mse = F.mse_loss(pred, target)
+    if mse < 1e-10:
+        return 100.0
+    return 10 * math.log10(1.0 / mse.item())
+
+
+def compute_ssim(pred, target):
+    C1, C2 = 0.01**2, 0.03**2
+    mu_pred = pred.mean()
+    mu_target = target.mean()
+    sigma_pred = torch.clamp(((pred - mu_pred) ** 2).mean(), min=1e-8)
+    sigma_target = torch.clamp(((target - mu_target) ** 2).mean(), min=1e-8)
+    sigma_both = ((pred - mu_pred) * (target - mu_target)).mean()
+    ssim = ((2 * mu_pred * mu_target + C1) * (2 * sigma_both + C2)) / \
+           ((mu_pred**2 + mu_target**2 + C1) * (sigma_pred + sigma_target + C2))
+    return ssim.item()
+
+
+def train_epoch(model, loader, criterion, optimizer, device, epoch, scaler=None):
+    """Train one epoch with cooperation tracking."""
+    model.train()
+
+    total_loss = 0
+    total_psnr_backbone = 0
+    total_psnr_corrected = 0
+    total_cooperation = 0
+    total_efficiency = 0
+    total_predicates_passing = 0
+
+    # Track corrector activity
+    corrector_activity = defaultdict(float)
+    n = 0
+
+    pbar = tqdm(loader, desc=f"Epoch {epoch}")
+    for batch in pbar:
+        clean = batch['clean'].to(device)
+        noisy = batch['noisy'].to(device)
+
+        if scaler is not None:
+            with autocast():
+                corrected, backbone_out, info = model(noisy)
+                loss, metrics = criterion(corrected, backbone_out, clean, noisy, info)
+
+            optimizer.zero_grad(set_to_none=True)
+            scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
+            torch.nn.utils.clip_grad_norm_(criterion.parameters(), max_norm=1.0)
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            corrected, backbone_out, info = model(noisy)
+            loss, metrics = criterion(corrected, backbone_out, clean, noisy, info)
+
+            optimizer.zero_grad(set_to_none=True)
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
+            torch.nn.utils.clip_grad_norm_(criterion.parameters(), max_norm=1.0)
+            optimizer.step()
+
+        del corrected, backbone_out
+
+        # FIX: Use .item() to prevent tensor accumulation and memory leak
+        total_loss += metrics['total'] if isinstance(metrics['total'], (int, float)) else metrics['total']
+        total_psnr_backbone += metrics['psnr_backbone'] if isinstance(metrics['psnr_backbone'], (int, float)) else metrics['psnr_backbone']
+        total_psnr_corrected += metrics['psnr_corrected'] if isinstance(metrics['psnr_corrected'], (int, float)) else metrics['psnr_corrected']
+        total_cooperation += metrics.get('cooperation', 0) if isinstance(metrics.get('cooperation', 0), (int, float)) else metrics.get('cooperation', 0)
+        total_efficiency += metrics.get('efficiency', 0) if isinstance(metrics.get('efficiency', 0), (int, float)) else metrics.get('efficiency', 0)
+        total_predicates_passing += metrics.get('predicates_passing', 0)
+
+        # Track corrector activity
+        allocation = info.get('allocation_stats', {})
+        for name, stats in allocation.items():
+            if isinstance(stats, dict) and 'mean_potential' in stats:
+                # Memory Leak Issue 4 FIX: Add .item() if it's a tensor
+                mean_pot = stats['mean_potential']
+                corrector_activity[name] += mean_pot.item() if isinstance(mean_pot, torch.Tensor) else mean_pot
+
+        n += 1
+
+        pbar.set_postfix({
+            'loss': f"{metrics['total']:.4f}",
+            'psnr': f"{metrics['psnr_corrected']:.1f}",
+            'delta': f"{metrics['psnr_delta']:+.2f}",
+            'coop': f"{metrics.get('cooperation', 0):.3f}",
+        })
+
+        del info
+
+    return {
+        'loss': total_loss / n,
+        'psnr_backbone': total_psnr_backbone / n,
+        'psnr_corrected': total_psnr_corrected / n,
+        'cooperation': total_cooperation / n,
+        'efficiency': total_efficiency / n,
+        'predicates_passing': total_predicates_passing / n,
+        'corrector_activity': {k: v / n for k, v in corrector_activity.items()},
+    }
+
+
+@torch.inference_mode()
+def validate(model, loader, device):
+    """Comprehensive validation with cooperation metrics."""
+    model.eval()
+    use_amp = device != 'cpu' and torch.cuda.is_available()
+
+    # Basic metrics
+    total_psnr_backbone = 0
+    total_psnr_corrected = 0
+    total_ssim_backbone = 0
+    total_ssim_corrected = 0
+
+    # Cooperation metrics
+    total_uncertainty_corr = 0
+    total_confident_coverage = 0
+    total_uncertain_coverage = 0
+    total_redundancy = 0
+
+    # Clinical metrics
+    total_contrast_improvement = 0
+    total_edge_improvement = 0
+
+    # OCT-specific clinical metrics (IEEE TMI)
+    total_cnr_backbone = 0      # Contrast-to-Noise Ratio
+    total_cnr_corrected = 0
+    total_tci_backbone = 0      # Tissue Contrast Index
+    total_tci_corrected = 0
+
+    # Additional clinical preservation metrics
+    total_backbone_contrast_pres = 0
+    total_corrected_contrast_pres = 0
+    total_backbone_boundary_pres = 0
+    total_corrected_boundary_pres = 0
+    total_backbone_texture_pres = 0
+    total_corrected_texture_pres = 0
+    total_backbone_edge_pres = 0
+    total_corrected_edge_pres = 0
+
+    # Legacy clinical metrics
+    total_epi_backbone = 0      # Edge Preservation Index
+    total_epi_corrected = 0
+    total_bs_backbone = 0       # Boundary Sharpness
+    total_bs_corrected = 0
+    total_correction_magnitude = 0
+
+    # Lambda statistics per corrector
+    lambda_stats = {name: {'sum': 0, 'max': 0} for name in ['edge', 'contrast', 'smooth', 'structure', 'anatomy']}
+
+    # Predicate metrics - use actual key names from EnhancedGTFreePredicates
+    pred_key_map = {
+        'P1_edge': 'P1', 'P2_contrast': 'P2', 'P3_smooth': 'P3',
+        'P4_structure': 'P4', 'P5_speckle': 'P5', 'P6_anatomy': 'P6'
+    }
+    total_pred_scores = {'P1': 0, 'P2': 0, 'P3': 0, 'P4': 0, 'P5': 0, 'P6': 0}
+    total_pred_scores_backbone = {'P1': 0, 'P2': 0, 'P3': 0, 'P4': 0, 'P5': 0, 'P6': 0}
+    total_predicates_passing = 0
+
+    # Corrector allocation
+    corrector_allocations = defaultdict(lambda: {'pixels': 0, 'improvement': 0})
+
+    # Memory Leak Issue 5 FIX: Create Sobel and Laplacian kernels ONCE before the loop
+    # Previously these were created inside the loop each iteration causing memory leak
+    sobel_y_kernel = torch.tensor([[-1., -2., -1.], [0., 0., 0.], [1., 2., 1.]],
+                                   device=device).view(1, 1, 3, 3)
+    sobel_x_kernel = torch.tensor([[-1., 0., 1.], [-2., 0., 2.], [-1., 0., 1.]],
+                                   device=device).view(1, 1, 3, 3)
+    laplacian_kernel = torch.tensor([[0., 1., 0.], [1., -4., 1.], [0., 1., 0.]],
+                                     device=device).view(1, 1, 3, 3)
+
+    n = 0
+
+    for batch in tqdm(loader, desc="Validation"):
+        clean = batch['clean'].to(device)
+        noisy = batch['noisy'].to(device)
+
+        if use_amp:
+            with autocast():
+                corrected, backbone_out, info = model(noisy, return_details=True)
+        else:
+            corrected, backbone_out, info = model(noisy, return_details=True)
+
+        # Basic metrics
+        psnr_backbone = compute_psnr(backbone_out, clean)
+        psnr_corrected = compute_psnr(corrected, clean)
+        ssim_backbone = compute_ssim(backbone_out, clean)
+        ssim_corrected = compute_ssim(corrected, clean)
+
+        total_psnr_backbone += psnr_backbone
+        total_psnr_corrected += psnr_corrected
+        total_ssim_backbone += ssim_backbone
+        total_ssim_corrected += ssim_corrected
+
+        # Cooperation metrics
+        nafnet_uncertainty = info.get('nafnet_uncertainty', torch.zeros_like(corrected))
+        corrector_potentials = info.get('corrector_potentials', {})
+
+        if corrector_potentials:
+            # Extract potential maps from dicts
+            potential_maps = []
+            for name, val in corrector_potentials.items():
+                if isinstance(val, dict) and 'map' in val:
+                    potential_maps.append(val['map'])
+                elif isinstance(val, torch.Tensor):
+                    potential_maps.append(val)
+            if potential_maps:
+                total_potential = sum(potential_maps)
+                del potential_maps  # FIX: Free list after use
+            else:
+                total_potential = torch.zeros_like(corrected)
+            # Correlation between uncertainty and potential
+            # FIX: Add validation before torch.corrcoef to prevent errors
+            u_flat = nafnet_uncertainty.view(-1)
+            p_flat = total_potential.view(-1)
+            if u_flat.numel() >= 2 and u_flat.std() > 1e-8 and p_flat.std() > 1e-8:
+                try:
+                    correlation = torch.corrcoef(torch.stack([u_flat, p_flat]))[0, 1]
+                    if not torch.isnan(correlation):
+                        total_uncertainty_corr += correlation.item()
+                except Exception:
+                    pass  # Skip if correlation computation fails
+            del u_flat, p_flat, total_potential  # FIX: Free intermediate tensors
+
+        nafnet_confidence = 1.0 - nafnet_uncertainty
+        confident_mask = (nafnet_confidence > 0.7).float()
+        uncertain_mask = (nafnet_confidence < 0.3).float()
+        total_confident_coverage += confident_mask.mean().item()
+        total_uncertain_coverage += uncertain_mask.mean().item()
+
+        # Clinical improvement
+        # Simple contrast/edge computation
+        with torch.no_grad():
+            clean_std = F.avg_pool2d(clean ** 2, 7, 1, 3) - F.avg_pool2d(clean, 7, 1, 3) ** 2
+            clean_std = torch.sqrt(clean_std.clamp(min=1e-8))
+            backbone_std = F.avg_pool2d(backbone_out ** 2, 7, 1, 3) - F.avg_pool2d(backbone_out, 7, 1, 3) ** 2
+            backbone_std = torch.sqrt(backbone_std.clamp(min=1e-8))
+            corrected_std = F.avg_pool2d(corrected ** 2, 7, 1, 3) - F.avg_pool2d(corrected, 7, 1, 3) ** 2
+            corrected_std = torch.sqrt(corrected_std.clamp(min=1e-8))
+
+            backbone_contrast_pres = backbone_std.mean() / (clean_std.mean() + 1e-8)
+            corrected_contrast_pres = corrected_std.mean() / (clean_std.mean() + 1e-8)
+            contrast_improvement = ((corrected_contrast_pres / (backbone_contrast_pres + 1e-8)) - 1.0) * 100
+
+            total_contrast_improvement += contrast_improvement.item()
+
+            # ===== OCT-SPECIFIC CLINICAL METRICS (IEEE TMI) =====
+
+            # 1. Contrast-to-Noise Ratio (CNR)
+            # CNR = (mean_signal - mean_background) / std_background
+            # We use the ratio of signal std to background noise as proxy
+            # Higher CNR = better tissue differentiation
+            signal_mask = (clean > clean.mean()).float()  # Bright regions (tissue signal)
+            bg_mask = 1.0 - signal_mask  # Dark regions (background)
+
+            # Backbone CNR
+            backbone_signal_mean = (backbone_out * signal_mask).sum() / (signal_mask.sum() + 1e-8)
+            backbone_bg_mean = (backbone_out * bg_mask).sum() / (bg_mask.sum() + 1e-8)
+            backbone_bg_std = torch.sqrt(((backbone_out - backbone_bg_mean) ** 2 * bg_mask).sum() / (bg_mask.sum() + 1e-8) + 1e-8)
+            cnr_backbone = (backbone_signal_mean - backbone_bg_mean) / backbone_bg_std
+
+            # Corrected CNR
+            corrected_signal_mean = (corrected * signal_mask).sum() / (signal_mask.sum() + 1e-8)
+            corrected_bg_mean = (corrected * bg_mask).sum() / (bg_mask.sum() + 1e-8)
+            corrected_bg_std = torch.sqrt(((corrected - corrected_bg_mean) ** 2 * bg_mask).sum() / (bg_mask.sum() + 1e-8) + 1e-8)
+            cnr_corrected = (corrected_signal_mean - corrected_bg_mean) / corrected_bg_std
+
+            total_cnr_backbone += cnr_backbone.item()
+            total_cnr_corrected += cnr_corrected.item()
+
+            # 2. Tissue Contrast Index (TCI)
+            # TCI measures the contrast between adjacent tissue layers
+            # We compute as the mean of vertical gradient magnitude (layer boundaries run horizontally)
+            # Memory Leak Issue 5 FIX: Use pre-created kernel instead of creating new one each iteration
+            backbone_gy = F.conv2d(backbone_out, sobel_y_kernel, padding=1).abs()
+            corrected_gy = F.conv2d(corrected, sobel_y_kernel, padding=1).abs()
+            clean_gy = F.conv2d(clean, sobel_y_kernel, padding=1).abs()
+
+            # TCI = mean gradient magnitude (higher = sharper layer boundaries)
+            tci_backbone = backbone_gy.mean() / (clean_gy.mean() + 1e-8)  # Normalized to clean
+            tci_corrected = corrected_gy.mean() / (clean_gy.mean() + 1e-8)
+
+            total_tci_backbone += tci_backbone.item()
+            total_tci_corrected += tci_corrected.item()
+
+            # ===== ADDITIONAL CLINICAL PRESERVATION METRICS =====
+
+            # Store contrast preservation (already computed)
+            total_backbone_contrast_pres += backbone_contrast_pres.item()
+            total_corrected_contrast_pres += corrected_contrast_pres.item()
+
+            # Boundary preservation (vertical gradient ratio)
+            backbone_boundary_pres = backbone_gy.mean() / (clean_gy.mean() + 1e-8)
+            corrected_boundary_pres = corrected_gy.mean() / (clean_gy.mean() + 1e-8)
+            total_backbone_boundary_pres += backbone_boundary_pres.item()
+            total_corrected_boundary_pres += corrected_boundary_pres.item()
+
+            # Texture preservation (high-frequency content via Laplacian)
+            # Memory Leak FIX: Use pre-created laplacian_kernel instead of creating new tensor each iteration
+            backbone_lap = F.conv2d(backbone_out, laplacian_kernel, padding=1).abs()
+            corrected_lap = F.conv2d(corrected, laplacian_kernel, padding=1).abs()
+            clean_lap = F.conv2d(clean, laplacian_kernel, padding=1).abs()
+            backbone_texture_pres = backbone_lap.mean() / (clean_lap.mean() + 1e-8)
+            corrected_texture_pres = corrected_lap.mean() / (clean_lap.mean() + 1e-8)
+            total_backbone_texture_pres += backbone_texture_pres.item()
+            total_corrected_texture_pres += corrected_texture_pres.item()
+
+            # Edge preservation (Sobel magnitude)
+            # Memory Leak FIX: Use pre-created sobel_x_kernel instead of creating new tensor each iteration
+            backbone_gx = F.conv2d(backbone_out, sobel_x_kernel, padding=1)
+            corrected_gx = F.conv2d(corrected, sobel_x_kernel, padding=1)
+            clean_gx = F.conv2d(clean, sobel_x_kernel, padding=1)
+            backbone_edge_mag = torch.sqrt(backbone_gx**2 + backbone_gy**2 + 1e-8)
+            corrected_edge_mag = torch.sqrt(corrected_gx**2 + corrected_gy**2 + 1e-8)
+            clean_edge_mag = torch.sqrt(clean_gx**2 + clean_gy**2 + 1e-8)
+            backbone_edge_pres = backbone_edge_mag.mean() / (clean_edge_mag.mean() + 1e-8)
+            corrected_edge_pres = corrected_edge_mag.mean() / (clean_edge_mag.mean() + 1e-8)
+            total_backbone_edge_pres += backbone_edge_pres.item()
+            total_corrected_edge_pres += corrected_edge_pres.item()
+
+            # ===== LEGACY CLINICAL METRICS =====
+
+            # Edge Preservation Index (EPI) - correlation of edges
+            clean_edge_flat = clean_edge_mag.view(-1)
+            backbone_edge_flat = backbone_edge_mag.view(-1)
+            corrected_edge_flat = corrected_edge_mag.view(-1)
+
+            # Normalized correlation
+            clean_norm = (clean_edge_flat - clean_edge_flat.mean()) / (clean_edge_flat.std() + 1e-8)
+            backbone_norm = (backbone_edge_flat - backbone_edge_flat.mean()) / (backbone_edge_flat.std() + 1e-8)
+            corrected_norm = (corrected_edge_flat - corrected_edge_flat.mean()) / (corrected_edge_flat.std() + 1e-8)
+            epi_backbone = (clean_norm * backbone_norm).mean()
+            epi_corrected = (clean_norm * corrected_norm).mean()
+            total_epi_backbone += epi_backbone.item()
+            total_epi_corrected += epi_corrected.item()
+
+            # Boundary Sharpness (max gradient along vertical direction)
+            bs_backbone = backbone_gy.max() / (clean_gy.max() + 1e-8)
+            bs_corrected = corrected_gy.max() / (clean_gy.max() + 1e-8)
+            total_bs_backbone += bs_backbone.item()
+            total_bs_corrected += bs_corrected.item()
+
+            # Correction magnitude
+            correction = corrected - backbone_out
+            total_correction_magnitude += correction.abs().mean().item()
+
+            del backbone_lap, corrected_lap, clean_lap
+            del backbone_gx, corrected_gx, clean_gx, backbone_edge_mag, corrected_edge_mag, clean_edge_mag
+            del clean_edge_flat, backbone_edge_flat, corrected_edge_flat, correction
+
+        # Lambda statistics from info (corrector returns 'lambda_stats' not 'lambda_maps')
+        info_lambda_stats = info.get('lambda_stats', {})
+        for name in ['edge', 'contrast', 'smooth', 'structure', 'anatomy']:
+            if name in info_lambda_stats:
+                stats = info_lambda_stats[name]
+                if isinstance(stats, dict):
+                    mean_val = stats.get('mean', 0)
+                    max_val = stats.get('max', 0)
+                    # Handle both tensor and float values
+                    if isinstance(mean_val, torch.Tensor):
+                        mean_val = mean_val.item()
+                    if isinstance(max_val, torch.Tensor):
+                        max_val = max_val.item()
+                    lambda_stats[name]['sum'] += mean_val
+                    lambda_stats[name]['max'] = max(lambda_stats[name]['max'], max_val)
+
+        # Predicate scores - map from P1_edge etc. to P1 etc.
+        pred_scores = info.get('predicate_scores', {})
+        for orig_key, score in pred_scores.items():
+            # Map P1_edge -> P1, P2_contrast -> P2, etc.
+            mapped_key = pred_key_map.get(orig_key, orig_key)
+            if mapped_key in total_pred_scores:
+                score_val = score.item() if isinstance(score, torch.Tensor) else float(score)
+                total_pred_scores[mapped_key] += score_val
+
+        # Backbone predicate scores (for comparison)
+        pred_scores_backbone = info.get('predicate_scores_backbone', {})
+        for orig_key, score in pred_scores_backbone.items():
+            mapped_key = pred_key_map.get(orig_key, orig_key)
+            if mapped_key in total_pred_scores_backbone:
+                score_val = score.item() if isinstance(score, torch.Tensor) else float(score)
+                total_pred_scores_backbone[mapped_key] += score_val
+
+        # Count passing predicates (exclude P5)
+        passing = 0
+        for orig_key, score in pred_scores.items():
+            mapped_key = pred_key_map.get(orig_key, orig_key)
+            if mapped_key in ['P1', 'P2', 'P3', 'P4', 'P6']:
+                score_val = score.item() if isinstance(score, torch.Tensor) else score
+                if score_val >= 0.5:
+                    passing += 1
+        total_predicates_passing += passing
+
+        # Corrector allocations
+        allocation = info.get('allocation_stats', {})
+        for name, stats in allocation.items():
+            if isinstance(stats, dict):
+                corrector_allocations[name]['pixels'] += stats.get('active_pixels', 0)
+
+        del corrected, backbone_out, info
+        n += 1
+
+    # Compute clinical preservation ratios
+    bb_contrast = total_backbone_contrast_pres / n
+    corr_contrast = total_corrected_contrast_pres / n
+    bb_boundary = total_backbone_boundary_pres / n
+    corr_boundary = total_corrected_boundary_pres / n
+    bb_texture = total_backbone_texture_pres / n
+    corr_texture = total_corrected_texture_pres / n
+    bb_edge = total_backbone_edge_pres / n
+    corr_edge = total_corrected_edge_pres / n
+
+    return {
+        # Basic metrics
+        'psnr_backbone': total_psnr_backbone / n,
+        'psnr_corrected': total_psnr_corrected / n,
+        'ssim_backbone': total_ssim_backbone / n,
+        'ssim_corrected': total_ssim_corrected / n,
+        'psnr_delta': (total_psnr_corrected - total_psnr_backbone) / n,
+
+        # Cooperation metrics
+        'uncertainty_potential_corr': total_uncertainty_corr / n,
+        'confident_coverage': total_confident_coverage / n,
+        'uncertain_coverage': total_uncertain_coverage / n,
+
+        # Clinical metrics
+        'contrast_improvement': total_contrast_improvement / n,
+
+        # OCT-specific clinical metrics (IEEE TMI)
+        'cnr_backbone': total_cnr_backbone / n,
+        'cnr_corrected': total_cnr_corrected / n,
+        'cnr_improvement': ((total_cnr_corrected / n) / (total_cnr_backbone / n + 1e-8) - 1.0) * 100,
+        'tci_backbone': total_tci_backbone / n,
+        'tci_corrected': total_tci_corrected / n,
+        'tci_improvement': ((total_tci_corrected / n) / (total_tci_backbone / n + 1e-8) - 1.0) * 100,
+
+        # Clinical preservation metrics (absolute values)
+        'backbone_contrast_pres': bb_contrast,
+        'corrected_contrast_pres': corr_contrast,
+        'backbone_boundary_pres': bb_boundary,
+        'corrected_boundary_pres': corr_boundary,
+        'backbone_texture_pres': bb_texture,
+        'corrected_texture_pres': corr_texture,
+        'backbone_edge_pres': bb_edge,
+        'corrected_edge_pres': corr_edge,
+
+        # Clinical preservation ratios (corrected / backbone)
+        'contrast_ratio': corr_contrast / (bb_contrast + 1e-8),
+        'boundary_ratio': corr_boundary / (bb_boundary + 1e-8),
+        'texture_ratio': corr_texture / (bb_texture + 1e-8),
+        'edge_ratio': corr_edge / (bb_edge + 1e-8),
+
+        # Legacy clinical metrics
+        'epi_backbone': total_epi_backbone / n,
+        'epi_corrected': total_epi_corrected / n,
+        'boundary_sharpness_backbone': total_bs_backbone / n,
+        'boundary_sharpness_corrected': total_bs_corrected / n,
+        'correction_magnitude': total_correction_magnitude / n,
+
+        # Lambda statistics per corrector
+        'lambda_stats': {name: {'mean': stats['sum'] / n, 'max': stats['max']}
+                        for name, stats in lambda_stats.items()},
+
+        # Predicate metrics
+        'pred_scores': {k: v / n for k, v in total_pred_scores.items()},
+        'pred_scores_backbone': {k: v / n for k, v in total_pred_scores_backbone.items()},
+        'predicates_passing': total_predicates_passing / n,
+
+        # Corrector allocations
+        'corrector_allocations': dict(corrector_allocations),
+    }
+
+
+def print_cooperation_metrics(epoch, train_metrics, val_metrics):
+    """
+    Comprehensive epoch monitoring for V8 Cooperative Neuro-Symbolic Denoising.
+    IEEE TMI publication-ready validation metrics printout.
+
+    Includes:
+    - Clinical Preservation Table (with ratios)
+    - Traditional Quality Metrics (PSNR, SSIM)
+    - GT-Free Predicates (backbone vs corrected comparison)
+    - Cooperation Analysis (uncertainty-potential correlation)
+    - Corrector Activity & Lambda Stats
+    - Legacy Clinical Metrics (CNR, EPI, Boundary Sharpness)
+    - Training Summary
+    - Interpretable Verdict
+    """
+    psnr_delta = val_metrics['psnr_delta']
+    ssim_delta = val_metrics['ssim_corrected'] - val_metrics['ssim_backbone']
+    contrast_improve = val_metrics.get('contrast_improvement', 0)
+    predicates_passing = val_metrics.get('predicates_passing', 0)
+    cnr_improvement = val_metrics.get('cnr_improvement', 0)
+
+    # Determine success status
+    target_achieved = (
+        predicates_passing >= 4 and  # At least 4/5 predicates passing
+        abs(psnr_delta) <= 0.5 and   # PSNR constraint
+        contrast_improve >= 5 and    # Some clinical improvement
+        cnr_improvement >= 0         # No CNR degradation
+    )
+
+    # Calculate clinical preservation ratios
+    contrast_ratio = val_metrics.get('contrast_ratio', 1.0)
+    boundary_ratio = val_metrics.get('boundary_ratio', 1.0)
+    texture_ratio = val_metrics.get('texture_ratio', 1.0)
+    edge_ratio = val_metrics.get('edge_ratio', 1.0)
+    avg_ratio = (contrast_ratio + boundary_ratio + texture_ratio + edge_ratio) / 4
+
+    clinical_improvements = sum([
+        1 if contrast_ratio > 1.0 else 0,
+        1 if boundary_ratio > 1.0 else 0,
+        1 if texture_ratio > 1.0 else 0,
+        1 if edge_ratio > 1.0 else 0,
+    ])
+
+    # Status determination
+    if target_achieved:
+        status_symbol = "★★★"
+        status_text = "PUBLICATION READY"
+    elif avg_ratio > 1.05 and cnr_improvement >= 0:
+        status_symbol = "+++"
+        status_text = "EXCELLENT CLINICAL"
+    elif avg_ratio > 1.0:
+        status_symbol = "++"
+        status_text = "GOOD PROGRESS"
+    elif avg_ratio > 0.95:
+        status_symbol = "~"
+        status_text = "NEUTRAL"
+    else:
+        status_symbol = "---"
+        status_text = "NEEDS WORK"
+
+    # ===== HEADER =====
+    print(f"\n{'#'*88}")
+    print(f"# EPOCH {epoch:3d} │ COOPERATIVE NEURO-SYMBOLIC DENOISING │ [{status_symbol}] {status_text}")
+    print(f"# {'':>10} │ Clinical: {clinical_improvements}/4 improved │ CNR: {cnr_improvement:+.1f}% │ PSNR Δ: {psnr_delta:+.3f} dB")
+    print(f"{'#'*88}")
+
+    # ===== CLINICAL PRESERVATION TABLE (PRIMARY METRICS) =====
+    print(f"\n┌{'─'*86}┐")
+    print(f"│ {'CLINICAL PRESERVATION':<22} {'Backbone%':>12} {'Corrected%':>12} {'Ratio':>10} {'Status':>12} {'Target':>12} │")
+    print(f"├{'─'*86}┤")
+
+    # Get absolute preservation values (defaults from known backbone losses)
+    bb_contrast = val_metrics.get('backbone_contrast_pres', 0.53) * 100
+    corr_contrast = val_metrics.get('corrected_contrast_pres', 0.53) * 100
+    bb_boundary = val_metrics.get('backbone_boundary_pres', 0.53) * 100
+    corr_boundary = val_metrics.get('corrected_boundary_pres', 0.53) * 100
+    bb_texture = val_metrics.get('backbone_texture_pres', 0.59) * 100
+    corr_texture = val_metrics.get('corrected_texture_pres', 0.59) * 100
+    bb_edge = val_metrics.get('backbone_edge_pres', 0.32) * 100
+    corr_edge = val_metrics.get('corrected_edge_pres', 0.32) * 100
+
+    targets = {
+        'Contrast': '47% lost',
+        'Boundary': '47% lost',
+        'Texture': '41% lost',
+        'Edge': '68% lost',
+    }
+
+    metrics_data = [
+        ('Contrast (local std)', bb_contrast, corr_contrast, contrast_ratio, targets['Contrast']),
+        ('Boundary (v-grad)', bb_boundary, corr_boundary, boundary_ratio, targets['Boundary']),
+        ('Texture (variance)', bb_texture, corr_texture, texture_ratio, targets['Texture']),
+        ('Edge (Sobel)', bb_edge, corr_edge, edge_ratio, targets['Edge']),
+    ]
+
+    for name, bb_val, corr_val, ratio, target in metrics_data:
+        status = "IMPROVED" if ratio > 1.0 else "---"
+        print(f"│ {name:<22} {bb_val:>11.1f}% {corr_val:>11.1f}% {ratio:>10.3f} {status:>12} {target:>12} │")
+
+    print(f"├{'─'*86}┤")
+    avg_bb = (bb_contrast + bb_boundary + bb_texture + bb_edge) / 4
+    avg_corr = (corr_contrast + corr_boundary + corr_texture + corr_edge) / 4
+    status_str = f"{clinical_improvements}/4 IMPROVED" if clinical_improvements > 0 else "NO IMPROVEMENT"
+    print(f"│ {'AVERAGE':<22} {avg_bb:>11.1f}% {avg_corr:>11.1f}% {avg_ratio:>10.3f} {status_str:>24} │")
+    print(f"└{'─'*86}┘")
+
+    # ===== TRADITIONAL QUALITY METRICS =====
+    print(f"\n┌{'─'*68}┐")
+    print(f"│ {'TRADITIONAL METRICS':<30} {'Backbone':>12} {'Corrected':>12} {'Delta':>10} │")
+    print(f"├{'─'*68}┤")
+    psnr_status = "✓" if abs(psnr_delta) <= 0.5 else "!"
+    ssim_status = "✓" if ssim_delta >= -0.01 else "!"
+    print(f"│ {'PSNR (dB)':<30} {val_metrics['psnr_backbone']:>12.2f} {val_metrics['psnr_corrected']:>12.2f} {psnr_delta:>+9.3f}{psnr_status} │")
+    print(f"│ {'SSIM':<30} {val_metrics['ssim_backbone']:>12.4f} {val_metrics['ssim_corrected']:>12.4f} {ssim_delta:>+9.4f}{ssim_status} │")
+    print(f"└{'─'*68}┘")
+
+    # ===== GT-FREE PREDICATES (Backbone vs Corrected) =====
+    pred_scores = val_metrics.get('pred_scores', {})
+    pred_scores_backbone = val_metrics.get('pred_scores_backbone', pred_scores)
+    passed_count = sum(1 for k, s in pred_scores.items() if s >= 0.5 and k != 'P5') if pred_scores else 0
+
+    if pred_scores:
+        avg_pred = sum(pred_scores.values()) / max(len(pred_scores), 1)
+        avg_pred_backbone = sum(pred_scores_backbone.values()) / max(len(pred_scores_backbone), 1)
+
+        print(f"\n┌{'─'*76}┐")
+        print(f"│ {'GT-FREE PREDICATES':<24} {'Backbone':>12} {'Corrected':>12} {'Delta':>10} {'Status':>12} │")
+        print(f"├{'─'*76}┤")
+
+        pred_names = {
+            'P1': 'Edge Quality', 'P2': 'Contrast', 'P3': 'Smoothness',
+            'P4': 'Structure', 'P5': 'Speckle (excluded)', 'P6': 'Anatomy'
+        }
+
+        for key in ['P1', 'P2', 'P3', 'P4', 'P5', 'P6']:
+            score_corrected = pred_scores.get(key, 0)
+            score_backbone = pred_scores_backbone.get(key, score_corrected)
+            delta = score_corrected - score_backbone
+            if key == 'P5':
+                status = "EXCLUDED"
+            else:
+                status = "PASS" if score_corrected >= 0.5 else "FAIL"
+            name = pred_names.get(key, key)
+            print(f"│ {name:<24} {score_backbone:>12.3f} {score_corrected:>12.3f} {delta:>+10.3f} {status:>12} │")
+
+        print(f"├{'─'*76}┤")
+        avg_delta = avg_pred - avg_pred_backbone
+        print(f"│ {'AVERAGE':<24} {avg_pred_backbone:>12.3f} {avg_pred:>12.3f} {avg_delta:>+10.3f} {f'{passed_count}/5 PASS':>12} │")
+        print(f"└{'─'*76}┘")
+
+    # ===== COOPERATION ANALYSIS =====
+    print(f"\n┌{'─'*68}┐")
+    print(f"│ {'COOPERATION ANALYSIS (NAFNet + Correctors)':<66} │")
+    print(f"├{'─'*68}┤")
+
+    uncertainty_corr = val_metrics.get('uncertainty_potential_corr', 0)
+    confident_cov = val_metrics.get('confident_coverage', 0)
+    uncertain_cov = val_metrics.get('uncertain_coverage', 0)
+    neutral_cov = 1 - confident_cov - uncertain_cov
+
+    # Cooperation status
+    if uncertainty_corr > 0.3:
+        coop_status = "EXCELLENT"
+        coop_detail = "Strong cooperation pattern"
+    elif uncertainty_corr > 0.1:
+        coop_status = "GOOD"
+        coop_detail = "Moderate cooperation"
+    elif uncertainty_corr > 0:
+        coop_status = "FAIR"
+        coop_detail = "Weak cooperation"
+    else:
+        coop_status = "POOR"
+        coop_detail = "No cooperation pattern"
+
+    print(f"│ {'Uncertainty-Potential Correlation':<40} {uncertainty_corr:>+24.3f} │")
+    print(f"│ {'NAFNet Confident Regions':<40} {confident_cov*100:>23.1f}% │")
+    print(f"│ {'NAFNet Uncertain Regions':<40} {uncertain_cov*100:>23.1f}% │")
+    print(f"│ {'Neutral Regions':<40} {neutral_cov*100:>23.1f}% │")
+    print(f"├{'─'*68}┤")
+    print(f"│ {'Cooperation Status':<40} {coop_status + ' - ' + coop_detail:>26} │")
+    print(f"└{'─'*68}┘")
+
+    # ===== CORRECTOR ACTIVITY & LAMBDA STATS =====
+    corrector_activity = train_metrics.get('corrector_activity', {})
+    lambda_stats = val_metrics.get('lambda_stats', {})
+
+    print(f"\n┌{'─'*68}┐")
+    print(f"│ {'CORRECTOR BEHAVIOR':<30} {'Activity%':>12} {'λ Mean':>12} {'λ Max':>10} │")
+    print(f"├{'─'*68}┤")
+
+    total_activity = sum(corrector_activity.values()) + 1e-8
+    for name in ['edge', 'contrast', 'smooth', 'structure', 'anatomy']:
+        activity = corrector_activity.get(name, 0)
+        pct = activity / total_activity * 100
+
+        if name in lambda_stats:
+            stats = lambda_stats[name]
+            mean_val = stats['mean'] if isinstance(stats['mean'], (int, float)) else float(stats['mean'])
+            max_val = stats['max'] if isinstance(stats['max'], (int, float)) else float(stats['max'])
+        else:
+            mean_val = 0.0
+            max_val = 0.0
+
+        print(f"│ {name:<30} {pct:>11.1f}% {mean_val:>12.4f} {max_val:>10.4f} │")
+
+    correction_mag = val_metrics.get('correction_magnitude', 0)
+    if correction_mag < 0.005:
+        corr_interp = "Very Light"
+    elif correction_mag < 0.015:
+        corr_interp = "Moderate"
+    elif correction_mag < 0.03:
+        corr_interp = "Active"
+    else:
+        corr_interp = "Heavy (!)"
+
+    print(f"├{'─'*68}┤")
+    print(f"│ {'Overall Correction Magnitude':<30} {correction_mag:>12.6f} {corr_interp:>22} │")
+    print(f"└{'─'*68}┘")
+
+    # ===== LEGACY CLINICAL METRICS (IEEE TMI) =====
+    cnr_backbone = val_metrics.get('cnr_backbone', 0)
+    cnr_corrected = val_metrics.get('cnr_corrected', 0)
+    cnr_delta = cnr_corrected - cnr_backbone
+
+    tci_backbone = val_metrics.get('tci_backbone', 0)
+    tci_corrected = val_metrics.get('tci_corrected', 0)
+    tci_delta = tci_corrected - tci_backbone
+
+    epi_backbone = val_metrics.get('epi_backbone', 0)
+    epi_corrected = val_metrics.get('epi_corrected', 0)
+    epi_delta = epi_corrected - epi_backbone
+
+    bs_backbone = val_metrics.get('boundary_sharpness_backbone', 0)
+    bs_corrected = val_metrics.get('boundary_sharpness_corrected', 0)
+    bs_delta = bs_corrected - bs_backbone
+
+    legacy_improved = sum([
+        1 if cnr_delta > 0 else 0,
+        1 if tci_delta > 0 else 0,
+        1 if epi_delta > 0 else 0,
+        1 if bs_delta > 0 else 0,
+    ])
+
+    print(f"\n┌{'─'*68}┐")
+    print(f"│ {'OCT CLINICAL METRICS (IEEE TMI)':<30} {'Backbone':>12} {'Corrected':>12} {'Delta':>10} │")
+    print(f"├{'─'*68}┤")
+    cnr_status = "✓" if cnr_delta >= 0 else "!"
+    tci_status = "✓" if tci_delta >= 0 else "!"
+    epi_status = "✓" if epi_delta >= 0 else "~"
+    bs_status = "✓" if bs_delta >= 0 else "~"
+    print(f"│ {'CNR (Contrast-to-Noise)':<30} {cnr_backbone:>12.3f} {cnr_corrected:>12.3f} {cnr_delta:>+9.3f}{cnr_status} │")
+    print(f"│ {'TCI (Tissue Contrast Index)':<30} {tci_backbone:>12.3f} {tci_corrected:>12.3f} {tci_delta:>+9.3f}{tci_status} │")
+    print(f"│ {'EPI (Edge Preservation)':<30} {epi_backbone:>12.4f} {epi_corrected:>12.4f} {epi_delta:>+9.4f}{epi_status} │")
+    print(f"│ {'Boundary Sharpness':<30} {bs_backbone:>12.4f} {bs_corrected:>12.4f} {bs_delta:>+9.4f}{bs_status} │")
+    print(f"├{'─'*68}┤")
+    legacy_status = f"{legacy_improved}/4 IMPROVED" if legacy_improved > 0 else "NO IMPROVEMENT"
+    print(f"│ {'CLINICAL ASSESSMENT':<30} {legacy_status:>36} │")
+    print(f"└{'─'*68}┘")
+
+    # ===== TRAINING SUMMARY =====
+    print(f"\n┌{'─'*68}┐")
+    print(f"│ {'TRAINING LOSS COMPONENTS':<66} │")
+    print(f"├{'─'*68}┤")
+    print(f"│ {'Total Loss':<40} {train_metrics['loss']:>26.6f} │")
+    print(f"│ {'Cooperation Loss':<40} {train_metrics.get('cooperation', 0):>26.6f} │")
+    print(f"│ {'Efficiency Loss':<40} {train_metrics.get('efficiency', 0):>26.6f} │")
+    print(f"│ {'CNR Preservation Loss':<40} {train_metrics.get('cnr_loss', 0):>26.6f} │")
+    print(f"└{'─'*68}┘")
+
+    # ===== QUICK SUMMARY LINE =====
+    print(f"\n>>> Clinical: {clinical_improvements}/4 improved │ Ratio: {avg_ratio:.3f} │ Pres: {avg_bb:.1f}%→{avg_corr:.1f}%")
+    print(f">>> PSNR: {val_metrics['psnr_backbone']:.2f}→{val_metrics['psnr_corrected']:.2f} ({psnr_delta:+.3f}) │ CNR: {cnr_backbone:.2f}→{cnr_corrected:.2f} ({cnr_improvement:+.1f}%)")
+    print(f">>> Predicates: {passed_count}/5 pass │ Cooperation: {coop_status}")
+
+    # ===== INTERPRETABLE VERDICT =====
+    print(f"\n{'#'*88}")
+    print(f"# INTERPRETABLE SUMMARY")
+    print(f"#")
+
+    # Find most active corrector
+    if corrector_activity:
+        most_active = max(corrector_activity.items(), key=lambda x: x[1])[0]
+        activity_pct = corrector_activity[most_active] / total_activity * 100
+
+        # Map corrector to predicate
+        pred_map = {'edge': 'P1', 'contrast': 'P2', 'smooth': 'P3', 'structure': 'P4', 'anatomy': 'P6'}
+        pred_key = pred_map.get(most_active, 'P1')
+        pred_score = pred_scores.get(pred_key, 0)
+
+        print(f"# \"{most_active.capitalize()} corrector handled {activity_pct:.0f}% of corrections\"")
+        print(f"# \"{pred_key} score: {pred_score:.2f} (threshold: 0.5)\"")
+
+    print(f"# \"PSNR trade-off: {psnr_delta:+.2f} dB (target: < 0.5 dB drop)\"")
+    print(f"# \"CNR change: {cnr_improvement:+.1f}% (target: ≥ 0%)\"")
+    print(f"# \"Cooperation quality: {coop_status} - {coop_detail}\"")
+    print(f"#")
+
+    if target_achieved:
+        print(f"# ★ VERDICT: PUBLICATION READY ★")
+        print(f"#   All criteria met: Predicates ≥4/5, PSNR Δ ≤0.5dB, Clinical ≥5%, CNR ≥0%")
+    else:
+        gaps = []
+        if predicates_passing < 4:
+            gaps.append(f"predicates ({predicates_passing:.0f}/5)")
+        if abs(psnr_delta) > 0.5:
+            gaps.append(f"PSNR ({psnr_delta:+.2f} dB)")
+        if contrast_improve < 5:
+            gaps.append(f"clinical ({contrast_improve:.1f}%)")
+        if cnr_improvement < 0:
+            gaps.append(f"CNR ({cnr_improvement:+.1f}%)")
+        if uncertainty_corr < 0.1:
+            gaps.append("cooperation")
+        print(f"# VERDICT: Needs improvement in: {', '.join(gaps) if gaps else 'minor adjustments'}")
+
+    print(f"{'#'*88}\n")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Train V8 Cooperative Neuro-Symbolic Denoising (IEEE TMI)'
+    )
+
+    # Data
+    parser.add_argument('--train_jsonl', default='pku37_oct_dataset/pku37_real_train.jsonl')
+    parser.add_argument('--val_jsonl', default='pku37_oct_dataset/pku37_real_val.jsonl')
+    parser.add_argument('--max_train', type=int, default=None)
+    parser.add_argument('--max_val', type=int, default=None)
+    parser.add_argument('--patch_size', type=int, default=96)
+
+    # Model
+    parser.add_argument('--backbone_width', type=int, default=40)
+    parser.add_argument('--pretrained_backbone', type=str,
+                        default='outputs/nafnet_pku37_w40/best_model.pth')
+    parser.add_argument('--freeze_backbone', action='store_true', default=True)
+
+    # Training config
+    parser.add_argument('--epochs', type=int, default=70)
+    parser.add_argument('--batch_size', type=int, default=4)
+    parser.add_argument('--lr_corrector', type=float, default=2e-4,
+                        help='Learning rate for corrector (default: 2e-4)')
+    parser.add_argument('--lr_potential', type=float, default=5e-4,
+                        help='Learning rate for potential estimators (default: 5e-4)')
+    parser.add_argument('--lr_negotiator', type=float, default=3e-4,
+                        help='Learning rate for negotiator (default: 3e-4)')
+    parser.add_argument('--val_every', type=int, default=5)
+    parser.add_argument('--device', default='cuda' if torch.cuda.is_available() else 'cpu')
+
+    # Loss config
+    parser.add_argument('--cooperation_weight', type=float, default=0.3)
+    parser.add_argument('--efficiency_weight', type=float, default=0.2)
+    parser.add_argument('--clinical_weight', type=float, default=0.5)
+    parser.add_argument('--cnr_weight', type=float, default=0.5,
+                        help='Weight for CNR preservation loss (default: 0.5)')
+    parser.add_argument('--psnr_slack', type=float, default=0.5)
+
+    # Output
+    parser.add_argument('--output_dir', default='outputs/nsnd_v8_cooperative')
+
+    args = parser.parse_args()
+    os.makedirs(args.output_dir, exist_ok=True)
+
+    print("="*80)
+    print("COOPERATIVE NEURO-SYMBOLIC DENOISING V8")
+    print("IEEE TMI Publication Training")
+    print("="*80)
+    print(f"\nKey Innovation: NAFNet and Correctors COOPERATE based on uncertainty")
+    print(f"  - NAFNet handles confident regions")
+    print(f"  - Correctors specialize in uncertain regions")
+    print(f"  - Negotiator allocates work efficiently")
+    print(f"\nTarget Performance:")
+    print(f"  - All 5 predicates pass (P5 excluded)")
+    print(f"  - +10-15% clinical improvement")
+    print(f"  - < {args.psnr_slack} dB PSNR drop")
+    print(f"  - Clear cooperation patterns")
+    print(f"\nConfiguration:")
+    print(f"  Backbone width: {args.backbone_width}")
+    print(f"  Freeze backbone: {args.freeze_backbone}")
+    print(f"  LR corrector: {args.lr_corrector}")
+    print(f"  LR potential: {args.lr_potential}")
+    print(f"  LR negotiator: {args.lr_negotiator}")
+    print(f"  Cooperation weight: {args.cooperation_weight}")
+    print(f"  Efficiency weight: {args.efficiency_weight}")
+    print(f"  Clinical weight: {args.clinical_weight}")
+    print(f"  CNR weight: {args.cnr_weight}")
+    print(f"  Device: {args.device}")
+
+    # Data
+    print("\nLoading PKU37 data...")
+    train_dataset = PKU37Dataset(
+        args.train_jsonl, max_samples=args.max_train,
+        patch_size=args.patch_size, is_train=True
+    )
+    val_dataset = PKU37Dataset(
+        args.val_jsonl, max_samples=args.max_val,
+        patch_size=0, is_train=False
+    )
+
+    num_workers = 4 if args.device != 'cpu' else 0
+    train_loader = DataLoader(
+        train_dataset, batch_size=args.batch_size, shuffle=True,
+        num_workers=num_workers, pin_memory=(args.device != 'cpu'),
+        persistent_workers=(num_workers > 0),
+        prefetch_factor=4 if num_workers > 0 else None,
+        drop_last=True  # FIX: Consistent batch sizes for better GPU utilization
+    )
+    val_loader = DataLoader(
+        val_dataset, batch_size=1, shuffle=False,
+        num_workers=min(2, num_workers), pin_memory=(args.device != 'cpu')
+    )
+
+    # Model
+    print("\nInitializing cooperative model...")
+    model = NeuroSymbolicDenoiserV8Cooperative(
+        backbone_width=args.backbone_width,
+        pretrained_backbone=args.pretrained_backbone,
+    ).to(args.device)
+
+    # Freeze backbone (IMPORTANT: train only corrector, potential, negotiator)
+    if args.freeze_backbone:
+        print("\n*** FREEZING NAFNet BACKBONE WEIGHTS ***")
+        for param in model.backbone.backbone.parameters():
+            param.requires_grad = False
+        # Keep uncertainty head trainable (conv1, bn, conv2, temperature, bias_offset)
+        for param in [model.backbone.uncertainty_conv1.weight,
+                      model.backbone.uncertainty_bn.weight, model.backbone.uncertainty_bn.bias,
+                      model.backbone.uncertainty_conv2.weight, model.backbone.uncertainty_conv2.bias,
+                      model.backbone.uncertainty_temperature, model.backbone.uncertainty_bias_offset]:
+            param.requires_grad = True
+
+    # Loss
+    criterion = CooperativeLoss(
+        cooperation_weight=args.cooperation_weight,
+        efficiency_weight=args.efficiency_weight,
+        clinical_weight=args.clinical_weight,
+        cnr_weight=args.cnr_weight,
+        psnr_slack=args.psnr_slack,
+        use_uncertainty_weighting=True
+    ).to(args.device)
+
+    # Optimizer with different learning rates for different components
+    # Get corrector parameters
+    corrector_params = list(model.corrector.correctors.parameters())
+
+    # Get potential estimator parameters (if exists)
+    potential_params = []
+    if hasattr(model.corrector, 'potential_estimators'):
+        potential_params = list(model.corrector.potential_estimators.parameters())
+    if hasattr(model.corrector, 'lambda_predictor'):
+        potential_params += list(model.corrector.lambda_predictor.parameters())
+
+    # Get negotiator parameters (if exists)
+    negotiator_params = []
+    if hasattr(model.corrector, 'negotiator'):
+        negotiator_params = list(model.corrector.negotiator.parameters())
+    if hasattr(model.corrector, 'router'):
+        negotiator_params += list(model.corrector.router.parameters())
+
+    # Backbone uncertainty head (conv1, bn, conv2, and calibration params)
+    uncertainty_params = (
+        list(model.backbone.uncertainty_conv1.parameters()) +
+        list(model.backbone.uncertainty_bn.parameters()) +
+        list(model.backbone.uncertainty_conv2.parameters()) +
+        [model.backbone.uncertainty_temperature, model.backbone.uncertainty_bias_offset]
+    )
+
+    # Loss weight parameters
+    loss_weight_params = list(criterion.log_sigma.parameters())
+
+    param_groups = [
+        {'params': corrector_params, 'lr': args.lr_corrector},
+        {'params': potential_params, 'lr': args.lr_potential} if potential_params else {'params': [], 'lr': 0},
+        {'params': negotiator_params, 'lr': args.lr_negotiator} if negotiator_params else {'params': [], 'lr': 0},
+        {'params': uncertainty_params, 'lr': args.lr_potential},
+        {'params': loss_weight_params, 'lr': args.lr_corrector * 0.25, 'weight_decay': 0},
+    ]
+
+    # Filter out empty param groups
+    param_groups = [pg for pg in param_groups if len(list(pg['params'])) > 0 or pg['lr'] > 0]
+
+    optimizer = torch.optim.AdamW(param_groups, weight_decay=1e-4)
+
+    print(f"\nOptimizer configuration:")
+    print(f"  Corrector params: {sum(p.numel() for p in corrector_params):,} @ lr={args.lr_corrector}")
+    if potential_params:
+        print(f"  Potential params: {sum(p.numel() for p in potential_params):,} @ lr={args.lr_potential}")
+    if negotiator_params:
+        print(f"  Negotiator params: {sum(p.numel() for p in negotiator_params):,} @ lr={args.lr_negotiator}")
+    print(f"  Uncertainty params: {sum(p.numel() for p in uncertainty_params):,} @ lr={args.lr_potential}")
+
+    # Scheduler
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=args.epochs, eta_min=args.lr_corrector * 0.01
+    )
+
+    # AMP
+    use_amp = args.device != 'cpu' and torch.cuda.is_available()
+    scaler = GradScaler() if use_amp else None
+    if use_amp:
+        print("  Using Automatic Mixed Precision (AMP)")
+
+    # Training loop
+    print("\n" + "#"*80)
+    print("# TRAINING COOPERATIVE NEURO-SYMBOLIC DENOISING")
+    print("# Target: All predicates pass, +10-15% clinical, < 0.5 dB PSNR drop")
+    print("#"*80)
+
+    best_score = -float('inf')
+    best_epoch = 0
+
+    for epoch in range(1, args.epochs + 1):
+        train_metrics = train_epoch(
+            model, train_loader, criterion, optimizer, args.device, epoch, scaler
+        )
+        scheduler.step()
+
+        if epoch % args.val_every == 0 or epoch == args.epochs:
+            val_metrics = validate(model, val_loader, args.device)
+            print_cooperation_metrics(epoch, train_metrics, val_metrics)
+
+            # Compute composite score for model selection
+            # Prioritize: predicates passing, PSNR constraint, CNR preservation, cooperation quality
+            predicates_passing = val_metrics.get('predicates_passing', 0)
+            psnr_delta = val_metrics['psnr_delta']
+            cooperation_corr = val_metrics.get('uncertainty_potential_corr', 0)
+            contrast_improve = val_metrics.get('contrast_improvement', 0)
+            cnr_improvement = val_metrics.get('cnr_improvement', 0)
+
+            # Score: predicates * 10 + cooperation * 5 + clinical * 0.1 + CNR * 0.5 - psnr_penalty - cnr_penalty
+            psnr_penalty = max(0, abs(psnr_delta) - args.psnr_slack) * 10
+            # Penalize CNR drops (target: 0% or better)
+            cnr_penalty = max(0, -cnr_improvement) * 2.0  # 2x penalty per % CNR drop
+            score = (predicates_passing * 10 +
+                    max(0, cooperation_corr) * 5 +
+                    contrast_improve * 0.1 +
+                    max(0, cnr_improvement) * 0.5 -  # Reward CNR improvement
+                    psnr_penalty -
+                    cnr_penalty)  # Penalize CNR drops
+
+            if score > best_score:
+                best_score = score
+                best_epoch = epoch
+
+                torch.save({
+                    'epoch': epoch,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'scheduler_state_dict': scheduler.state_dict(),
+                    'train_metrics': train_metrics,
+                    'val_metrics': val_metrics,
+                    'best_score': best_score,
+                    'args': vars(args),
+                }, os.path.join(args.output_dir, 'best_model_cooperative.pth'))
+
+                print(f"*** New best model! Score: {best_score:.2f} ***")
+        else:
+            print(f"[Epoch {epoch}] Loss: {train_metrics['loss']:.4f}, "
+                  f"PSNR: {train_metrics['psnr_corrected']:.2f}, "
+                  f"Coop: {train_metrics.get('cooperation', 0):.3f}")
+
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+    print("\n" + "#"*80)
+    print("# TRAINING COMPLETE")
+    print("#"*80)
+    print(f"Best composite score: {best_score:.2f} (epoch {best_epoch})")
+    print(f"Model saved to: {args.output_dir}/best_model_cooperative.pth")
+
+
+if __name__ == '__main__':
+    main()

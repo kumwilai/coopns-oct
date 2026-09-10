@@ -1,0 +1,79 @@
+\documentclass{ieeetj}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts,amsthm,mathtools}
+\usepackage{graphicx,color}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{url}
+\usepackage{bm}
+\usepackage{siunitx}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{hyperref}
+\hypersetup{hidelinks=true}
+\AtBeginDocument{\definecolor{tmlcncolor}{cmyk}{0.93,0.59,0.15,0.02}\definecolor{NavyBlue}{RGB}{0,86,125}}
+
+\makeatletter
+\let\@revised\@empty
+\makeatother
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\def\OJlogo{}
+\def\seclogo{}
+\def\authorrefmark#1{\ensuremath{^{\textbf{#1}}}}
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\newtheorem{definition}{Definition}
+
+\begin{document}
+\receiveddate{}
+\reviseddate{}
+\accepteddate{}
+\publisheddate{}
+\currentdate{}
+\doiinfo{}
+\markboth{}{Author et al.}
+\title{Backbone-Modular Neuro-Symbolic Post-Correction for OCT Denoising via Explicit Predicate Maps and Stable Fuzzy Allocation}
+\author{AUTHOR NAMES\authorrefmark{1}}
+\affil{\authorrefmark{1} AFFILIATION}
+\corresp{Corresponding author. EMAIL}
+\authornote{PLACEHOLDER for funding and acknowledgement text.}
+
+\begin{abstract}
+ABSTRACT PLACEHOLDER. Denoisers for optical coherence tomography are trained to reduce a pixel
+error, so they can raise fidelity while lowering the properties a clinician reads, namely layer
+contrast, boundary definition and the visibility of weak structures. This paper treats the repair of
+those properties as a separate problem. A frozen denoiser is kept unchanged and a small policy is
+attached to it. The policy measures six named clinical properties in closed form, converts them into
+a per pixel decision through five explicit rules, and limits how far the image may move. We prove
+that the decision layer responds to a change in evidence by at most an exact constant below
+\num{0.75}, and we measure the realised response against that constant on real images. We give three
+conditions under which the correction cannot lower contrast to noise ratio, and report how often they
+hold. The policy adds \num{168630} trainable parameters to a backbone of about seven million. Across
+four backbone families and three datasets from three sources it improves the clinical measures at a
+small and bounded cost in fidelity, and it transfers to two other scanners with no adaptation of any
+kind. RESULTS PLACEHOLDER.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Optical coherence tomography, image denoising, neuro-symbolic reasoning, fuzzy logic, interpretable
+image restoration, modular post-correction, clinical quality assessment.
+\end{IEEEkeywords}
+
+\maketitle
+
+\input{../sections/01_intro}
+\input{../sections/02_related}
+\input{../sections/03_problem}
+\input{../sections/04_method}
+\input{../sections/05_stability}
+\input{../sections/06_training}
+\input{../sections/07_results}
+\input{../sections/08_discussion}
+\input{../sections/09_conclusion}
+
+\input{../sections/99_bib}
+
+\end{document}

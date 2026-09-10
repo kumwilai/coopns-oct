@@ -1,0 +1,119 @@
+======================================================================
+NSND Performance Verification
+======================================================================
+
+Output directory: /home/kumwilai/OCT/nsnd_oct/verification_results
+
+Initializing NSND model...
+Model parameters: 0
+
+Finding test image pairs...
+Found 20 test image pairs
+
+======================================================================
+Testing on individual images...
+======================================================================
+
+[1/10] Testing cnv: CNV-1016042-119.png
+  NSND PSNR:     15.79 dB (+3.49 dB)
+  Baseline PSNR: 22.96 dB (+10.67 dB)
+  NSND vs Baseline: -7.18 dB
+  Noise: Speckle=47.2%, Banding=22.7%, Gaussian=0.0%, Shot=30.1%
+  Saved visualization: /home/kumwilai/OCT/nsnd_oct/verification_results/comparison_01_cnv_CNV-1016042-119.png
+
+[2/10] Testing cnv: CNV-1016042-179.png
+  NSND PSNR:     14.21 dB (+3.28 dB)
+  Baseline PSNR: 21.00 dB (+10.07 dB)
+  NSND vs Baseline: -6.80 dB
+  Noise: Speckle=46.5%, Banding=23.9%, Gaussian=0.0%, Shot=29.6%
+  Saved visualization: /home/kumwilai/OCT/nsnd_oct/verification_results/comparison_02_cnv_CNV-1016042-179.png
+
+[3/10] Testing cnv: CNV-1016042-220.png
+  NSND PSNR:     18.23 dB (+1.73 dB)
+  Baseline PSNR: 22.14 dB (+5.64 dB)
+  NSND vs Baseline: -3.91 dB
+  Noise: Speckle=48.1%, Banding=22.5%, Gaussian=0.0%, Shot=29.4%
+  Saved visualization: /home/kumwilai/OCT/nsnd_oct/verification_results/comparison_03_cnv_CNV-1016042-220.png
+
+[4/10] Testing cnv: CNV-1016042-55.png
+  NSND PSNR:     13.22 dB (+2.99 dB)
+  Baseline PSNR: 19.30 dB (+9.06 dB)
+  NSND vs Baseline: -6.08 dB
+  Noise: Speckle=45.8%, Banding=25.6%, Gaussian=0.0%, Shot=28.5%
+  Saved visualization: /home/kumwilai/OCT/nsnd_oct/verification_results/comparison_04_cnv_CNV-1016042-55.png
+
+[5/10] Testing cnv: CNV-103044-107.png
+  NSND PSNR:     14.92 dB (+3.02 dB)
+  Baseline PSNR: 21.00 dB (+9.09 dB)
+  NSND vs Baseline: -6.07 dB
+  Noise: Speckle=46.8%, Banding=23.2%, Gaussian=0.0%, Shot=30.0%
+  Saved visualization: /home/kumwilai/OCT/nsnd_oct/verification_results/comparison_05_cnv_CNV-103044-107.png
+
+[6/10] Testing dme: DME-1083927-1.png
+  NSND PSNR:     17.62 dB (+3.63 dB)
+  Baseline PSNR: 22.95 dB (+8.96 dB)
+  NSND vs Baseline: -5.33 dB
+  Noise: Speckle=45.7%, Banding=21.6%, Gaussian=0.0%, Shot=32.7%
+  Saved visualization: /home/kumwilai/OCT/nsnd_oct/verification_results/comparison_06_dme_DME-1083927-1.png
+
+[7/10] Testing dme: DME-1083927-11.png
+  NSND PSNR:     18.36 dB (+2.19 dB)
+  Baseline PSNR: 25.79 dB (+9.62 dB)
+  NSND vs Baseline: -7.43 dB
+  Noise: Speckle=54.3%, Banding=25.3%, Gaussian=0.0%, Shot=20.5%
+  Saved visualization: /home/kumwilai/OCT/nsnd_oct/verification_results/comparison_07_dme_DME-1083927-11.png
+
+[8/10] Testing dme: DME-1169820-4.png
+  NSND PSNR:     16.69 dB (+3.37 dB)
+  Baseline PSNR: 23.67 dB (+10.35 dB)
+  NSND vs Baseline: -6.97 dB
+  Noise: Speckle=46.8%, Banding=22.3%, Gaussian=0.0%, Shot=30.9%
+  Saved visualization: /home/kumwilai/OCT/nsnd_oct/verification_results/comparison_08_dme_DME-1169820-4.png
+
+[9/10] Testing dme: DME-119840-4.png
+  NSND PSNR:     23.39 dB (+3.43 dB)
+  Baseline PSNR: 30.70 dB (+10.74 dB)
+  NSND vs Baseline: -7.31 dB
+  Noise: Speckle=48.3%, Banding=22.4%, Gaussian=0.0%, Shot=29.3%
+  Saved visualization: /home/kumwilai/OCT/nsnd_oct/verification_results/comparison_09_dme_DME-119840-4.png
+
+[10/10] Testing dme: DME-15307-2.png
+  NSND PSNR:     23.90 dB (+2.25 dB)
+  Baseline PSNR: 32.23 dB (+10.58 dB)
+  NSND vs Baseline: -8.33 dB
+  Noise: Speckle=53.8%, Banding=25.4%, Gaussian=0.0%, Shot=20.8%
+  Saved visualization: /home/kumwilai/OCT/nsnd_oct/verification_results/comparison_10_dme_DME-15307-2.png
+
+======================================================================
+SUMMARY STATISTICS
+======================================================================
+
+NSND Performance:
+  PSNR:      17.63 ± 3.41 dB
+  PSNR Gain: 2.94 ± 0.62 dB
+  Min/Max:   13.22 / 23.90 dB
+
+Baseline (Gaussian) Performance:
+  PSNR:      24.17 ± 4.02 dB
+  PSNR Gain: 9.48 ± 1.44 dB
+
+NSND vs Baseline: -6.54 dB
+  ⚠ Baseline is 6.54 dB better (may need training)
+
+Per-Pathology Breakdown:
+  CNV     : 15.27 ± 1.70 dB (5 images)
+  DME     : 19.99 ± 3.03 dB (5 images)
+
+Detailed results saved to: /home/kumwilai/OCT/nsnd_oct/verification_results/detailed_results.json
+  Saved summary plot: /home/kumwilai/OCT/nsnd_oct/verification_results/summary_plot.png
+
+======================================================================
+Verification Complete!
+======================================================================
+
+All results saved to: /home/kumwilai/OCT/nsnd_oct/verification_results
+
+Key files:
+  - Individual comparisons: comparison_*.png
+  - Summary plot: summary_plot.png
+  - Detailed metrics: detailed_results.json

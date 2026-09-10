@@ -1,0 +1,112 @@
+{
+  "CASA (Ours)": {
+    "Gaussian": {
+      "psnr": 34.13,
+      "ssim": 0.9144
+    },
+    "Rayleigh": {
+      "psnr": 24.69,
+      "ssim": 0.8656
+    },
+    "Poisson": {
+      "psnr": 31.12,
+      "ssim": 0.894
+    },
+    "Moderate Gamma": {
+      "psnr": 26.63,
+      "ssim": 0.8838
+    },
+    "Heavy Gamma": {
+      "psnr": 24.06,
+      "ssim": 0.8024
+    }
+  },
+  "DRUNet": {
+    "Gaussian": {
+      "psnr": 29.49,
+      "ssim": 0.8669
+    },
+    "Rayleigh": {
+      "psnr": 21.51,
+      "ssim": 0.6704
+    },
+    "Poisson": {
+      "psnr": 28.87,
+      "ssim": 0.8665
+    },
+    "Moderate Gamma": {
+      "psnr": 27.49,
+      "ssim": 0.865
+    },
+    "Heavy Gamma": {
+      "psnr": 23.59,
+      "ssim": 0.7439
+    }
+  },
+  "SwinIR": {
+    "Gaussian": {
+      "psnr": 33.13,
+      "ssim": 0.8976
+    },
+    "Rayleigh": {
+      "psnr": 25.14,
+      "ssim": 0.8104
+    },
+    "Poisson": {
+      "psnr": 30.79,
+      "ssim": 0.8867
+    },
+    "Moderate Gamma": {
+      "psnr": 28.89,
+      "ssim": 0.8903
+    },
+    "Heavy Gamma": {
+      "psnr": 26.23,
+      "ssim": 0.8037
+    }
+  },
+  "Noise2Void": {
+    "Gaussian": {
+      "psnr": 31.72,
+      "ssim": 0.8326
+    },
+    "Rayleigh": {
+      "psnr": 20.21,
+      "ssim": 0.6518
+    },
+    "Poisson": {
+      "psnr": 27.87,
+      "ssim": 0.7898
+    },
+    "Moderate Gamma": {
+      "psnr": 24.51,
+      "ssim": 0.8002
+    },
+    "Heavy Gamma": {
+      "psnr": 19.32,
+      "ssim": 0.5461
+    }
+  },
+  "Speckle2Speckle": {
+    "Gaussian": {
+      "psnr": 6.24,
+      "ssim": 0.3536
+    },
+    "Rayleigh": {
+      "psnr": 7.06,
+      "ssim": 0.3183
+    },
+    "Poisson": {
+      "psnr": 6.29,
+      "ssim": 0.3332
+    },
+    "Moderate Gamma": {
+      "psnr": 6.29,
+      "ssim": 0.3197
+    },
+    "Heavy Gamma": {
+      "psnr": 6.33,
+      "ssim": 0.2196
+    }
+  }
+}

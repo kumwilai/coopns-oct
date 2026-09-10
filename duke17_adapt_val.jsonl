@@ -1,0 +1,4 @@
+{"noisy_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/12/12_Raw Image.tif", "clean_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/12/12_Averaged Image.tif", "subject": "12"}
+{"noisy_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/16/16_Raw Image.tif", "clean_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/16/16_Averaged Image.tif", "subject": "16"}
+{"noisy_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/4/4_Raw Image.tif", "clean_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/4/4_Averaged Image.tif", "subject": "4"}
+{"noisy_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/8/8_Raw Image.tif", "clean_path": "/home/kumwilai/OCT/duke_sota_datasets/Sparsity_SDOCT_DATASET_2012/8/8_Averaged Image.tif", "subject": "8"}

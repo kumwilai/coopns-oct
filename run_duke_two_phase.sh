@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT"
+
+# Phase A: map-only warmup
+python -u nsnd_oct/scripts/train_hybrid_nsnd_multitask.py \
+  --pairs_train train_pairs_duke_analysis_maps.txt \
+  --pairs_val val_pairs_duke_analysis_maps.txt \
+  --weights_jsonl_train weights_duke_analysis_maps_train.jsonl \
+  --weights_jsonl_val weights_duke_analysis_maps_val.jsonl \
+  --max_samples 2000 \
+  --val_samples 400 \
+  --batch_size 4 \
+  --epochs 6 \
+  --early_stopping_patience 2 \
+  --lr 3e-4 \
+  --analyzer_lr 1e-4 \
+  --freeze_analyzer_epochs 0 \
+  --base_nafnet_type full \
+  --base_nafnet_width 64 \
+  --base_enc_blk_nums 2 2 2 \
+  --base_dec_blk_nums 2 2 2 \
+  --base_middle_blk_num 2 \
+  --base_ckpt outputs/baselines_duke_analysis/nafnet_w64/nafnet_best.pth \
+  --shared_residual \
+  --shared_trunk_width 32 \
+  --shared_adapter_channels 96 \
+  --shared_adapter_hidden 64 \
+  --residual_blend_init 0.55 \
+  --use_joint_signal_expert \
+  --joint_expert_channels 96 \
+  --joint_mix_init 0.12 \
+  --ns_use_neural_predicates \
+  --ns_use_neural_weights \
+  --use_spatial_weights \
+  --spatial_feature_channels 64 \
+  --spatial_hidden_channels 32 \
+  --noise_map_loss_weight 2.0 \
+  --noise_map_loss_weights 3,1,3,1 \
+  --noise_map_stage_epochs 4 \
+  --noise_map_stage_only \
+  --use_region_weights \
+  --region_min_band_frac 0.15 \
+  --region_smooth_ksize 9 \
+  --region_strength_mode residual \
+  --log_region_psnr \
+  --log_roi_psnr \
+  --roi_center_frac 0.4 \
+  --metrics_json outputs/duke_metrics_mapwarm.jsonl \
+  --lambda_interp_start 0.00 \
+  --lambda_interp_end 0.00 \
+  --lambda_interp_schedule constant \
+  --lambda_warmup_epochs 0 \
+  --param_reg_weight 0.05 \
+  --param_reg_warmup_epochs 0 \
+  --use_log_domain_analyzer \
+  --log_head_usage \
+  --hybrid_analyzer_ckpt checkpoints/hybrid_analyzer_speckle_fixed_seed2.pth \
+  --mix_gate_reg_weight 0 \
+  --consistency_weight 0 \
+  --logic_reg_weight 0 \
+  --composition_loss_weight 0 \
+  --composition_consistency_weight 0 \
+  --residual_consistency_weight 0 \
+  --noise_cycle_weight 0 \
+  --speckle_cycle_weight 0 \
+  --resume_ckpt checkpoints/multitask_hybrid_nsnd_lambda0p02_best.pth \
+  --seed 0
+
+# Phase B: joint training with reduced map loss
+python -u nsnd_oct/scripts/train_hybrid_nsnd_multitask.py \
+  --pairs_train train_pairs_duke_analysis_maps.txt \
+  --pairs_val val_pairs_duke_analysis_maps.txt \
+  --weights_jsonl_train weights_duke_analysis_maps_train.jsonl \
+  --weights_jsonl_val weights_duke_analysis_maps_val.jsonl \
+  --max_samples 2000 \
+  --val_samples 400 \
+  --batch_size 4 \
+  --epochs 40 \
+  --early_stopping_patience 10 \
+  --lr 5e-4 \
+  --analyzer_lr 1e-4 \
+  --freeze_analyzer_epochs 0 \
+  --base_nafnet_type full \
+  --base_nafnet_width 64 \
+  --base_enc_blk_nums 2 2 2 \
+  --base_dec_blk_nums 2 2 2 \
+  --base_middle_blk_num 2 \
+  --base_ckpt outputs/baselines_duke_analysis/nafnet_w64/nafnet_best.pth \
+  --shared_residual \
+  --shared_trunk_width 32 \
+  --shared_adapter_channels 96 \
+  --shared_adapter_hidden 64 \
+  --residual_blend_init 0.55 \
+  --use_joint_signal_expert \
+  --joint_expert_channels 96 \
+  --joint_mix_init 0.12 \
+  --ns_use_neural_predicates \
+  --ns_use_neural_weights \
+  --use_spatial_weights \
+  --spatial_feature_channels 64 \
+  --spatial_hidden_channels 32 \
+  --noise_map_loss_weight 0.8 \
+  --noise_map_loss_weights 3,1,3,1 \
+  --noise_map_stage_epochs 0 \
+  --use_region_weights \
+  --region_min_band_frac 0.15 \
+  --region_smooth_ksize 9 \
+  --region_strength_mode residual \
+  --log_region_psnr \
+  --log_roi_psnr \
+  --roi_center_frac 0.4 \
+  --metrics_json outputs/duke_metrics_joint.jsonl \
+  --lambda_interp_start 0.02 \
+  --lambda_interp_end 0.05 \
+  --lambda_interp_schedule cosine \
+  --lambda_warmup_epochs 0 \
+  --param_reg_weight 0.05 \
+  --param_reg_warmup_epochs 0 \
+  --use_log_domain_analyzer \
+  --log_head_usage \
+  --hybrid_analyzer_ckpt checkpoints/hybrid_analyzer_speckle_fixed_seed2.pth \
+  --mix_gate_reg_weight 0 \
+  --consistency_weight 0 \
+  --logic_reg_weight 0 \
+  --composition_loss_weight 0 \
+  --composition_consistency_weight 0 \
+  --residual_consistency_weight 0 \
+  --noise_cycle_weight 0 \
+  --speckle_cycle_weight 0 \
+  --resume_ckpt checkpoints/multitask_hybrid_nsnd_lambda0p0_best.pth \
+  --seed 0

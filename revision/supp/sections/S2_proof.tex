@@ -1,0 +1,52 @@
+\section{Proof of the contrast margin result}
+\label{sec:supp_proof}
+
+This is the proof of Theorem~2 of the main paper, repeated here in full. Write
+$\mu_\mathcal{T}$ and $\mu_\mathcal{B}$ for the mean over tissue and over background, and
+$\sigma_\mathcal{B}$ for the standard deviation over background. Let $\mathbf{b}$ be the backbone
+output, $\mathbf{q}$ the candidate, and $\hat{\mathbf{x}} = (1-w)\mathbf{b} + w\mathbf{q}$ the output
+with $w \in (0,1]$.
+
+\begin{theorem}[Contrast margin]
+Let $\eta_\mathcal{T} = \mu_\mathcal{T}(\mathbf{q}) - \mu_\mathcal{T}(\mathbf{b}) \ge 0$ and let
+$\eta_\mathcal{B} \ge \mu_\mathcal{B}(\mathbf{q}) - \mu_\mathcal{B}(\mathbf{b})$. If
+$\sigma_\mathcal{B}(\mathbf{q}) \le \sigma_\mathcal{B}(\mathbf{b})$ then
+\begin{equation}
+\mathrm{CNR}(\hat{\mathbf{x}}) \ge
+\frac{\big(\mu_\mathcal{T}(\mathbf{b}) - \mu_\mathcal{B}(\mathbf{b})\big)
+      + w\,(\eta_\mathcal{T} - \eta_\mathcal{B})}{\sigma_\mathcal{B}(\mathbf{b})} .
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+The mean is linear, so over any fixed set of pixels the mean of a convex combination is the same
+convex combination of the means. Applying this over the tissue set and over the background set,
+\begin{align*}
+\mu_\mathcal{T}(\hat{\mathbf{x}}) &= (1-w)\,\mu_\mathcal{T}(\mathbf{b}) + w\,\mu_\mathcal{T}(\mathbf{q})
+ = \mu_\mathcal{T}(\mathbf{b}) + w\,\eta_\mathcal{T}, \\
+\mu_\mathcal{B}(\hat{\mathbf{x}}) &= \mu_\mathcal{B}(\mathbf{b}) + w\,\eta_\mathcal{B}',
+\end{align*}
+where $\eta_\mathcal{B}' = \mu_\mathcal{B}(\mathbf{q}) - \mu_\mathcal{B}(\mathbf{b}) \le \eta_\mathcal{B}$
+by hypothesis. Subtracting,
+\begin{equation*}
+\mu_\mathcal{T}(\hat{\mathbf{x}}) - \mu_\mathcal{B}(\hat{\mathbf{x}})
+= \big(\mu_\mathcal{T}(\mathbf{b}) - \mu_\mathcal{B}(\mathbf{b})\big) + w\,(\eta_\mathcal{T} - \eta_\mathcal{B}')
+\ge \big(\mu_\mathcal{T}(\mathbf{b}) - \mu_\mathcal{B}(\mathbf{b})\big) + w\,(\eta_\mathcal{T} - \eta_\mathcal{B}),
+\end{equation*}
+which lower bounds the numerator.
+
+For the denominator, every background pixel of $\hat{\mathbf{x}}$ is the same convex combination of
+the corresponding pixels of $\mathbf{b}$ and $\mathbf{q}$. Treating the background pixel values as a
+random variable and applying Minkowski's inequality to the centred variables,
+\begin{equation*}
+\sigma_\mathcal{B}(\hat{\mathbf{x}}) \le (1-w)\,\sigma_\mathcal{B}(\mathbf{b}) + w\,\sigma_\mathcal{B}(\mathbf{q})
+\le (1-w)\,\sigma_\mathcal{B}(\mathbf{b}) + w\,\sigma_\mathcal{B}(\mathbf{b}) = \sigma_\mathcal{B}(\mathbf{b}),
+\end{equation*}
+using the hypothesis $\sigma_\mathcal{B}(\mathbf{q}) \le \sigma_\mathcal{B}(\mathbf{b})$ in the second
+step. Dividing the lower bound on the numerator by the upper bound on the denominator gives the
+claim. Since $w > 0$ in every branch of the blending rule, the bound is at least the baseline
+contrast whenever $\eta_\mathcal{T} > \eta_\mathcal{B}$.
+\end{proof}
+
+\noindent Section~VII of the main paper reports how often each of the three hypotheses holds on the
+test set, so the reader can see when the guarantee is active rather than assuming it always is.

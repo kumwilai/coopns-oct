@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT"
+
+python -u nsnd_oct/scripts/train_hybrid_nsnd_multitask.py \
+  --data_root /home/kumwilai/OCT/oct_tmi \
+  --max_samples 1200 \
+  --val_samples 300 \
+  --batch_size 4 \
+  --epochs 30 \
+  --early_stopping_patience 0 \
+  --lr 5e-4 \
+  --analyzer_lr 5e-4 \
+  --lambda_interp_schedule constant \
+  --lambda_interp_start 0.02 \
+  --lambda_interp_end 0.02 \
+  --lambda_warmup_epochs 0 \
+  --alpha_vec 2.0,0.6,2.0,0.6 \
+  --noise_map_loss_weight 6.0 \
+  --noise_map_loss_weights 3,1,3,1 \
+  --noise_map_stage_epochs 10 \
+  --noise_map_stage_only \
+  --pure_noise_prob 0.9 \
+  --pure_noise_epochs 10 \
+  --use_spatial_weights \
+  --spatial_feature_channels 64 \
+  --spatial_hidden_channels 32 \
+  --use_region_weights \
+  --region_min_band_frac 0.15 \
+  --region_smooth_ksize 9 \
+  --region_strength_mode residual \
+  --use_log_domain_analyzer \
+  --base_nafnet_type full \
+  --base_nafnet_width 64 \
+  --base_enc_blk_nums 2 2 2 \
+  --base_dec_blk_nums 2 2 2 \
+  --base_middle_blk_num 2 \
+  --shared_residual \
+  --shared_trunk_width 32 \
+  --shared_adapter_channels 96 \
+  --shared_adapter_hidden 64 \
+  --use_joint_signal_expert \
+  --joint_expert_channels 96 \
+  --joint_mix_init 0.05 \
+  --residual_blend_init 0.35 \
+  --ns_use_neural_predicates \
+  --ns_use_neural_weights \
+  --hybrid_analyzer_ckpt checkpoints/hybrid_analyzer_speckle_fixed_seed2.pth \
+  --mix_gate_reg_weight 0 \
+  --consistency_weight 0 \
+  --logic_reg_weight 0 \
+  --composition_loss_weight 0 \
+  --composition_consistency_weight 0 \
+  --residual_consistency_weight 0 \
+  --param_reg_weight 0 \
+  --noise_cycle_weight 0 \
+  --speckle_cycle_weight 0 \
+  --seed 0
+
+python -u nsnd_oct/scripts/train_hybrid_nsnd_multitask.py \
+  --pairs_train train_pairs_duke_analysis.txt \
+  --pairs_val val_pairs_duke_analysis.txt \
+  --weights_jsonl_train weights_duke_analysis_train.jsonl \
+  --weights_jsonl_val weights_duke_analysis_val.jsonl \
+  --max_samples 2000 \
+  --val_samples 400 \
+  --batch_size 4 \
+  --epochs 40 \
+  --early_stopping_patience 10 \
+  --lr 1e-3 \
+  --analyzer_lr 0 \
+  --freeze_analyzer_epochs 40 \
+  --base_nafnet_type full \
+  --base_nafnet_width 64 \
+  --base_enc_blk_nums 2 2 2 \
+  --base_dec_blk_nums 2 2 2 \
+  --base_middle_blk_num 2 \
+  --base_ckpt outputs/baselines_duke_analysis/nafnet_w64/nafnet_best.pth \
+  --shared_residual \
+  --shared_trunk_width 32 \
+  --shared_adapter_channels 96 \
+  --shared_adapter_hidden 64 \
+  --residual_blend_init 0.35 \
+  --use_joint_signal_expert \
+  --joint_expert_channels 96 \
+  --joint_mix_init 0.05 \
+  --ns_use_neural_predicates \
+  --ns_use_neural_weights \
+  --use_spatial_weights \
+  --spatial_feature_channels 64 \
+  --spatial_hidden_channels 32 \
+  --noise_map_loss_weight 0 \
+  --noise_map_stage_epochs 0 \
+  --use_region_weights \
+  --region_min_band_frac 0.15 \
+  --region_smooth_ksize 9 \
+  --region_strength_mode residual \
+  --log_region_psnr \
+  --log_roi_psnr \
+  --roi_center_frac 0.4 \
+  --metrics_json outputs/duke_metrics.jsonl \
+  --lambda_warmup_epochs 5 \
+  --lambda_interp_start 0.08 \
+  --lambda_interp_end 0.05 \
+  --lambda_interp_schedule cosine \
+  --use_log_domain_analyzer \
+  --log_head_usage \
+  --hybrid_analyzer_ckpt checkpoints/hybrid_analyzer_speckle_fixed_seed2.pth \
+  --mix_gate_reg_weight 0 \
+  --consistency_weight 0 \
+  --logic_reg_weight 0 \
+  --composition_loss_weight 0 \
+  --composition_consistency_weight 0 \
+  --residual_consistency_weight 0 \
+  --param_reg_weight 0 \
+  --noise_cycle_weight 0 \
+  --speckle_cycle_weight 0 \
+  --resume_ckpt checkpoints/multitask_hybrid_nsnd_lambda0p02_best.pth \
+  --seed 0
+
+python -u nsnd_oct/scripts/evaluate_nsnd_fixed_pairs.py \
+  --checkpoint checkpoints/multitask_hybrid_nsnd_lambda0p02_best.pth \
+  --hybrid_analyzer_ckpt checkpoints/hybrid_analyzer_speckle_fixed_seed2.pth \
+  --pairs test_pairs_duke_analysis.txt \
+  --log_region_psnr \
+  --log_roi_psnr \
+  --roi_center_frac 0.4 \
+  --out_json outputs/duke_eval.json \
+  --device cpu

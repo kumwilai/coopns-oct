@@ -1,0 +1,55 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Why fidelity falls, and when that is the right trade}
+\label{sec:psnr_tradeoff}
+Peak signal to noise ratio usually falls slightly when the wrapper is applied, and the size of the
+drop differs by backbone. This is not an accident of tuning. It follows from what the two objectives
+reward. A denoiser trained on squared error is at a local optimum of that error, so any change to its
+output moves away from that optimum. The wrapper makes changes that raise contrast and boundary
+definition, and those changes are not free in squared error terms. The question is therefore not how
+to avoid the drop but how to decide when it is worth accepting.
+
+Two things decide it. A change of a few tenths of a decibel is smaller than the variation between two
+acquisitions of the same eye, so it does not change what a downstream algorithm can do. And the
+quantities that improve, namely boundary definition and tissue to background separation, are what a
+grader actually uses to place a segmentation boundary or judge a fluid pocket.
+
+The backbone that loses most fidelity is the one that had suppressed the most contrast to begin with.
+A transformer with windowed attention smooths aggressively inside a window, which is efficient for
+squared error and costly for local contrast. The wrapper restores that contrast, and restoring it
+necessarily moves the pixels further from the smoothed optimum. The pattern is therefore informative
+rather than embarrassing. The size of the correction tracks how much the backbone had given away.
+
+For a deployment that must not lose fidelity at all, the safety layer already provides the control.
+Tightening the third constraint of Section~\ref{sec:safety} reduces the admitted change, and the
+result moves smoothly toward the backbone output. What the method does not offer is a free lunch in
+which every measure improves at once, and we prefer to say so.
+
+\subsection{What the formal results buy, and what they do not}
+Theorem~\ref{thm:stability} is exact and it is about the code that ran. The constant follows from the
+trained weights and Section~\ref{sec:theory_check} measures the realised ratio against it. That is a
+different claim from a bound that holds vacuously because a clip enforces it.
+
+Theorem~\ref{thm:cnr} is a sufficient condition rather than a guarantee of improvement. It says which
+three quantities have to behave for contrast not to fall, and the method is built to make all three
+behave. Reporting how often they actually hold, rather than asserting that they must, is the honest
+form of that claim.
+
+\subsection{Why the correction layer is worth its complexity}
+A plain network with the same parameter budget can also improve clinical measures, as
+Section~\ref{sec:matched} shows. What it cannot do is say why it changed a pixel. Every change made
+here can be traced to a named property, a location where that property was measured to fail, a rule
+that fired, and a safety decision that admitted the result. That trace is the product, and the
+comparison at matched complexity is what shows the trace is not bought by giving up performance.
+
+\subsection{Limitations}
+The correction is bounded by construction, so a backbone that has destroyed a structure cannot be
+made to recover it. The formal results are narrow in the way stated at the end of
+Section~\ref{sec:stability}. The confidence head is the one part that must be refitted for a new
+backbone, and Section~\ref{sec:transfer_cost} reports what that costs rather than treating it as
+free. The clinical measures used here are established proxies, not outcomes, and no clinician read
+the images, so the safety analysis of Section~\ref{sec:safety_check} is quantitative evidence rather
+than clinical validation. Finally, the external datasets are small, sixteen and eighteen images, so
+the transfer results should be read as evidence of behaviour across scanners rather than as a
+precise estimate of the gain on any one device.

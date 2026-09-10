@@ -1,0 +1,61 @@
+\section{Training procedure and the full list of constants}
+\label{sec:supp_training}
+
+\subsection{Algorithm}
+Algorithm~\ref{alg:supp_training} states the procedure. The backbone is frozen throughout and
+receives no gradient. The first stage activates only the clinical terms, so the correctors learn a
+useful direction. The second stage activates the fidelity term, so they learn how far to go.
+
+\begin{algorithm}[t]
+\caption{Training the wrapper.}
+\label{alg:supp_training}
+\begin{algorithmic}[1]
+\Require frozen backbone $f_\theta$, paired training set, number of epochs $E$
+\State initialise the wrapper parameters, set each property threshold to its literature value
+\For{$e = 1$ to $E$}
+  \For{each batch of crops}
+    \State compute the backbone output, with no gradient to $\theta$
+    \State compute the confidence map from the backbone features
+    \State compute the six property scores and failure maps
+    \State compute the gain, edge and strength proposals
+    \State compute the five rule truth values
+    \State compute the allocation
+    \State compose the candidate, then evaluate the objective on it
+    \State update the wrapper parameters with AdamW
+  \EndFor
+  \If{$e$ reaches the midpoint} activate the fidelity term \EndIf
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Structural constants}
+The main paper lists the constants that carry a design decision. Table~\ref{tab:supp_constants} lists
+the remaining ones, which are structural and were not tuned.
+
+\begin{table}[t]
+\centering
+\caption{Structural constants. None of these was tuned.}
+\label{tab:supp_constants}
+\footnotesize
+\begin{tabular}{llp{0.42\columnwidth}}
+\toprule
+Constant & Value & Role \\
+\midrule
+gate steepness & 20 & sharpness of the background gate \\
+failure sharpness & 10 & sharpness of the score to failure conversion \\
+smoothing window & $3 \times 3$ & smoothing of the brightening term \\
+erosion window & $5 \times 5$ & keeps background smoothing away from tissue \\
+crop size & $96 \times 96$ & training crops \\
+batch size & 4 & training batch \\
+edge bound & $\pm 0.08$ & nominal bound of the additive branch \\
+quarter resolution & $H/4 \times W/4$ & the gain network runs at this scale \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{What the paired data is used for}
+Training uses paired data. The clean reference enters the fidelity term, the clinical term and the
+supervision of the edge branch. Testing uses no clean image anywhere in the correction path. The six
+properties are computed from the noisy input and the backbone output only, which is what allows them
+to run on a scanner the method has never seen. The clean reference is used to score results, as in
+any denoising study, and never to produce them.
