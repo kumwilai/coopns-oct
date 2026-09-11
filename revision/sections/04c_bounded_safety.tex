@@ -13,11 +13,11 @@ A gate suppresses any change in the dark background,
 \mathbf{g} = \sigma\big(20\,(\mathbf{b} - q_{0.15})\big),
 \label{eq:gate}
 \end{equation}
-where $q_{0.15}$ is the fifteenth percentile of the backbone output of that image. Using a percentile
-rather than a fixed level makes the gate work across scanners with different brightness. A second form
-of the gate, used where the selection of Section~\ref{sec:weight_selection} chose it, is a soft step at
-the per image Otsu threshold followed by a maximum filter of fixed radius, so that the gate is
-identically zero beyond that radius from tissue.
+where $q_{0.15}$ is the fifteenth percentile of the backbone output of that image. A percentile
+rather than a fixed level makes the gate work across scanners of different brightness. The second
+form, used where the selection of Section~\ref{sec:weight_selection} chose it, is a soft step at the
+per image Otsu threshold followed by a maximum filter of fixed radius, so the gate is identically
+zero beyond that radius from tissue.
 
 The gated gain is applied multiplicatively to give the change $\mathbf{v}$, with the brightening part
 smoothed before it is added so that it cannot create a new high frequency edge,
@@ -26,11 +26,11 @@ smoothed before it is added so that it cannot create a new high frequency edge,
  + (\boldsymbol{\alpha} - \mathrm{ReLU}(\boldsymbol{\alpha})) \odot \mathbf{b}\,\big) \odot \mathbf{g},
 \label{eq:apply}
 \end{equation}
-where $\mathrm{smooth}$ is a three by three mean filter. The darkening part is left unsmoothed, so the
-brightening is spread over a neighbourhood while a darkening acts where it was proposed. In the background, defined by the complement of the gate eroded
-by two pixels, a masked three by three mean filter is blended in at half strength, which lowers the
-background standard deviation without letting blur cross into tissue. Finally the edge proposal is
-added and the result is clipped to the valid range,
+where $\mathrm{smooth}$ is a three by three mean filter, so a brightening is spread over a
+neighbourhood while a darkening acts where it was proposed. In the background, the complement of the
+gate eroded by two pixels, a masked mean filter of the same size is blended in at half strength,
+which lowers the background standard deviation without letting blur cross into tissue. The edge
+proposal is then added and the result clipped to the valid range,
 \begin{equation}
 \mathbf{q} = \mathrm{clamp}\big(\mathbf{b} + \mathbf{v} + \boldsymbol{\delta}_{\mathrm{e}} \odot \mathbf{g},\, 0,\, 1\big).
 \label{eq:candidate}
@@ -46,8 +46,8 @@ E(\mathbf{t}) = 1 - \tfrac{1}{6}\sum_{i=1}^{6} s_i(\mathbf{t})
  + 0.1 \sum_{i=1}^{6} \max\big(0,\, 0.5 - s_i(\mathbf{t})\big),
 \label{eq:energy}
 \end{equation}
-which is small when the image is good, and whose second term penalises any single property below one
-half, so a good average cannot hide one broken property. The first constraint requires
+which is small when the image is good and whose second term penalises any property below one half,
+so a good average cannot hide one broken property. The constraint is
 $E(\mathbf{q}) \le E(\mathbf{b}) + 0.10$.
 
 \textbf{No property may be sacrificed for another.} The second constraint requires that at least one
@@ -66,21 +66,12 @@ w = \begin{cases}
 \end{cases}
 \label{eq:blend}
 \end{equation}
-Otherwise the output falls back to the backbone while retaining five percent when none holds and about eight when one does,
-so the decision remains visible rather than silently discarded. The candidate is accepted in full whenever any two
-constraints hold, so one violated constraint does not by itself withhold the change. This is a
-majority test on three measured conditions and not an enforcement of three bounds, and
-Section~\ref{sec:safety_check} reports how often each holds.
+The candidate is accepted in full whenever any two constraints hold, so one violation does not by
+itself withhold the change. Below two the output falls back to the backbone while keeping five
+percent of the change when none holds and about eight when one does, so the decision stays visible
+rather than being silently discarded. This is a majority test on three measured conditions and not an
+enforcement of three bounds, and Section~\ref{sec:safety_check} reports how often each holds.
 
-
-\begin{figure*}[!tb]
-\centering
-\includegraphics[width=0.825\textwidth]{figures/architecture.pdf}
-\caption{The six stages. A frozen backbone and a small head produce the image and the cooperation
-map. Two networks propose changes. Six properties are measured. Five rules allocate. The change is
-bounded and gated. Three constraints decide how much is kept.}
-\label{fig:architecture}
-\end{figure*}
 
 
 \begin{table*}[!tb]

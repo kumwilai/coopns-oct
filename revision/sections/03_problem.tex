@@ -75,17 +75,17 @@ sum of six terms with fixed weights $w_c$, $w_p$, $w_o$, $w_s$ and $w_r$,
 \end{equation}
 where $\mathcal{L}_{\mathrm{fid}}$ keeps the output near the clean reference,
 $\mathcal{L}_{\mathrm{clin}}$ rewards improvement of the clinical measures over the backbone,
-$\mathcal{L}_{\mathrm{pred}}$ asks four of the property scores to rise above the value the
-backbone already reaches,
-$\mathcal{L}_{\mathrm{coop}}$ ties the amount of correction to the estimated correction demand,
+$\mathcal{L}_{\mathrm{pred}}$ asks four property scores to rise above what the backbone already
+reaches, $\mathcal{L}_{\mathrm{coop}}$ ties the amount of correction to the estimated demand,
 $\mathcal{L}_{\mathrm{edge}}$ supervises the gradient field, and $\mathcal{L}_{\mathrm{reg}}$
 collects the bounds on how large and how rough the change may be together with four terms that
-protect the background. Section~\ref{sec:training} gives every term in full with its weight. Three constraints are checked on every image, stated formally in
-Section~\ref{sec:safety}. The aggregate clinical quality should not fall by more than a fixed
-tolerance, no single property should fall by more than a fixed tolerance while another rises, and the
-relative change from the backbone output should stay below a fixed bound. How many hold decides how much of the change is
-kept, so the rule is a majority test and not three hard guarantees. The objective is differentiable in
-$\phi$, including the rule layer, because every logical connective is a piecewise linear surrogate, so
-it is solved with AdamW~\cite{loshchilov2019decoupled}. During training the constraints enter as
-penalties. At test time they are evaluated exactly on each image and the number satisfied sets the
-blend weight through the majority rule.
+protect the background. Section~\ref{sec:training} gives every term with its weight.
+
+Three constraints are checked on every image and stated formally in Section~\ref{sec:safety}. The
+aggregate clinical quality should not fall by more than a fixed tolerance, no single property should
+fall by more than a fixed tolerance while another rises, and the relative change from the backbone
+output should stay below a fixed bound. How many hold decides how much of the change is kept, so the
+rule is a majority test and not three hard guarantees. Every logical connective is a piecewise linear
+surrogate, so the objective is differentiable in $\phi$ including the rule layer and is solved with
+AdamW~\cite{loshchilov2019decoupled}. The constraints enter training as penalties and are evaluated
+exactly on each image at test time.

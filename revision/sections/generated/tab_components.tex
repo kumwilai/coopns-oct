@@ -1,0 +1,17 @@
+\begin{tabular}{lccccccc}
+\toprule
+Variant & $\Delta$PSNR (dB) & $\Delta$CNR & $\Delta$TCI & $\Delta$EPI & $\Delta$BS & $\Delta$ENL & $\Delta$SNR \\
+\midrule
+\multicolumn{8}{l}{\textit{One component removed}} \\
+Full method & -0.17 & +3.71 & +2.42 & +1.21 & +4.16 & +23.34 & +10.74 \\
+No rule layer & -0.38 & +0.83 & +0.38 & +0.99 & +4.27 & +25.45 & +10.44 \\
+No edge branch & -0.37 & -2.71 & -6.54 & +0.55 & +0.65 & +20.28 & +7.30 \\
+No cooperation map & -0.15 & +2.51 & +1.15 & +1.10 & +3.87 & +23.84 & +10.61 \\
+No background smoothing & -0.18 & +3.03 & +6.88 & +0.92 & +3.99 & +5.75 & +2.85 \\
+\midrule
+\multicolumn{8}{l}{\textit{Alternatives of similar complexity on the same backbone output}} \\
+Uniform allocation, trained & -0.42 & +4.11 & +11.58 & +0.71 & +3.83 & +16.18 & +5.80 \\
+Unsharp masking & -0.67 & +0.63 & +39.45 & -3.59 & +25.13 & -35.31 & -20.57 \\
+Adaptive equalisation & -4.43 & +6.48 & +53.03 & -3.45 & +24.62 & -38.60 & -25.13 \\
+\bottomrule
+\end{tabular}

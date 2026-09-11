@@ -214,10 +214,16 @@ def tag(ax, x, y, text, ha, va, fontsize):
              bbox=dict(facecolor="white", alpha=0.85, pad=1.2, lw=0))
 
 
-def row_label(ax, bb):
-    """The row's backbone name, left-aligned inside column 1, preceded by that
-    backbone's marker glyph in its own colour. No box, per spec, unlike the
-    numeric tag on the change column."""
+def row_label(ax, bb, outside=False):
+    """The row's backbone name, preceded by that backbone's marker glyph in its own
+    colour. Over a noisy B-scan dark type on dark speckle is barely readable, so
+    outside=True puts the name in the margin to the left of the row instead."""
+    if outside:
+        ax.text(-0.03, 0.62, MARKER_GLYPH[MARKER[bb]], transform=ax.transAxes,
+                ha="right", va="center", fontsize=7.0, color=C[bb], fontweight="bold")
+        ax.text(-0.03, 0.34, LABEL[bb], transform=ax.transAxes,
+                ha="right", va="center", fontsize=6.3, color=INK)
+        return
     ax.text(0.04, 0.5, MARKER_GLYPH[MARKER[bb]], transform=ax.transAxes,
              ha="left", va="center", fontsize=7.5, color=C[bb], fontweight="bold")
     ax.text(0.19, 0.5, LABEL[bb], transform=ax.transAxes,
@@ -242,7 +248,13 @@ def main():
     ap.add_argument("--jsonl", default="pku37_oct_dataset/pku37_real_test.jsonl")
     ap.add_argument("--band_h", type=int, default=40, help="main figure ribbon height, px")
     ap.add_argument("--band_w", type=int, default=136, help="main figure ribbon width, px")
-    ap.add_argument("--supp_size", type=int, default=160, help="supplement square crop, px")
+    ap.add_argument("--supp_size", type=int, default=120,
+                    help="height of the full resolution crop, px")
+    ap.add_argument("--supp_width", type=int, default=300,
+                    help="width of the full resolution crop, px. Retinal layers run "
+                         "across the scan, so a wide crop shows more of a boundary "
+                         "than a square one of the same area and makes a four row "
+                         "figure short enough to sit in the main paper.")
     ap.add_argument("--idx", type=int, default=None,
                     help="Override the median-backbone-PSNR image selection.")
     ap.add_argument("--name", default="fig_subjective_pku37")
@@ -461,15 +473,15 @@ def main():
     # the four curve difference profile. Square crop, unwindowed (vmin 0, vmax
     # 1), from the same pinned checkpoints, so it cannot drift from the tables
     # the way the stale hand made file did.
-    n = args.supp_size
-    r0, c0 = pick_roi(q_naf - b_naf, tissue, n, n)
-    sl = (slice(r0, r0 + n), slice(c0, c0 + n))
-    print(f"supp crop  {n}x{n}px at row {r0} col {c0}")
+    nh, nw = args.supp_size, args.supp_width
+    r0, c0 = pick_roi(q_naf - b_naf, tissue, nh, nw)
+    sl = (slice(r0, r0 + nh), slice(c0, c0 + nw))
+    print(f"full resolution crop {nh}x{nw}px at row {r0} col {c0}")
 
-    fig = plt.figure(figsize=(7.16, 6.2))
-    outer = fig.add_gridspec(4, 6, width_ratios=[1, 1, 1, 1, 1, 1.15],
-                             wspace=0.06, hspace=0.14,
-                             left=0.035, right=0.985, top=0.95, bottom=0.06)
+    fig = plt.figure(figsize=(7.16, 2.95))
+    outer = fig.add_gridspec(4, 6, width_ratios=[1, 1, 1, 1, 1, 0.95],
+                             wspace=0.06, hspace=0.16,
+                             left=0.072, right=0.975, top=0.93, bottom=0.11)
 
     col_titles = ["Noisy", "Backbone", "Corrected", "Reference", "Change"]
     noisy_crop = noisy[0, 0][sl].numpy()
@@ -506,7 +518,7 @@ def main():
             ax.imshow(cell, cmap="gray", vmin=GLO, vmax=GHI, interpolation="nearest")
             style_img_ax(ax)
             if j == 0:
-                row_label(ax, bb)
+                row_label(ax, bb, outside=True)
             if i == 0:
                 ax.set_title(col_titles[j], fontsize=6.6, color=INK, pad=2)
         axD = fig.add_subplot(outer[i, 4])
@@ -518,8 +530,8 @@ def main():
     # The difference profile, one panel spanning all four rows, one curve per
     # backbone, moved here from the main figure per the revised layout.
     axP = fig.add_subplot(outer[:, 5])
-    depth = np.arange(n)
-    band = slice(n // 3, 2 * n // 3)
+    depth = np.arange(nh)
+    band = slice(nw // 3, 2 * nw // 3)
     for bb in ROW_ORDER:
         b_bb, q_bb = outs[bb]["b"], outs[bb]["q"]
         prof = (q_bb - b_bb)[0, 0][sl][:, band].mean(dim=1).numpy()
@@ -529,16 +541,17 @@ def main():
     axP.axvline(0.0, color=INK2, linewidth=0.6, linestyle="--")
     axP.invert_yaxis()
     axP.set_title("difference profile", fontsize=6.6, color=INK, pad=2)
-    axP.set_xlabel("corrected minus backbone", fontsize=6.0, color=INK2, labelpad=2)
+    axP.set_xlabel("corrected minus backbone", fontsize=5.7, color=INK2, labelpad=1.5)
     axP.set_ylabel("depth (px)", fontsize=6.0, color=INK2, labelpad=2)
     axP.tick_params(axis="both", labelsize=5.5, colors=INK2, length=2, pad=1)
     for sp in axP.spines.values():
         sp.set_edgecolor("#c9c8c3"); sp.set_linewidth(0.5)
-    axP.legend(fontsize=5.5, frameon=False, loc="best", handlelength=1.3,
-              borderpad=0.15, labelspacing=0.18)
+    # loc="best" put the key over the curves it labels
+    axP.legend(fontsize=5.3, frameon=False, loc="lower right", handlelength=1.2,
+              borderpad=0.15, labelspacing=0.16, borderaxespad=0.2)
 
     save(fig, "fig_subjective_all")
-    print(f"drew image {idx} (supplement fig_subjective_all), crop {n}x{n}px")
+    print(f"drew image {idx} (fig_subjective_all), crop {nh}x{nw}px")
 
 
 if __name__ == "__main__":

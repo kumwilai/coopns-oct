@@ -178,12 +178,11 @@ def transfer_block(tag):
     return lines, (max(seed_counts) if seed_counts else 0)
 
 
-def table_in_distribution():
-    lines = []
-    seed_counts = []
-    lines.append(r"\multicolumn{9}{l}{\textit{PKU37 test set, 173 images}} \\")
+def _backbone_rows(prefix):
+    """One row per backbone, the mean over seeds where a seeded sweep exists."""
+    lines, seed_counts = [], []
     for b in BB:
-        seeds = collect_seeds(f"test_{b}")
+        seeds = collect_seeds(f"{prefix}_{b}")
         if seeds:
             seed_counts.append(len(seeds))
             psnr_deltas, psnr_backbones = [], []
@@ -201,8 +200,7 @@ def table_in_distribution():
                 raise SystemExit(
                     "backbone PSNR differs across seeds for %s, spread %.4f dB. "
                     "The frozen reference is not frozen." % (b, max(psnr_backbones) - min(psnr_backbones)))
-            abs_psnr = f"{psnr_backbones[0]:.2f}"
-            row = [LABEL[b], abs_psnr, fmt_mean_sd(psnr_deltas)]
+            row = [LABEL[b], f"{psnr_backbones[0]:.2f}", fmt_mean_sd(psnr_deltas)]
             row += [clinical_cell(clin_deltas[k]) for k in CLIN]
             lines.append(" & ".join(row) + r" \\")
         else:
@@ -210,51 +208,71 @@ def table_in_distribution():
             s = r["summary"] if r else None
             abs_psnr = f"{s['PSNR (dB)']['backbone_mean']:.2f}" if s else "--"
             clin_cells = [clinical_cell([] if not s else [s[k]["delta_mean"]]) for k in CLIN]
-            row = [LABEL[b], abs_psnr, d(s, "PSNR (dB)")] + clin_cells
-            lines.append(" & ".join(row) + r" \\")
-    # No mean row here. Averaging a percentage change across four backbones with
+            lines.append(" & ".join([LABEL[b], abs_psnr, d(s, "PSNR (dB)")] + clin_cells) + r" \\")
+    # No mean row. Averaging a percentage change across four backbones with
     # different starting values is not a meaningful number, so it is not printed.
-    zs_seed_counts = []
-    for ds, tag in (("Duke17", "duke17"), ("Duke2013", "duke2013")):
-        lines.append(r"\midrule")
-        lines.append(r"\multicolumn{9}{l}{\textit{%s, no adaptation}} \\" % ds)
+    return lines, seed_counts
+
+
+HEAD9 = [r"\begin{tabular}{lcccccccc}", r"\toprule",
+         r"Backbone & Backbone PSNR (dB) & $\Delta$PSNR (dB) & $\Delta$CNR & $\Delta$TCI & "
+         r"$\Delta$EPI & $\Delta$BS & $\Delta$ENL & $\Delta$SNR \\", r"\midrule"]
+FOOT = [r"\bottomrule", r"\end{tabular}"]
+
+
+def table_in_distribution():
+    """The four backbones on the PKU37 test set, and nothing else. The four blocks
+    that used to share this table are now four tables, because a reader asked to
+    compare a backbone against another backbone had to first work out which block a
+    row belonged to."""
+    lines, seeds = _backbone_rows("test")
+    return "\n".join(HEAD9 + lines + FOOT), (max(seeds) if seeds else 0)
+
+
+def table_zeroshot():
+    """The same four backbones on Duke17 and Duke2013 with nothing refitted."""
+    lines, seed_counts = [], []
+    for i, (ds, tag) in enumerate((("Duke17", "duke17"), ("Duke2013", "duke2013"))):
+        if i:
+            lines.append(r"\midrule")
+        lines.append(r"\multicolumn{9}{l}{\textit{%s}} \\" % ds)
         block_lines, block_seeds = transfer_block(tag)
         lines.extend(block_lines)
         if block_seeds:
-            zs_seed_counts.append(block_seeds)
-    for title, rows in (
-            ("NAFNet on PKU37, one component removed",
-             [("Full method", "lopo_none"), ("No rule layer", "comp_no_negotiator"),
-              ("No edge branch", "comp_no_edge"), ("No cooperation map", "comp_no_uncertainty"),
-              ("No background smoothing", "comp_no_bg_smooth")]),
-            ("NAFNet on PKU37, alternatives of similar complexity on the same backbone output",
-             [("Uniform allocation, trained", "matched_plain_eval"),
-              ("Unsharp masking", "classical_unsharp"),
-              ("Adaptive equalisation", "classical_clahe")])):
+            seed_counts.append(block_seeds)
+    return "\n".join(HEAD9 + lines + FOOT), (max(seed_counts) if seed_counts else 0)
+
+
+def table_components():
+    """NAFNet on PKU37. Above, one component removed at a time. Below, three other
+    ways of spending the same budget on the same backbone output."""
+    groups = (
+        ("One component removed",
+         [("Full method", "lopo_none"), ("No rule layer", "comp_no_negotiator"),
+          ("No edge branch", "comp_no_edge"), ("No cooperation map", "comp_no_uncertainty"),
+          ("No background smoothing", "comp_no_bg_smooth")]),
+        ("Alternatives of similar complexity on the same backbone output",
+         [("Uniform allocation, trained", "matched_plain_eval"),
+          ("Unsharp masking", "classical_unsharp"),
+          ("Adaptive equalisation", "classical_clahe")]))
+    lines = []
+    for title, rows in groups:
         block = []
         for name, stem in rows:
             r = load(f"{OUT}/{stem}.json")
             if not r:
                 continue
             sm = r["summary"]
-            cells = [r"\multicolumn{2}{l}{%s}" % name, d(sm, "PSNR (dB)")]
-            cells += [d(sm, k) for k in CLIN]
-            block.append(" & ".join(cells) + r" \\")
+            block.append(" & ".join([name, d(sm, "PSNR (dB)")] + [d(sm, k) for k in CLIN]) + r" \\")
         if block:
-            lines.append(r"\midrule")
-            lines.append(r"\multicolumn{9}{l}{\textit{%s}} \\" % title)
+            if lines:
+                lines.append(r"\midrule")
+            lines.append(r"\multicolumn{8}{l}{\textit{%s}} \\" % title)
             lines.extend(block)
-    # The adapted protocol rows are deliberately absent from this table. Each of
-    # its folds keeps the epoch that scores best on the subject it then reports,
-    # so those numbers are selected on the data they describe. They belong with
-    # the historical account in the supplementary file, not beside results that
-    # were selected on validation and scored once on test.
-    header = [r"\begin{tabular}{lcccccccc}", r"\toprule",
-              r"Backbone & Backbone PSNR (dB) & $\Delta$PSNR (dB) & $\Delta$CNR & $\Delta$TCI & "
-              r"$\Delta$EPI & $\Delta$BS & $\Delta$ENL & $\Delta$SNR \\", r"\midrule"]
-    footer = [r"\bottomrule", r"\end{tabular}"]
-    all_seeds = seed_counts + zs_seed_counts
-    return "\n".join(header + lines + footer), (max(all_seeds) if all_seeds else 0)
+    header = [r"\begin{tabular}{lccccccc}", r"\toprule",
+              r"Variant & $\Delta$PSNR (dB) & $\Delta$CNR & $\Delta$TCI & $\Delta$EPI & "
+              r"$\Delta$BS & $\Delta$ENL & $\Delta$SNR \\", r"\midrule"]
+    return "\n".join(header + lines + FOOT)
 
 
 def adapted_block():
@@ -516,8 +534,11 @@ def theory_numbers():
 def main():
     os.makedirs(DEST, exist_ok=True)
     in_dist_body, in_dist_seeds = table_in_distribution()
+    zs_body, zs_seeds = table_zeroshot()
     transfer_body, transfer_seeds = table_transfer()
     parts = {"tab_in_distribution.tex": in_dist_body,
+             "tab_zeroshot.tex": zs_body,
+             "tab_components.tex": table_components(),
              "tab_transfer.tex": transfer_body,
              "tab_full_spreads.tex": table_full_spreads(),
              "tab_lopo.tex": table_lopo(),
@@ -525,7 +546,8 @@ def main():
              "theory_numbers.tex": theory_numbers()}
     # Number of seeds used per table, so main() can report whether a table came
     # from the new seeded sweep or fell back to the old single-run files.
-    seed_info = {"tab_in_distribution.tex": in_dist_seeds, "tab_transfer.tex": transfer_seeds}
+    seed_info = {"tab_in_distribution.tex": in_dist_seeds, "tab_zeroshot.tex": zs_seeds,
+                 "tab_transfer.tex": transfer_seeds}
     for name, body in parts.items():
         with open(os.path.join(DEST, name), "w") as f:
             # Each table file is a complete tabular (or, for theory_numbers.tex, a

@@ -6,28 +6,21 @@ Learned denoisers for OCT fall into three families. Convolutional networks such 
 DnCNN~\cite{zhang2017beyond} learn the noise as a residual and subtract it. Designs that gate or
 reweight channels rather than pass them through a nonlinearity, such as NAFNet~\cite{chen2022simple}
 and KBNet~\cite{zhang2023kbnet}, control what each contributes. Transformers such as
-SwinIR~\cite{liang2021swinir} use windowed self attention. Classical estimators remain in use,
-including non local means~\cite{buades2005non} and wavelet coefficient weighting across repeated
-acquisitions~\cite{mayer2012wavelet}, and
-self supervised training removes the need for clean targets~\cite{krull2019noise2void}. Methods
-built for OCT address the scarcity of paired data directly, through triplet cross
-fusion~\cite{geng2022triplet} and through sparse representation~\cite{fang2013fast}, although the
-earlier of those still needs one high quality scan of the same eye~\cite{fang2012sparsity}.
+SwinIR~\cite{liang2021swinir} use windowed self attention. Methods built for OCT address the scarcity of paired data directly, through triplet cross
+fusion~\cite{geng2022triplet} and sparse representation~\cite{fang2013fast}, although the earlier of
+those still needs one high quality scan of the same eye~\cite{fang2012sparsity}.
 
-All of these methods are trained to reduce a pixel error, so the quantity they optimise is not the
-quantity a clinician reads. Work on quality assessment for OCT, whether a learned
-classifier~\cite{wang2019quality}, a computed index~\cite{stein2006quality} or the OSCAR-IB expert
-criteria~\cite{tewarie2012oscar}, measures clinical quality but does not act on it. The present paper closes that loop by turning measured quality into a correction applied
-under stated limits.
+All of these are trained to reduce a pixel error, so the quantity they optimise is not the quantity a
+clinician reads. Work on quality assessment for OCT~\cite{wang2019quality} measures clinical quality
+but does not act on it. This paper closes that loop, turning measured quality into a correction
+applied under stated limits.
 
 \subsection{Confidence and uncertainty in medical imaging}
-Dropout as an approximate Bayesian posterior~\cite{gal2016dropout}, task weighting driven by learned
-variance~\cite{kendall2018multi} and deep ensembles~\cite{lakshminarayanan2017simple} are the
-standard ways to attach a confidence to a prediction. In OCT the networks that segment
-layers~\cite{devalla2018drunet} or judge scan quality~\cite{wang2019quality} report an accuracy
-rather than an uncertainty, so a reader learns how often the model is right and never where it is
-unsure. In almost all of
-that work the value is reported and then left alone. We instead feed such a map into the correction decision, and
+Deep ensembles and their relatives~\cite{lakshminarayanan2017simple} are the standard way to attach
+a confidence to a prediction. In OCT the networks that segment layers~\cite{devalla2018drunet} or
+judge scan quality~\cite{wang2019quality} report an accuracy rather than an uncertainty, so a reader
+learns how often the model is right and never where it is unsure, and the value is reported and then
+left alone. We feed such a map into the correction decision instead, and
 Section~\ref{sec:confidence_check} reports that the map we built is not a confidence in this sense.
 
 \subsection{Symbolic reasoning and expert networks joined with neural networks}
@@ -35,9 +28,8 @@ Neuro symbolic computing~\cite{garcez2023neurosymbolic} couples a learned model 
 and differentiable fuzzy logic makes the coupling trainable because the connectives become smooth
 functions of continuous truth values~\cite{vankrieken2022analyzing}. In medical imaging the pattern
 has generated spinal reports by pairing a generative network with a symbolic graph of domain
-knowledge~\cite{han2021unifying}, predicted patient deterioration with a probabilistic logic program
-over convolutional features~\cite{fadja2022neural}, and interpreted corneal topography through a
-knowledge graph attached to a learned feature model~\cite{wang2026explainable}. Fuzzy membership
+knowledge~\cite{han2021unifying} and predicted patient deterioration with a probabilistic logic
+program over convolutional features~\cite{fadja2022neural}. Fuzzy membership
 functions have been embedded in networks that process OCT directly, where a rough fuzzy
 discretisation guides the segmentation of fluid lesions~\cite{chen2023deep}, and pixel level fuzzy
 rules have replaced learned feature extraction, so what the model attends to reads as a logical

@@ -23,7 +23,7 @@ parameters held fixed. The allocation is said to be stable with constant $L$ if
 
 In words, $L$ is the worst case ratio between a change in the decision and the change in the
 evidence that caused it. Without such a bound the layer could swing from no correction to all of it
-because one property score moved slightly, which is the behaviour a clinical user cannot audit.
+because one score moved slightly, which is what a clinical user cannot audit.
 
 \subsection{The rule layer is stable, with an exact constant}
 
@@ -49,13 +49,12 @@ because every $C_k$ is positive and every $w_k$ lies strictly inside $(0,1)$.
 
 \begin{corollary}[Behaviour under a change of backbone]
 \label{cor:transfer}
-Suppose replacing one backbone by another changes the rule truth values at a pixel by at most
-$\epsilon$ in the maximum norm, with the parameters unchanged. Then the allocation at that pixel
-changes by at most $L\epsilon$, with $L$ from Equation~\eqref{eq:lipschitz}.
+If replacing one backbone by another changes the rule truth values at a pixel by at most $\epsilon$
+in the maximum norm, the parameters unchanged, the allocation there changes by at most $L\epsilon$.
 \end{corollary}
 
-This concerns the routing rule alone, not whether image quality transfers, which is the empirical
-question of Section~\ref{sec:results_ood}.
+This concerns the routing rule alone, not whether image quality transfers, which
+Section~\ref{sec:results_ood} settles by measurement.
 
 \subsection{When the correction cannot reduce contrast}
 Write
@@ -96,13 +95,12 @@ Dividing the two bounds gives the claim, and $w > 0$ in every branch of Equation
 \end{proof}
 
 
-Three parts of the design make the hypotheses of Theorem~\ref{thm:cnr} hold in practice. The gate of
+Three parts of the design make these hypotheses hold in practice. The gate of
 Equation~\eqref{eq:gate} keeps $\eta_\mathcal{B}$ small by suppressing change in the dark region, the
-brightness branch of the gain network cannot be negative, which keeps $\eta_\mathcal{T}$ non negative,
-and the background smoothing lowers $\sigma_\mathcal{B}(\mathbf{q})$ rather than raising it.
+brightness branch cannot be negative, which keeps $\eta_\mathcal{T}$ non negative, and the background
+smoothing lowers $\sigma_\mathcal{B}(\mathbf{q})$ rather than raising it.
 
-Both results are deliberately narrow. Theorem~\ref{thm:stability} bounds how far the routing decision
-can move, not whether it is correct, Theorem~\ref{thm:cnr} concerns contrast alone and says nothing
-about the other five measures, and neither promises that the output is closer to the clean reference,
-which Section~\ref{sec:results_id} shows it usually is not. The guarantees concern the wrapper, not the
-denoiser underneath it.
+Both results are deliberately narrow. The first bounds how far the routing decision can move, not
+whether it is correct. The second concerns contrast alone. Neither promises that the output is closer
+to the clean reference, which Section~\ref{sec:results_id} shows it usually is not. The guarantees
+concern the wrapper, not the denoiser underneath it.

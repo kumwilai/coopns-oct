@@ -6,28 +6,26 @@
 Fidelity falls whenever the wrapper acts, and it has to. A denoiser trained on squared error already
 sits near a local optimum of that error, so any change that raises contrast or sharpens a boundary
 moves away from it. What matters is the size of the payment. It is under a decibel, smaller than the
-difference between two acquisitions of the same eye, and it buys the quantities a grader reads.
+difference between two acquisitions of the same eye, and it buys what a grader reads.
 
 Where the gain lands is decided by what each backbone leaves undone rather than by how good it is
 overall. On boundary sharpness NAFNet starts furthest below the clean reference and gains most, while
 DnCNN starts above it and is the only backbone that falls. On edge preservation KBNet starts highest
 and is the only one left unchanged. SwinIR is the instructive case, since windowed attention smooths
-hard inside a window, so it leaves the most room on contrast and pays the least fidelity of the four.
-A deployment that cannot afford the payment lowers the gain bound $\alpha_{\max}$, which attenuates
-the multiplicative branch, though only bypassing the wrapper returns the backbone output exactly.
+hard inside a window, so it leaves the most room on contrast and pays the least fidelity. A
+deployment that cannot afford the payment lowers the gain bound $\alpha_{\max}$, though only
+bypassing the wrapper returns the backbone output exactly.
 
 \subsection{Limitations}
-The correction is bounded by construction, so a backbone that has destroyed a structure cannot be
-made to recover it. Two safety measures move against it, the rate at which an edge appears
+The correction is bounded by construction, so a backbone that destroyed a structure cannot be made to
+recover it. Two safety measures move against it, the rate at which an edge appears
 where the reference has none and the retention of the weakest structures, both reported in
 Section~\ref{sec:safety_check}. Neither cost is zero, and the criterion that chose the operating point
 scores six clinical measures and fidelity and sees neither. We measured what that blindness costs, on
 validation so that the test split is spent once. The runner up setting for NAFNet keeps more weak
 structure than the selected one, 43.9 percent against 37.7, and invents fewer edges. A user who values
 faint detail above contrast should therefore score these two during selection. We did not reselect on
-this evidence, since the criterion was fixed before the test split was scored. The clinical
-measures used here are established proxies, not outcomes, and no clinician read the images, so the
-safety analysis of Section~\ref{sec:safety_check} is quantitative evidence rather than clinical
-validation. Finally, the external datasets are small, sixteen and eighteen images, so the transfer
-results are evidence of behaviour across scanners rather than a precise estimate of the gain on any
-one device.
+this evidence, since the criterion was fixed before the test split was scored. The measures are established proxies, not outcomes, and no clinician read the images, so
+Section~\ref{sec:safety_check} is quantitative evidence rather than clinical validation. The external
+sets are small, sixteen and eighteen images, so the transfer results show behaviour across scanners
+rather than a precise estimate of the gain on any one device.

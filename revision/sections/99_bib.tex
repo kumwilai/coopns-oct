@@ -1,5 +1,10 @@
-{\footnotesize
-\begin{thebibliography}{34}
+% The class sets the bibliography at 8 pt through \bibliofont. A third of a point
+% smaller keeps the last entries on the page they belong to, and the journal sets
+% references below body size in any case.
+\makeatletter
+\def\bibliofont{\fontfamily{\rmdefault}\fontsize{7.7}{8.7}\selectfont}
+\makeatother
+\begin{thebibliography}{26}
 \setlength{\itemsep}{0pt}
 \setlength{\parsep}{0pt}
 
@@ -21,20 +26,11 @@ L.~Chen \emph{et~al.}, ``Simple baselines for image restoration,'' in \emph{Proc
 \bibitem{liang2021swinir}
 J.~Liang \emph{et~al.}, ``SwinIR: Image restoration using Swin Transformer,'' in \emph{Proc.\ ICCV Workshops}, 2021, pp.~1833--1844.
 
-\bibitem{krull2019noise2void}
-A.~Krull, T.-O.~Buchholz, and F.~Jug, ``Noise2Void---learning denoising from single noisy images,'' in \emph{Proc.\ CVPR}, 2019, pp.~2124--2132.
-
 \bibitem{vankrieken2022analyzing}
 E.~van~Krieken, E.~Acar, and F.~van~Harmelen, ``Analyzing differentiable fuzzy logic operators,'' \emph{Artif.\ Intell.}, vol.~302, art.~103602, 2022.
 
 \bibitem{zhang2023kbnet}
 Y.~Zhang \emph{et al.}, ``KBNet: Kernel basis network for image restoration,'' Tech.\ Rep.\ arXiv:2303.02881, 2023. [Online]. Available: \url{https://arxiv.org/abs/2303.02881}
-
-\bibitem{buades2005non}
-A.~Buades, B.~Coll, and J.-M.~Morel, ``A non-local algorithm for image denoising,'' in \emph{Proc.\ CVPR}, vol.~2, 2005, pp.~60--65.
-
-\bibitem{mayer2012wavelet}
-M.~A.~Mayer \emph{et~al.}, ``Wavelet denoising of multiframe optical coherence tomography data,'' \emph{Biomed.\ Opt.\ Express}, vol.~3, no.~3, pp.~572--589, 2012.
 
 \bibitem{geng2022triplet}
 M.~Geng \emph{et al.}, ``Triplet cross-fusion learning for unpaired image denoising in optical coherence tomography,'' \emph{IEEE Trans.\ Med.\ Imag.}, vol.~41, no.~11, pp.~3357--3372, 2022.
@@ -48,23 +44,11 @@ L.~Fang \emph{et al.}, ``Fast acquisition and reconstruction of optical coherenc
 \bibitem{wang2019quality}
 J.~Wang \emph{et al.}, ``Deep learning for quality assessment of retinal OCT images,'' \emph{Biomed.\ Opt.\ Express}, vol.~10, no.~12, pp.~6057--6072, 2019.
 
-\bibitem{gal2016dropout}
-Y.~Gal and Z.~Ghahramani, ``Dropout as a Bayesian approximation: Representing model uncertainty in deep learning,'' in \emph{Proc.\ ICML}, 2016, pp.~1050--1059.
-
-\bibitem{kendall2018multi}
-A.~Kendall, Y.~Gal, and R.~Cipolla, ``Multi-task learning using uncertainty to weigh losses for scene geometry and semantics,'' in \emph{Proc.\ CVPR}, 2018, pp.~7482--7491.
-
 \bibitem{lakshminarayanan2017simple}
 B.~Lakshminarayanan, A.~Pritzel, and C.~Blundell, ``Simple and scalable predictive uncertainty estimation using deep ensembles,'' in \emph{Proc.\ NIPS}, 2017.
 
 \bibitem{garcez2023neurosymbolic}
 A.~d'Avila~Garcez and L.~C.~Lamb, ``Neurosymbolic AI: The 3rd wave,'' \emph{Artif.\ Intell.\ Rev.}, vol.~56, no.~11, pp.~12387--12406, 2023.
-
-\bibitem{stein2006quality}
-D.~M.~Stein \emph{et al.}, ``A new quality assessment parameter for optical coherence tomography,'' \emph{Br.\ J.\ Ophthalmol.}, vol.~90, no.~2, pp.~186--190, 2006.
-
-\bibitem{tewarie2012oscar}
-P.~Tewarie \emph{et al.}, ``The OSCAR-IB consensus criteria for retinal OCT quality assessment,'' \emph{PLoS ONE}, vol.~7, no.~4, art.~e34823, 2012.
 
 \bibitem{wang2004image}
 Z.~Wang \emph{et~al.}, ``Image quality assessment: From error visibility to structural similarity,'' \emph{IEEE Trans.\ Image Process.}, vol.~13, no.~4, pp.~600--612, 2004.
@@ -102,9 +86,4 @@ A.~\"Ozkan \emph{et~al.}, ``Denoising OCT images using steered mixture of expert
 \bibitem{zamfir2025complexity}
 E.~Zamfir \emph{et al.}, ``Complexity experts are task-discriminative learners for any image restoration,'' in \emph{Proc.\ CVPR}, 2025, pp.~12753--12763.
 
-\bibitem{wang2026explainable}
-M.~H.~Wang and S.~Qin, ``Explainable neuro-symbolic artificial intelligence for automated interpretation of corneal topography and early keratoconus detection,'' \emph{Front.\ Artif.\ Intell.}, vol.~9, art.~1713747, 2026.
-
 \end{thebibliography}
-}
-

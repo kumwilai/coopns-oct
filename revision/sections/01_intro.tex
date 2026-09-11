@@ -9,19 +9,18 @@ automatic layer segmentation less reliable~\cite{devalla2018drunet}.
 Deep denoisers remove much of that disturbance, but they are almost always trained to minimise the
 squared error against a clean reference, so a denoiser can raise the peak signal to noise ratio (PSNR)
 of a scan while making it less useful to a clinician. Layer boundaries lose definition, the contrast
-between tissue and the dark vitreous falls, and thin structures with weak signal fade into the
-background. None of these losses is visible in a PSNR number.
+between tissue and the dark vitreous falls, and thin structures fade into the background. None of
+these losses is visible in a PSNR number.
 
 \subsection{Motivation}
 The gap we address is not a missing denoiser. It is that nothing sits between the denoiser and the
-clinical reader to state what a good OCT image should look like and to repair the specific ways a
-denoised image falls short. Another neural block would hide the reason for every change inside
-learned weights, while a clinician, a regulator or a reviewer who sees a modified scan needs to know
-which property was judged deficient, where, and how large a change was allowed. This paper therefore treats post-correction as
-its own problem. We keep the denoiser frozen and attach a small wrapper, written as named image
-properties, explicit logical rules over them, and explicit limits on the size of any change, that
-decides where the image should change and by how much. Every learned map in the decision path is
-bounded, and its effect reaches the image only through a named rule.
+clinical reader to state what a good OCT image should look like and to repair the ways a denoised one
+falls short. Another neural block would hide the reason for every change inside learned weights,
+while a clinician, a regulator or a reviewer who sees a modified scan needs to know which property
+was judged deficient, where, and how large a change was allowed. We therefore treat post-correction
+as its own problem, keeping the denoiser frozen and attaching a small wrapper written as named image
+properties, explicit rules over them and explicit limits on the size of any change. Every learned map
+in the decision path is bounded, and its effect reaches the image only through a named rule.
 
 \subsection{New ideas in this paper}
 \label{sec:contributions}

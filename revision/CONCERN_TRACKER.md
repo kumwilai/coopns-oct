@@ -10,10 +10,10 @@ Response letter has no unresolved bracket and every section, table and figure re
 | ID | Concern | Where it is answered | Status |
 |---|---|---|---|
 | R1-1 | cooperation map has no loss enforcing an uncertainty meaning | IX F measures it, rank correlation minus 0.258, renamed, calibrated removed | CLOSED |
-| R1-2 | no predicate level ablation | IX D, all six removals on the reported checkpoint | CLOSED |
+| R1-2 | no predicate level ablation | IX D, all six removals on the reported checkpoint, maps in Fig. 2 | CLOSED |
 | R1-3 | risk of artificial sharpening and hallucinated boundaries | IX H, four measures, two reported as costs, named in Limitations | CLOSED |
 | R1-4 | fuzzy rule weights look heuristic | IX D, fourteen variations, none turns a measure negative | CLOSED |
-| R1-5 | missing expert network and neuro symbolic literature | II C, 34 references all resolved | CLOSED |
+| R1-5 | missing expert network and neuro symbolic literature | II C, 26 references all resolved | CLOSED |
 | R1-6 | typos and grammar | style script clean, mechanical checks clean | CLOSED |
 | R2-1 | LOO protocol contradiction | Table 3 carries the no adaptation protocol only, Table S7 reports the adapted one as a test selected historical diagnostic | CLOSED |
 | R2-2 | explain the PSNR drop, SwinIR minus 1.69 dB | X A, cache defect fixed, SwinIR now minus 0.17 dB | CLOSED |
@@ -32,7 +32,7 @@ Response letter has no unresolved bracket and every section, table and figure re
 | R3-13 | public code and data link without password | answered with a reason, double blind, archive on acceptance | ANSWERED BY DECISION |
 | R3-14 | follows from 13 | release documents the six defects and the checks | CLOSED |
 | R3-15 | do not call them experiments | zero occurrences in the source | CLOSED |
-| R3-16 | fair comparison at similar complexity | Table 3 lower blocks, text narrowed to match the code | CLOSED |
+| R3-16 | fair comparison at similar complexity | Table 5, lower block, text narrowed to match the code | CLOSED |
 | R3-17 | how were the fuzzy parameters computed | V B and IX D and the constants table of the supplement | CLOSED |
 | R3-18 | transferability needs cost and variability numbers | IX I, wall clock and seed spread per backbone | CLOSED |
 | R3-19 | verify the assumed constants and bounds hold | IX G and IX H, honest majority statement, failures reported | CLOSED |
@@ -40,10 +40,10 @@ Response letter has no unresolved bracket and every section, table and figure re
 ## Self containment
 
 The main paper carries every closed form, both proofs, every constant with its origin, the training
-schedule and the selection grid. Four pointers into the supplement remain and none is load bearing,
-namely the adapted protocol of the original submission, which is reported there because its numbers
-are selected on the data they describe, the per cell seed spreads of Table 3, the full resolution
-visual comparison, and a restatement of the learning rates.
+schedule, the selection grid, the six failure maps and the full resolution visual comparison. Three
+pointers into the supplement remain and none is load bearing, namely the adapted protocol of the
+original submission, which is reported there because its numbers are selected on the data they
+describe, the per cell seed spreads of Tables 3 and 4, and a restatement of the learning rates.
 
 ## Not a reviewer concern, still open
 
@@ -83,6 +83,21 @@ visual comparison, and a restatement of the learning rates.
   on them.
 - The 173 test pairs come from five clean image identities, which the measures paragraph now says.
 - The loss weights are now given numerically, and the inactive learned weight path is disclosed.
+
+## Restructured for readability, 12 pages held
+
+- Table 3 of the previous version merged four studies into one float, so a reader comparing two
+  backbones had to work out which block a row belonged to. It is now Table 3 for the test set,
+  Table 4 for transfer and Table 5 for the component removals and the alternative operators.
+- The six failure maps and the full resolution visual comparison moved from the supplementary file
+  into the main paper as Figures 2 and 4. The supplement is 7 pages and carries nothing a claim
+  rests on.
+- The full resolution comparison used a square crop, which made a four row figure too tall for the
+  main paper. Retinal layers run across the scan, so the crop is now 120 by 300 and the figure is
+  less than half its old height. Its backbone names moved out of the B-scans, where dark type on
+  dark speckle was barely readable.
+- Section IX cut by about a third and every other section tightened. The references are 26, down
+  from 34. Nothing a reviewer asked for was removed.
 
 ## Settled in the third audit, the objective read line by line against the code
 
