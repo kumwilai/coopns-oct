@@ -64,15 +64,14 @@ every backbone are in the supplementary file.}
 \subsection{In distribution results}
 \label{sec:results_id}
 Table~\ref{tab:pku37} reports the PKU37 test set and Fig.~\ref{fig:subjective_pku37} the visual
-comparison across the four backbones. Contrast rose on 2064 of the 2076 image and seed combinations.
-The twelve exceptions all belong to NAFNet, the backbone with the smallest mean contrast gain, fall on
-ten images whose backbone PSNR lies above the NAFNet mean, and none exceeds 0.4 percent. The gain was
-larger where the backbone PSNR was lower, with a per image Spearman correlation between minus 0.46 and
-minus 0.71 across the four backbones. Of the 24 backbone by measure pairs, 21 are positive by more
-than one seed spread, one is positive but inside it, the tissue contrast index of DnCNN, one is
-unchanged at 0.00 percent, the edge preservation of KBNet, and one falls, the boundary sharpness of
-DnCNN at minus 1.44 percent. The fidelity cost ranges from 0.17 dB on SwinIR to 0.98 dB on DnCNN, and
-the two backbones that pay least are the two whose six measures all rise.
+comparison across the four backbones. The wrapper raises contrast on every backbone, by 3.5 to 11.3
+percent, and the speckle measure by 23.7 to 57.1 percent, for under a decibel of fidelity in the worst
+case and 0.17 dB in the best. Twenty one of the 24 backbone by measure pairs improve by more than one
+seed spread, one improves inside it, one is unchanged and one falls, the boundary sharpness of DnCNN.
+The gain holds image by image, not only in the mean. Contrast rose on all but twelve of the 2076
+image and seed combinations, none of the twelve by as much as half a percent. It is largest
+where the backbone leaves the most to repair, the per image gain correlating negatively with backbone
+fidelity on all four.
 
 
 \subsection{Transfer to other datasets}

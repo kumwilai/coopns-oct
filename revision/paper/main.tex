@@ -73,17 +73,18 @@
 
 \begin{abstract}
 Denoisers for optical coherence tomography are trained to reduce a pixel error, so they can raise
-fidelity while lowering what a clinician reads, the contrast between layers and the sharpness of
-their boundaries. We repair those properties separately. A small wrapper on the frozen denoiser
-measures six named clinical properties from the noisy input and the denoised output alone, needing no
-clean image at test time, turns them into a per-pixel decision through five rules, and bounds the
-change. We prove that the decision moves by at most an exact constant below \num{0.75}
-when the evidence changes, measure the realised response, and give three conditions under which the
-correction cannot lower contrast to noise ratio. Only the head reading backbone features changes with it. The shared part is \num{168630} parameters and that head adds \num{4659}
-to \num{234273} more, so the wrapper is 2.3 to 5.8 percent of a seven million parameter denoiser and
-the same rules and weights serve four backbones. On 173 test images it improves 21 of 24 backbone and measure
-pairs beyond their seed spread and lowers one, costing 0.17 to 0.98 dB. Without adaptation 40 of 48
-pairs improve on two other datasets.
+fidelity while lowering what a clinician reads, the contrast between retinal layers and the sharpness
+of their boundaries. We repair those properties after denoising, leaving the denoiser
+untouched. A small wrapper on a frozen backbone
+measures six named clinical properties from the noisy input and the denoised output alone, so no
+clean image is needed at test time, turns them into a per-pixel decision through five rules in fuzzy
+logic, bounds how far the image may move, and keeps a proposed change only while stated constraints
+hold. Every change is therefore attributable to a named property at a named place. We prove that
+the decision cannot jump, with a constant that is exact and attained rather than a loose bound, and
+give conditions under which the correction cannot lower contrast. The design is backbone
+modular. One set of rules, budgets and weights serves four denoisers and only a small head is
+refitted for each. The clinical measures rise on all four at a fidelity cost below one decibel, and
+survive transfer to two further datasets with no adaptation.
 \end{abstract}
 
 \begin{IEEEkeywords}

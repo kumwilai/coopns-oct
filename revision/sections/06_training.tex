@@ -119,10 +119,10 @@ strength predictor and $3 \times 10^{-4}$ for the rule layer, and the output lay
 and the background smoother at two to eight times the corrector rate. The supplementary file restates
 the procedure as pseudocode.
 
-Throughout both stages the normalisation statistics of $f$ are held fixed. DnCNN is the one backbone with batch normalisation, and left in training mode 45 of its
-buffers move during fitting, so the frozen reference against which every clinical change of that
-backbone is measured reads 30.68 dB and a boundary sharpness of 1.031 when the statistics are held
-fixed against 31.21 dB and 0.948 when they are not.
+Throughout both stages the normalisation statistics of $f$ are held fixed. DnCNN is the one backbone with batch normalisation, and left in training mode its buffers move
+during fitting, so the reference against which every clinical change of that backbone is measured
+would drift by about half a decibel and would change its boundary sharpness while the correction was
+being fitted against it.
 
 \subsection{How the operating point was chosen}
 \label{sec:weight_selection}

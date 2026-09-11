@@ -36,8 +36,8 @@ image and a map of where it fails, both as formulas.
 \item \textbf{A rule layer whose decision cannot jump.}
 Section~\ref{sec:negotiator} builds the allocation from five rules joined by a conjunction with
 bounded slope, Section~\ref{sec:stability} proves that a shift in the evidence moves the decision by
-at most an exact constant below 0.75, and Section~\ref{sec:theory_check} measures the real response
-on 173 images.
+at most a constant that the rule layer itself fixes, and Section~\ref{sec:theory_check} measures the
+response the images actually produce against it.
 
 \item \textbf{A safety layer that decides how much of a proposal to keep.}
 Section~\ref{sec:safety} states three constraints at three scales, and how many of them hold sets the
@@ -46,8 +46,8 @@ lower the contrast to noise ratio is proved and then tested on every test image.
 
 \item \textbf{One design for four denoisers.}
 Only the head that reads backbone features changes with the backbone. The rules, the budgets, the
-thresholds and the loss weights do not, the shared wrapper is \num{168630} parameters against a seven
-million parameter denoiser, and Section~\ref{sec:results_ood} carries it to two other datasets with
-no adaptation at all.
+thresholds and the loss weights do not, the shared wrapper is a small fraction of the denoiser it is
+attached to, and Section~\ref{sec:results_ood} carries it to two other datasets with no adaptation at
+all.
 \end{enumerate}
 

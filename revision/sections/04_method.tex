@@ -20,10 +20,11 @@ where $\sigma$ is the logistic function, $\tau_0 > 0$ is a learnable temperature
 learnable offset. The complementary demand map is $\mathbf{u} = \mathbf{1} - \mathbf{c}$.
 
 Only this head depends on the backbone, because architectures expose feature tensors with different
-channel counts. We read the first encoder stage of NAFNet and KBNet, 40 and 32 channels, the first
-convolution of DnCNN, 228 channels, and the shallow feature convolution of SwinIR, 138 channels.
-Everything after this stage is shared, which is the precise sense in which the method is modular
-rather than architecture free.
+channel counts. We read the first encoder stage of NAFNet and KBNet, the first convolution of DnCNN
+and the shallow feature convolution of SwinIR, and the head is a pair of convolutions sized to
+whichever tensor it is given, the widths being the only thing that differs and listed in the
+supplementary file. Everything after this stage is shared, which is the precise sense in
+which the method is modular rather than architecture free.
 
 \subsection{Stage two, the two correctors}
 \label{sec:correctors}
