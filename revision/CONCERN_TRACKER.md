@@ -2,7 +2,8 @@
 
 Deadline 15 Sep 2026. Last audited 11 Sep 2026, after an adversarial audit of every
 promise in the response letter against the manuscript.
-Main paper 12 pages. Supplement 9 pages. Both compile with no undefined reference.
+Main paper 12 pages and self contained. Supplement 7 pages, submitted alongside for extra detail.
+Both compile with no undefined reference and no overfull line.
 Response letter has no unresolved bracket and every section, table and figure reference verified.
 
 | ID | Concern | Where it is answered | Status |
@@ -34,6 +35,13 @@ Response letter has no unresolved bracket and every section, table and figure re
 | R3-17 | how were the fuzzy parameters computed | V B and IX E and the constants table of the supplement | CLOSED |
 | R3-18 | transferability needs cost and variability numbers | IX K, wall clock and seed spread per backbone | CLOSED |
 | R3-19 | verify the assumed constants and bounds hold | IX I, honest majority statement, failures reported | CLOSED |
+
+## Self containment
+
+The main paper carries every closed form, both proofs, every constant with its origin, the training
+schedule and the selection grid. Four pointers into the supplement remain and none is load bearing,
+namely the per subject spreads of the adapted protocol, the per cell seed spreads of Table 3, the
+full resolution visual comparison, and a restatement of the learning rates.
 
 ## Not a reviewer concern, still open
 

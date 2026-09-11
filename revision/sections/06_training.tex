@@ -1,21 +1,12 @@
 \section{Training}
 \label{sec:training}
 
-\subsection{What data is used, and where a clean image is needed}
-\label{sec:paired_data}
-Training uses paired data. Each training sample is a noisy scan with a clean reference produced by
-averaging many repeated acquisitions, and the reference enters two of the five loss terms, the
-fidelity term and the clinical term, and supervises the additive edge branch. Testing uses no clean image at any point. The six clinical properties of
-Section~\ref{sec:predicates} are computed from the noisy input and the backbone output alone, which is
-what the phrase ground truth free means in this paper. The clean reference scores the results, as in any denoising
-study, but never reaches the correction path.
-
 \subsection{The five loss terms}
 \label{sec:loss_terms}
 Let $\mathbf{x}$ be the clean reference, $\mathbf{b}$ the backbone output and $\hat{\mathbf{x}}$ the
 wrapper output. The objective of Equation~\eqref{eq:objective} has the following terms.
 
-\textbf{Fidelity.} This term keeps the output near the reference. It combines the squared error with
+\textbf{Fidelity.} This term combines the squared error with
 the structural similarity index~\cite{wang2004image},
 \begin{equation}
 \mathcal{L}_{\mathrm{fid}} = \lVert \hat{\mathbf{x}} - \mathbf{x} \rVert_2^2
@@ -23,8 +14,7 @@ the structural similarity index~\cite{wang2004image},
 \label{eq:loss_fid}
 \end{equation}
 A dead zone is applied to the peak signal to noise ratio part of this term, so no penalty is charged
-while the drop with respect to the backbone stays below $d$ decibels, which buys clinical quality with
-a small and bounded amount of fidelity rather than defending fidelity at any price.
+while the drop with respect to the backbone stays below $d$ decibels.
 
 \textbf{Clinical improvement.} This term rewards a rise in the clinical measures relative to the
 backbone, beginning with the contrast to noise ratio and the tissue contrast index, TCI. The logarithm
@@ -64,45 +54,63 @@ lost, measured with the Sobel operator $\nabla$,
 \label{eq:loss_edge}
 \end{equation}
 
-\subsection{Optimisation schedule}
-The backbone is trained first, on the training split with the squared error alone, and is then
+\subsection{Data and optimisation schedule}
+\label{sec:paired_data}
+Training uses paired data, a noisy scan and a clean reference averaged over repeated acquisitions,
+and the reference enters the fidelity and clinical terms and supervises the edge branch. Testing uses
+no clean image at any point, since the six properties read only the noisy input and the backbone
+output, and the reference only scores the results. The backbone is trained first, on the training split with the squared error alone, and is then
 frozen. The wrapper is then trained in two stages. Only the clinical terms are active at first, so
 the correctors learn a useful direction, and the fidelity term switches on at the midpoint, so they
-learn how far they may go. The learning rate groups, the optimiser settings, the full schedule and the procedure as a step by
-step algorithm are given in the supplementary file.
+learn how far they may go. Both stages use AdamW with weight decay $10^{-4}$ on $96 \times 96$ crops
+in batches of sixteen, eight for DnCNN and SwinIR, for ten epochs in all, with base learning rates of
+$2 \times 10^{-4}$ for the corrector networks, $5 \times 10^{-4}$ for the cooperation head and the
+strength predictor and $3 \times 10^{-4}$ for the rule layer, and the output layers of the correctors
+and the background smoother at two to eight times the corrector rate. The supplementary file restates
+the procedure as pseudocode.
 
 Throughout both stages the normalisation statistics of $f$ are held fixed. DnCNN is the one backbone with batch normalisation, and left in training mode 45 of its
 buffers move during fitting, so the frozen reference against which every clinical change of that
 backbone is measured reads 30.68 dB and a boundary sharpness of 1.031 when the statistics are held
-fixed against 31.21 dB and 0.948 when they are not. The drift moves the result without touching the
-wrapper.
+fixed against 31.21 dB and 0.948 when they are not.
 
 \subsection{How the operating point was chosen}
 \label{sec:weight_selection}
-The terms of Equation~\eqref{eq:objective} carry fixed relative weights. Two quantities are selected
+The terms of Equation~\eqref{eq:objective} carry fixed relative weights. The training script can
+also learn them through an uncertainty weighting, and that path is inactive in every run reported
+here, which the absence of its parameters from the released checkpoints confirms. Two quantities are selected
 per backbone on the validation split, the fidelity dead zone $d$ of Equation~\eqref{eq:loss_fid} and
-the rule of Equation~\eqref{eq:gate} that decides where a correction may act, from the grid listed in
-the supplementary file, and everything else is held at the value stated in the constants table there
-for every backbone and every run. For each backbone every setting is trained at three random seeds
+the rule of Equation~\eqref{eq:gate} that decides where a correction may act. The grid is the two
+gate rules crossed with dead zones of 0.3, 0.6 and 0.9 dB, and the tissue bounded gate crossed with
+radii of 41 and 61 pixels. It selected the tissue bounded gate at radius 41 and a dead zone of 0.6 dB
+for NAFNet, and the percentile gate at a dead zone of 0.9 dB for the other three. Everything else is
+held at one value for every backbone and every run. For each backbone every setting is trained at three random seeds
 and scored on the validation images. A setting is admissible only if it clears its bounds at its
 \emph{worst} seed rather than on average, and among the
 admissible settings we take the one with the largest lower confidence bound on its weakest clinical
 measure. When no setting clears the first pair of bounds we relax them one step at a time and record
 the step that was needed, so a backbone that required a looser condition is visible rather than
-hidden. The selected dead zone is 0.6 dB for NAFNet and 0.9 dB for the other three backbones, with
-the tissue bounded gate for NAFNet and the percentile gate for the others. Every source of randomness
-is seeded, up to the nondeterminism of the convolution kernels, the spread across seeds is reported
-where it is available, and the checkpoints chosen on validation are the checkpoints scored on test,
-with no retraining in between.
+hidden. Every source of randomness is seeded, up to the nondeterminism of the convolution kernels, and
+the checkpoints chosen on validation are the checkpoints scored on test.
 
 \subsection{Initialisation and the choice of every constant}
 \label{sec:constants}
-Every constant that carries a design decision is fixed, a structural choice that was not tuned,
-measured from a property of the data at run time, set once on the validation split while the method
-was being built, or learned by the objective. Only the two quantities of Section~\ref{sec:weight_selection} entered a
-grid search, and nothing was ever chosen on the test split. The full list, the two deliberate departures from default
-initialisation, and the structural constants are given in the supplementary file, and
-Section~\ref{sec:sensitivity} reports how much the results move when the constants of the rule layer
-are changed, the direct test of whether any of them does hidden work.
+Every constant appears with its value where it acts and has one of four origins. Fixed structural
+choices, never tuned, are the sharpness $\kappa = 10$ of
+Equation~\eqref{eq:soft_failure}, the steepness 20 of Equation~\eqref{eq:gate}, the window sizes, the
+quarter resolution of the gain network, the nominal bound $\pm 0.08$ of the edge branch, the
+thresholds $\tau_i$ of Table~\ref{tab:predicates}, taken from the clinical literature and unchanged by
+training to four decimals in every run, and the budgets
+$B$ and $C$, tied by the identity of Section~\ref{sec:allocation_defect}. Set once on the validation
+split while the method was built and never revisited are $\alpha_{\max} = 0.15$, the gain bound
+$\pm 0.20$, the gate percentile 0.15, the three tolerances of Section~\ref{sec:safety}, the half
+strength background blend and the learning rates. Selected in the grid of
+Section~\ref{sec:weight_selection}, on the validation split only, are the dead zone $d$ and the gate
+rule. Learned by the objective are $\beta$, $\theta_1$ to $\theta_5$, $\tau_0$, $\beta_0$ and the
+scale of the edge branch. Every layer uses its default initialisation with one deliberate exception,
+the bias of the brightness channel of the gain network starts at 0.5, so the raw gain begins at
+$0.5\,\alpha_{\max}$ in flat tissue rather than on a flat region of the loss. Nothing was ever chosen
+on the test split, and Section~\ref{sec:sensitivity} reports how much the results move when the
+constants of the rule layer are changed, the direct test of whether any of them does hidden work.
 
 

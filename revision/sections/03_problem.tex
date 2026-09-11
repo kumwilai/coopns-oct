@@ -8,17 +8,16 @@ for the noisy B scan that comes off the scanner and $\mathbf{x}$ for the clean r
 averaging many repeated scans of the same location. A pixel index is written $p$, so $y_p$ is one
 pixel of $\mathbf{y}$.
 
-The symbol $\odot$ is the Hadamard product, $(\mathbf{t} \odot \mathbf{t}')_p = t_p t'_p$, and ordinary
-multiplication of two numbers is written by juxtaposition. Table~\ref{tab:notation}
-lists the symbols that recur across sections, in the order in which the paper introduces them, and a
-symbol used in one place only is defined in the sentence that introduces it.
+The symbol $\odot$ is the Hadamard product, $(\mathbf{t} \odot \mathbf{t}')_p = t_p t'_p$.
+Table~\ref{tab:notation} lists the symbols that recur across sections, and a symbol used in one place
+only is defined where it is introduced.
 
 \begin{table}[!tb]
 \centering
 \caption{Symbols used in the paper, in order of first use.}
 \label{tab:notation}
 \setlength{\tabcolsep}{4pt}
-\footnotesize
+\scriptsize
 \begin{tabular}{lp{0.62\columnwidth}}
 \toprule
 Symbol & Meaning \\
@@ -79,8 +78,7 @@ each term in full. Three constraints must hold on every image, stated formally i
 Section~\ref{sec:safety}. The aggregate clinical quality must not fall by more than a fixed tolerance,
 no single property may fall by more than a fixed tolerance while another rises, and the relative
 change from the backbone output must stay below a fixed bound. The objective is differentiable in
-$\phi$, including the rule layer, because every logical connective is replaced by a smooth piecewise
-linear surrogate, so it is solved by mini batch stochastic gradient descent with the AdamW
-optimiser~\cite{loshchilov2019decoupled}. During training the constraints enter the objective as
-penalties. At test time they are evaluated exactly on each image and the number satisfied decides how
-much of the proposed change is applied, which is what makes them binding rather than advisory.
+$\phi$, including the rule layer, because every logical connective is a piecewise linear surrogate, so
+it is solved with AdamW~\cite{loshchilov2019decoupled}. During training the constraints enter as
+penalties, and at test time they are evaluated exactly on each image and the number satisfied decides
+how much of the proposed change is applied, which makes them binding rather than advisory.

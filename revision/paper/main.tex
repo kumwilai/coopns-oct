@@ -22,6 +22,12 @@
 \let\@revised\@empty
 \makeatother
 
+% The class numbers a subsection as a bare letter, so every \ref to a subsection
+% printed as "Section B" with no section number, and two different subsections
+% both printed as "Section B". Restore the section number, which is the form
+% IEEE uses in running text.
+\renewcommand{\thesubsection}{\thesection\text{-}\Alph{subsection}}
+
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \def\OJlogo{}
@@ -50,23 +56,23 @@
 \corresp{Correspondence withheld for double blind review.}
 
 \begin{abstract}
-Denoisers for optical coherence tomography are trained to reduce a pixel
-error, so they can raise fidelity while lowering the properties a clinician reads, namely layer
-contrast, boundary definition and the visibility of weak structures. This paper treats the repair of
-those properties as a separate problem. A frozen denoiser is kept unchanged and a small policy is
-attached to it. The policy measures six named clinical properties in closed form, converts them into
-a per pixel decision through five explicit rules, and limits how far the image may move. We prove
-that the decision layer responds to a change in evidence by at most an exact constant below
-\num{0.75}, and we measure the realised response against that constant on real images. We give three
-conditions under which the correction cannot lower contrast to noise ratio, and report how often they
-hold. The policy adds \num{168630} shared trainable parameters plus a small backbone specific head to a
-backbone of about seven million. On the 173 held out test
-images, with the same rules and the same fixed weights for every backbone, the correction improves
-21 of the 24 backbone and measure pairs by more than their spread across three seeds, leaves two
-within that spread, and lowers one, boundary sharpness on DnCNN by 1.4 percent from a starting value
-already above the clean reference, at a fidelity cost of 0.17 to 0.98 dB. No clinical measure falls on three of the four backbones. On two other scanners with no adaptation
-of any kind NAFNet and SwinIR improve every measure, while DnCNN and KBNet each lose the same two
-measures on both scanners, 40 of 48 pairs in all.
+Denoisers for optical coherence tomography are trained to reduce a pixel error, so they can raise
+fidelity while lowering what a clinician actually reads, the contrast between layers, the definition
+of their boundaries and the visibility of weak structure. This paper treats the repair of those
+properties as a separate problem. The denoiser is frozen and a small wrapper is attached to it. The
+wrapper measures six named clinical properties from the noisy input and the denoised output alone, so
+it needs no clean image at test time, turns them into a per pixel decision through five explicit
+rules, and limits how far the image may move. We prove that the decision responds to a change in
+evidence by at most an exact constant below \num{0.75} and measure the realised response on real
+images, and we give three conditions under which the correction cannot lower contrast to noise ratio
+and report how often they hold. Only the head that reads backbone features changes with the backbone.
+The shared part is \num{168630} trainable parameters, about 2.4 percent of a seven million parameter
+denoiser, and the same rules, budgets and loss weights serve four backbone families. On 173 held out
+test images the correction improves 21 of the 24 backbone and measure pairs by more than their spread
+across three seeds, leaves two within it, and lowers one, boundary sharpness on DnCNN by 1.4 percent
+from a value already above the clean reference, at a fidelity cost of 0.17 to 0.98 dB. On two other
+scanners with no adaptation of any kind 40 of 48 pairs improve, every one of them for NAFNet and
+SwinIR.
 \end{abstract}
 
 \begin{IEEEkeywords}

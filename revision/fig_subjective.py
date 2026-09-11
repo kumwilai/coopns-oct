@@ -354,6 +354,22 @@ def main():
                                       wspace=0.03, hspace=0.10)
         col_titles = ["Backbone", "Corrected", "Change"]
         im = None
+
+        # One display range for all eight gray panels, taken from the values they
+        # actually contain. The old fixed range of 0.05 to 0.85 spent more than
+        # half its span on intensities that do not occur inside a tissue crop, so
+        # every panel rendered as flat mid gray and a real change of one percent
+        # of the range was invisible. Nothing is clipped, so this shows the same
+        # data with the contrast the data has.
+        vals = np.concatenate([
+            np.concatenate([outs[bb]["b"][0, 0][sl].numpy().ravel(),
+                            outs[bb]["q"][0, 0][sl].numpy().ravel()])
+            for bb in ROW_ORDER])
+        GLO, GHI = float(vals.min()), float(vals.max())
+        pad = 0.02 * (GHI - GLO)
+        GLO, GHI = GLO - pad, GHI + pad
+        print(f"gray display range {GLO:.3f} to {GHI:.3f}, "
+              f"clipped {(100.0 * ((vals < GLO) | (vals > GHI)).mean()):.2f} percent")
         for i, bb in enumerate(ROW_ORDER):
             b_bb, q_bb = outs[bb]["b"], outs[bb]["q"]
             crop_b = b_bb[0, 0][sl].numpy()
@@ -362,14 +378,14 @@ def main():
             row_bb = data[bb]["row"]
 
             ax0 = fig.add_subplot(gsL[i, 0])
-            ax0.imshow(crop_b, cmap="gray", vmin=0.05, vmax=0.85, interpolation="nearest")
+            ax0.imshow(crop_b, cmap="gray", vmin=GLO, vmax=GHI, interpolation="nearest")
             style_img_ax(ax0)
             row_label(ax0, bb)
             if i == 0:
                 ax0.set_title(col_titles[0], fontsize=6.6, color=INK, pad=2)
 
             ax1 = fig.add_subplot(gsL[i, 1])
-            ax1.imshow(crop_q, cmap="gray", vmin=0.05, vmax=0.85, interpolation="nearest")
+            ax1.imshow(crop_q, cmap="gray", vmin=GLO, vmax=GHI, interpolation="nearest")
             style_img_ax(ax1)
             if i == 0:
                 ax1.set_title(col_titles[1], fontsize=6.6, color=INK, pad=2)
@@ -391,7 +407,10 @@ def main():
         cb.ax.tick_params(labelsize=5.5, colors=INK2, length=2, pad=1)
         # Without this the bar carries no statement of what it measures, and the
         # scatter axis label to its right reads as if it belonged to the bar.
-        cb.set_label("corrected minus backbone", fontsize=6.0, color=INK2, labelpad=3)
+        # The label sat to the right of a vertical bar at the figure edge, where
+        # it was clipped and overlapped the thumbnail beside it. Put it above the
+        # bar instead, where there is room.
+        cb.ax.set_title("corrected\nminus backbone", fontsize=5.8, color=INK2, pad=3)
         cb.outline.set_edgecolor("#c9c8c3"); cb.outline.set_linewidth(0.5)
 
         # ----------------------------------------------------------- RIGHT BLOCK
@@ -456,6 +475,26 @@ def main():
     noisy_crop = noisy[0, 0][sl].numpy()
     clean_crop = clean[0, 0][sl].numpy()
     im = None
+
+    # One display range for every gray cell, taken from the values they contain.
+    # The full zero to one range spent most of its span on intensities that do
+    # not occur inside a tissue crop, so every cell rendered as flat mid gray.
+    # Range from the three panels that must be compared, the backbone output, the
+    # corrected output and the reference. The noisy input is included in the
+    # display but not in the range, because raw speckle carries outliers that
+    # would stretch the range back to the full interval and flatten everything.
+    _cmp = [clean_crop]
+    for bb in ROW_ORDER:
+        _cmp.append(outs[bb]["b"][0, 0][sl].numpy())
+        _cmp.append(outs[bb]["q"][0, 0][sl].numpy())
+    _v = np.concatenate([a.ravel() for a in _cmp])
+    GLO, GHI = float(_v.min()), float(_v.max())
+    _p = 0.02 * (GHI - GLO)
+    GLO, GHI = GLO - _p, GHI + _p
+    _nclip = 100.0 * ((noisy_crop < GLO) | (noisy_crop > GHI)).mean()
+    print(f"supp gray display range {GLO:.3f} to {GHI:.3f}, "
+          f"nothing clipped in the compared panels, {_nclip:.1f} percent of the "
+          f"noisy panel outside it")
     for i, bb in enumerate(ROW_ORDER):
         b_bb, q_bb = outs[bb]["b"], outs[bb]["q"]
         crop_b = b_bb[0, 0][sl].numpy()
@@ -464,7 +503,7 @@ def main():
         cells = [noisy_crop, crop_b, crop_q, clean_crop]
         for j, cell in enumerate(cells):
             ax = fig.add_subplot(outer[i, j])
-            ax.imshow(cell, cmap="gray", vmin=0, vmax=1, interpolation="nearest")
+            ax.imshow(cell, cmap="gray", vmin=GLO, vmax=GHI, interpolation="nearest")
             style_img_ax(ax)
             if j == 0:
                 row_label(ax, bb)

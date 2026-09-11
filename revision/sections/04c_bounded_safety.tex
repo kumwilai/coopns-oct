@@ -80,24 +80,75 @@ bounded and gated. Three constraints decide how much is kept.}
 \end{figure*}
 
 
-\begin{table}[!tb]
+\begin{table*}[!tb]
 \centering
-\caption{Here $e$ is the Sobel edge magnitude of the backbone output, $\sigma_k$ is
-the local standard deviation over a window of size $k$, and $cv$ is the local coefficient of
-variation of the log residual.}
+\caption{The six clinical properties in closed form. Here $e$ is the Sobel edge magnitude of
+$\mathbf{b}$, $\bar e$ its mean, $b_e = \mathbf{1}[e > \bar e]$, $\sigma_k$ and $\operatorname{Var}_k$
+the local standard deviation and variance over a $k \times k$ window, $\bar\sigma$ the mean of
+$\sigma_9$, $v(\cdot)$ the depth profile averaged across width, $\nabla_z$ the derivative along depth,
+$\rho_h$ the one pixel horizontal autocorrelation, $\operatorname{sigm}$ the logistic function,
+$\varepsilon$ a small constant, and $cv$ the local coefficient of variation of the log residual.}
 \label{tab:predicates}
 \setlength{\tabcolsep}{3pt}
-\footnotesize
-\begin{tabular}{clp{0.45\columnwidth}c}
+\scriptsize
+\begin{tabular}{clp{0.26\textwidth}p{0.225\textwidth}p{0.245\textwidth}c}
 \toprule
-$P_i$ & Property & Where the map is large & $\tau_i$ \\
+$P_i$ & Property & Score $s_i$ & Map $\mathbf{m}_i$ & Where the map is large & $\tau_i$ \\
 \midrule
-$P_1$ & edge continuity & away from detected edges, where a boundary should continue but does not & 0.60 \\
-$P_2$ & local contrast & where $\sigma_9$ falls below the image mean, and in nearly flat tissue & 0.50 \\
-$P_3$ & flat smoothness & inside flat regions that still carry residual variation & 0.75 \\
-$P_4$ & structural coherence & where the edge map is itself rough, a sign of broken structure & 0.50 \\
-$P_5$ & speckle conformity & where $cv$ departs from the value expected for OCT speckle & 0.30 \\
-$P_6$ & layer visibility & where the local variance of the edge map is high across depth & 0.70 \\
+$P_1$ & edge continuity &
+$0.4\,c_{\text{cont}}+0.3\,c_{\text{efr}}+0.3\,c_{\text{ang}}$ &
+$(1-\tilde e)(1-b_e)$, \ $\tilde e=e/(\max e+\varepsilon)$ &
+off detected edges, where a boundary should continue but does not & 0.60 \\
+$P_2$ & local contrast &
+$0.20\,s_{\text{range}}+0.35\,s_{\text{cnr}}+0.20\,s_{\text{var}}+0.25\,s_{\text{cov}}$ &
+$\big[\operatorname{ReLU}(\bar\sigma-\sigma_9(\mathbf{b}))/(\bar\sigma+\varepsilon)+0.3\,\mathbf{1}[\sigma_9(\mathbf{b})<0.01]\big]_{[0,1]}$ &
+where $\sigma_9$ falls below the image mean, and in nearly flat tissue & 0.50 \\
+$P_3$ & flat smoothness &
+$0.6\,q_{\text{var}}+0.4\,q_{\text{res}}$ &
+$F \odot \sigma_5(\mathbf{b})/(\max \sigma_5(\mathbf{b})+\varepsilon)$ &
+inside flat regions that still carry residual variation & 0.75 \\
+$P_4$ & structural coherence &
+$0.4\,s_{\text{self}}+0.3\,s_{\text{reg}}+0.3\,s_{\text{vert}}$ &
+$e(e)/(\max e(e)+\varepsilon)$ &
+where the edge map is itself rough, a sign of broken structure & 0.50 \\
+$P_5$ & speckle conformity &
+$0.7\,\operatorname{mean}(\exp(-|cv-cv^\star|/0.15))+0.3\,\exp(-5|\rho_h(z)|)$ &
+$1-\exp(-|cv-cv^\star|/0.15)$ &
+where $cv$ departs from the value expected for OCT speckle & 0.30 \\
+$P_6$ & layer visibility &
+$0.4\,s_{\text{clr}}+0.3\,s_{\text{dep}}+0.3\,s_{\text{smo}}$ &
+$\operatorname{Var}_7(e)/(\max \operatorname{Var}_7(e)+\varepsilon)$ &
+where the local variance of the edge map is high across depth & 0.70 \\
+\midrule
+\multicolumn{6}{p{0.97\textwidth}}{
+\textbf{Subterms.}
+$P_1$.
+$c_{\text{cont}}=\langle\operatorname{erode}(\operatorname{dilate}(b_e)),b_e\rangle/(\|b_e\|_1+\varepsilon)$,
+$c_{\text{efr}}=\exp(-5|r_e-0.2|)$ with
+$r_e=\|\mathbf{1}[e>1.5\bar e]\|_1/(\|\mathbf{1}[e<0.5\bar e]\|_1+\varepsilon)$,
+and $c_{\text{ang}}=\exp(-2\,\operatorname{mean}(\sigma_5(\theta)))$ with $\theta$ the Sobel edge angle of $\mathbf{b}$.
+$P_2$.
+$s_{\text{range}}=\operatorname{sigm}(10(\Delta_r-0.3))$ with $\Delta_r=\max(\mathbf{b})-\min(\mathbf{b})$,
+$s_{\text{cnr}}=\operatorname{sigm}(15(\bar\sigma-0.05))$,
+$s_{\text{var}}=\max(0.2,\operatorname{sigm}(-20(v_\sigma-0.02)+2))$ with $v_\sigma=\operatorname{Var}(\sigma_9(\mathbf{b}))$,
+and $s_{\text{cov}}=\operatorname{sigm}(5(\gamma-0.4))$ with $\gamma=\operatorname{mean}(\mathbf{1}[\sigma_9(\mathbf{b})>0.3\bar\sigma])$.
+$P_3$.
+$F=\mathbf{1}[e<0.3\bar e]$,
+$q_{\text{var}}=1-\langle F,\sigma_5(\mathbf{b})/(\sigma_5(\mathbf{y})+\varepsilon)\rangle/(\|F\|_1+\varepsilon)$,
+and $q_{\text{res}}=\exp(-5\,\operatorname{mean}|\mathbf{y}-\mathbf{b}|)$.
+$P_4$.
+$s_{\text{self}}$ is the mean Pearson correlation between $\mathbf{b}$ and its shifts by $(0,2)$, $(2,0)$ and $(2,2)$ pixels,
+$s_{\text{reg}}=\exp(-12\,\operatorname{mean}(e(e)))$,
+and $s_{\text{vert}}=\operatorname{clip}(\max |\nabla_z v(\mathbf{b})|/(8\,\operatorname{mean}|\nabla_z v(\mathbf{b})|),0,1)$.
+$P_5$.
+$z=\log(\mathbf{y}+\varepsilon)-\log(\mathbf{b}+\varepsilon)$,
+$cv=\sigma_{15}(|z|)/(\mu_{15}(|z|)+\varepsilon)$ with $\mu_{15}$ the local mean,
+and $cv^\star(d)$ is the target coefficient of variation of OCT speckle at axial depth $d$ under the Gamma K model of the released code.
+$P_6$.
+$s_{\text{clr}}=\operatorname{mean}(\operatorname{clip}(\max |\nabla_z v(\mathbf{b})|/(10\,\operatorname{mean}|\nabla_z v(\mathbf{b})|),0,1))$,
+$s_{\text{dep}}=\operatorname{clip}(20\,\operatorname{Var}(v(\mathbf{b})),0,1)$,
+and $s_{\text{smo}}=1-\operatorname{clip}(10\,\operatorname{mean}(\operatorname{Var}_z(\operatorname{mean}_w e)),0,1)$
+with $\operatorname{mean}_w$ the mean across width and $\operatorname{Var}_z$ the variance along depth.} \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}

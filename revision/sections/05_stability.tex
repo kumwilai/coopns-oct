@@ -1,9 +1,7 @@
 \section{Stability and Guarantees}
 \label{sec:stability}
 
-This section defines the notion of stability that is used, proves that the rule layer has it, and
-gives the condition under which the correction cannot reduce contrast. Section~\ref{sec:theory_check}
-tests both results on real images.
+Section~\ref{sec:theory_check} tests both results of this section on real images.
 
 \subsection{What stability means here}
 \label{sec:stability_def}
@@ -23,10 +21,9 @@ parameters held fixed. The allocation is said to be stable with constant $L$ if
 \end{equation}
 \end{definition}
 
-In words, a small change in the evidence produces a proportionally small change in the decision, and
-$L$ is the worst case ratio between the two. Without such a bound the layer could swing from applying
-no correction to applying all of it because one property score moved slightly, which is precisely
-the behaviour a clinical user cannot audit.
+In words, $L$ is the worst case ratio between a change in the decision and the change in the
+evidence that caused it. Without such a bound the layer could swing from no correction to all of it
+because one property score moved slightly, which is the behaviour a clinical user cannot audit.
 
 \subsection{The rule layer is stable, with an exact constant}
 
@@ -42,9 +39,13 @@ exact Lipschitz constant and not merely an upper bound. Moreover $L < C_1 + C_2 
 0.75$ for every possible setting of the parameters.
 \end{theorem}
 
-The allocation is affine in $\mathbf{r}$ with coefficients $\pm C_k w_k$, so the bound follows from
-the triangle inequality and is attained when each $r_k - r'_k$ takes the sign of its coefficient. The
-full proof is given in the supplementary file.
+\begin{proof}
+The allocation is affine in $\mathbf{r}$ with coefficients $\pm C_k w_k$, so subtracting two values
+and applying the triangle inequality gives
+$|a(\mathbf{r}) - a(\mathbf{r}')| \le \sum_k C_k w_k |r_k - r'_k| \le L \lVert \mathbf{r} - \mathbf{r}' \rVert_\infty$.
+The bound is attained when each $r_k - r'_k$ takes the sign of its coefficient, and $L < 0.75$
+because every $C_k$ is positive and every $w_k$ lies strictly inside $(0,1)$.
+\end{proof}
 
 \begin{corollary}[Behaviour under a change of backbone]
 \label{cor:transfer}
@@ -53,12 +54,11 @@ $\epsilon$ in the maximum norm, with the parameters unchanged. Then the allocati
 changes by at most $L\epsilon$, with $L$ from Equation~\eqref{eq:lipschitz}.
 \end{corollary}
 
-This is a statement about the routing rule alone. It says the decision layer degrades gracefully when
-the evidence shifts, not that image quality transfers, which is the empirical question of
-Section~\ref{sec:results_ood}.
+This concerns the routing rule alone, not whether image quality transfers, which is the empirical
+question of Section~\ref{sec:results_ood}.
 
 \subsection{When the correction cannot reduce contrast}
-Contrast to noise ratio is the measure this method targets most directly. Write
+Write
 $\mathrm{CNR}(\mathbf{t}) = (\mu_\mathcal{T}(\mathbf{t}) - \mu_\mathcal{B}(\mathbf{t})) / \sigma_\mathcal{B}(\mathbf{t})$
 for the separation between tissue and background divided by the variability of the background.
 
@@ -79,19 +79,25 @@ In particular, whenever $\eta_\mathcal{T} > \eta_\mathcal{B}$ the correction can
 contrast to noise ratio.
 \end{theorem}
 
-\noindent The proof is a convex combination argument for the numerator and Minkowski's
-inequality for the denominator. It is given in full in the supplementary file.
+\begin{proof}
+The mean over a fixed pixel set is linear, so
+$\mu_\mathcal{T}(\hat{\mathbf{x}}) = \mu_\mathcal{T}(\mathbf{b}) + w\,\eta_\mathcal{T}$ and
+$\mu_\mathcal{B}(\hat{\mathbf{x}}) \le \mu_\mathcal{B}(\mathbf{b}) + w\,\eta_\mathcal{B}$, which bounds
+the numerator of $\mathrm{CNR}(\hat{\mathbf{x}})$ below by the numerator of
+Equation~\eqref{eq:cnr_bound}. On the background $\hat{\mathbf{x}}$ is the same convex combination
+pixel by pixel, so Minkowski's inequality on the centred values gives
+$\sigma_\mathcal{B}(\hat{\mathbf{x}}) \le (1-w)\,\sigma_\mathcal{B}(\mathbf{b}) + w\,\sigma_\mathcal{B}(\mathbf{q}) \le \sigma_\mathcal{B}(\mathbf{b})$.
+Dividing the two bounds gives the claim, and $w > 0$ in every branch of Equation~\eqref{eq:blend}.
+\end{proof}
 
 
 Three parts of the design make the hypotheses of Theorem~\ref{thm:cnr} hold in practice. The gate of
 Equation~\eqref{eq:gate} keeps $\eta_\mathcal{B}$ small by suppressing change in the dark region, the
 brightness branch of the gain network cannot be negative, which keeps $\eta_\mathcal{T}$ non negative,
 and the background smoothing lowers $\sigma_\mathcal{B}(\mathbf{q})$ rather than raising it.
-Section~\ref{sec:theory_check} measures all three on every test image and reports how often the
-hypotheses hold.
 
 Both results are deliberately narrow. Theorem~\ref{thm:stability} bounds how far the routing decision
 can move, not whether it is correct, Theorem~\ref{thm:cnr} concerns contrast alone and says nothing
 about the other five measures, and neither promises that the output is closer to the clean reference,
-which Section~\ref{sec:results_id} shows it usually is not. The guarantees concern the policy, not the
+which Section~\ref{sec:results_id} shows it usually is not. The guarantees concern the wrapper, not the
 denoiser underneath it.

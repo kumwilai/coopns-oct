@@ -16,17 +16,9 @@ echo "== คอมไพล์ภาคผนวก =="
 echo "== สร้างจดหมายตอบ =="
 /home/kumwilai/osmnx-env/bin/python build_response_docx.py >/dev/null
 
-pages () { python3 -c "
-import re,zlib,sys
-d=open(sys.argv[1],'rb').read(); n=0
-for m in re.finditer(rb'stream\r?\n',d):
-    s=m.end(); e=d.find(b'endstream',s)
-    try: t=zlib.decompress(d[s:e])
-    except Exception: continue
-    cc=[int(x) for x in re.findall(rb'/Count\s+(\d+)',t)]
-    if cc: n=max(n,max(cc))
-c=[int(x) for x in re.findall(rb'/Count\s+(\d+)',d)]
-print(max(n, max(c) if c else 0))" "$1"; }
+pages () { /home/kumwilai/osmnx-env/bin/python -c "
+import pymupdf,sys
+print(pymupdf.open(sys.argv[1]).page_count)" "$1"; }
 
 P=$(pages paper/main.pdf)
 S=$(pages supp/main.pdf)
@@ -40,7 +32,8 @@ FAIL=0
 [ "$P" -le 12 ] || { echo "ผิด บทความหลัก $P หน้า เกิน 12"; FAIL=1; }
 grep -qE "(Reference|Citation).*undefined" paper/main.log && { echo "ผิด มีการอ้างอิงค้างในบทความหลัก"; FAIL=1; } || true
 grep -qE "(Reference|Citation).*undefined" supp/main.log && { echo "ผิด มีการอ้างอิงค้างในภาคผนวก"; FAIL=1; } || true
-n=$(grep -cE "Overfull \\\\hbox" paper/main.log || true); [ "$n" -eq 0 ] || { echo "เตือน มี Overfull hbox $n จุด"; }
+n=$(grep -cE "Overfull \\\\hbox" paper/main.log || true); [ "$n" -eq 0 ] || { echo "ผิด มี Overfull hbox $n จุด"; FAIL=1; }
+m=$(grep -cE "Overfull \\\\hbox" supp/main.log || true); [ "$m" -eq 0 ] || echo "เตือน ภาคผนวกมี Overfull hbox $m จุด"
 grep -rq "TBDRESULTS\|PLACEHOLDER" sections/*.tex supp/sections/*.tex && { echo "ผิด มีช่องว่างค้าง"; FAIL=1; } || true
 grep -q "\[FILL\|\[CHECK\|\[DECISION\|\[TBD" responses_data.json && { echo "ผิด จดหมายตอบมีวงเล็บค้าง"; FAIL=1; } || true
 /home/kumwilai/osmnx-env/bin/python style_check.py sections/*.tex supp/sections/*.tex | grep -v "^clean" && { echo "ผิด สไตล์ไม่ผ่าน"; FAIL=1; } || true

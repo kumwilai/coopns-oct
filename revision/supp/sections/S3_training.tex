@@ -47,8 +47,10 @@ marked \emph{fixed} is a structural choice that was not tuned.
 The networks use the default initialisation of their layers. Two exceptions are deliberate. The bias
 of the brightness head starts at a small positive value so that the multiplicative branch begins from
 a mild brightening rather than from zero, which avoids a flat region of the loss at the start of
-training. The threshold of each property starts at the value reported in the clinical literature for
-that property and is then free to move.
+training. The threshold of each property is declared as a trainable parameter and set to the value reported in
+the clinical literature for that property. It receives no gradient under the objective of the main
+paper, and in every selected checkpoint all six sit at their literature values to four decimals, so
+they are fixed in effect and the main paper reports them as fixed.
 
 \begin{table}[!tb]
 \centering
@@ -71,7 +73,7 @@ gate percentile & 0.15 & Eq.~(6) of the main paper & set in development \\
 $\kappa$ & 10 & Eq.~(3) of the main paper & fixed \\
 $B_{\min}, B_{\max}$ & 0.25, 0.50 & base of Eq.~(4) of the main paper & fixed by budget \\
 $C_1 \ldots C_5$ & 0.15, 0.25, 0.15, 0.10, 0.10 & rule votes & fixed by budget \\
-$\tau_1 \ldots \tau_6$ & 0.6, 0.5, 0.75, 0.5, 0.3, 0.7 & Eq.~(3) of the main paper & learned \\
+$\tau_1 \ldots \tau_6$ & 0.6, 0.5, 0.75, 0.5, 0.3, 0.7 & Eq.~(3) of the main paper & fixed \\
 $\beta, \theta_1 \ldots \theta_5$ & learned & Eq.~(4) of the main paper & learned \\
 energy tolerance & 0.10 & constraint one & set in development \\
 Pareto tolerance & 0.10 & constraint two & set in development \\

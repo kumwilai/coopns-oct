@@ -2,27 +2,28 @@
 \label{sec:method}
 
 \subsection{Overview}
-Fig.~\ref{fig:architecture} shows the whole method. It runs in six stages, each answering one question,
-namely what the rule layer has available at each pixel, what change is available, what is wrong and
-where, where the change should be applied, how it is applied, and whether it is allowed at all. This
-section and the two that follow take the six stages in order, two to a section.
+Fig.~\ref{fig:architecture} shows the whole method as six stages, taken in order here and in the two
+sections that follow, two to a section. Stage one asks where the backbone output can be left alone,
+stage two what change is available, stage three what is wrong and where, stage four where the change
+should be applied, stage five how, and stage six whether it is allowed at all.
 
 \subsection{Stage one, the backbone and the cooperation map}
 \label{sec:confidence}
-The backbone is frozen after training and gives $\mathbf{b} = f_\theta(\mathbf{y})$. A two layer
-network $h_\phi$ reads a feature tensor $\mathbf{z}$ from inside it and produces the cooperation map
+The backbone is frozen after training and gives $\mathbf{b} = f_\theta(\mathbf{y})$. The cooperation
+map $\mathbf{c}$ says where $\mathbf{b}$ can be left alone and where a change is wanted. A two layer
+network $h_\phi$ reads a feature tensor $\mathbf{z}$ from inside the backbone and produces it,
 \begin{equation}
 \mathbf{c} = \sigma\!\left(\frac{h_\phi(\mathbf{z}) + \beta_0}{\tau_0}\right),
 \label{eq:confidence}
 \end{equation}
 where $\sigma$ is the logistic function, $\tau_0 > 0$ is a learnable temperature and $\beta_0$ a
-learnable offset. The complementary demand map is $\mathbf{u} = \mathbf{1} - \mathbf{c}$. A small temperature
-gives a nearly binary map and a large one spreads the decision out.
+learnable offset. The complementary demand map is $\mathbf{u} = \mathbf{1} - \mathbf{c}$.
 
 Only this head depends on the backbone, because architectures expose feature tensors with different
-channel counts. The supplementary file lists the tensor used for each backbone.
+channel counts. We read the first encoder stage of NAFNet and KBNet, 40 and 32 channels, the first
+convolution of DnCNN, 228 channels, and the shallow feature convolution of SwinIR, 138 channels.
 Everything after this stage is shared, which is the precise sense in which the method is modular
-rather than architecture free. Section~\ref{sec:transfer_cost} reports what refitting the wrapper costs.
+rather than architecture free.
 
 \subsection{Stage two, the two correctors}
 \label{sec:correctors}

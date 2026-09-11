@@ -5,8 +5,7 @@
 \label{sec:psnr_tradeoff}
 Peak signal to noise ratio falls when the wrapper is applied, by 0.17 to 0.98 dB depending on the
 backbone. A denoiser trained on squared error sits at a local
-optimum of that error, so any change that raises contrast or boundary definition moves away from it,
-and the question is when the trade is worth making. A change of a few tenths of a decibel is smaller
+optimum of that error, so any change that raises contrast or boundary definition moves away from it. A change of a few tenths of a decibel is smaller
 than the variation between two acquisitions of the same eye, while the quantities that improve are
 what a grader uses to place a boundary or judge a fluid pocket. The size of the gain tracks the room a
 backbone leaves on each measure rather than its overall fidelity. On boundary sharpness NAFNet starts
@@ -21,17 +20,15 @@ the most room on the contrast measures and yet pays the least fidelity of the fo
 The correction is bounded by construction, so a backbone that has destroyed a structure cannot be
 made to recover it. Two safety measures move against it on the test set. The invented edge rate rises
 from \EdgeInvBack{} to \EdgeInvCorr{} percent and the retention of the weakest decile of structures
-falls from \WeakRetBack{} to \WeakRetCorr{} percent, on \EdgeInvUp{} and \WeakRetDown{} of \NImages{} images. Both are
-small and bounded in size, neither is zero, and the validation criterion that selected the operating
+falls from \WeakRetBack{} to \WeakRetCorr{} percent, on \EdgeInvUp{} and \WeakRetDown{} of \NImages{} images. Neither is
+zero, and the validation criterion that selected the operating
 point scores six clinical measures and fidelity and does not see either of them. We measured what
 that blindness costs, on the validation split so that the test split is used once. The setting the
 criterion ranked second for NAFNet raises weak structure retention from 40.7 to 43.9 percent where
 the selected setting lowers it to 37.7, and adds less to the invented edge rate. The criterion is
 therefore blind in a way that matters, and a user who values faint detail above contrast should score
 these two measures during selection. We did not reselect on this evidence, because the criterion was
-fixed before the test split was scored and changing it afterwards would spend that split twice. The formal results
-are narrow in the way stated at the end of Section~\ref{sec:stability}. Moving to a new backbone
-means refitting the whole wrapper, at the cost Section~\ref{sec:transfer_cost} reports. The clinical
+fixed before the test split was scored and changing it afterwards would spend that split twice. The clinical
 measures used here are established proxies, not outcomes, and no clinician read the images, so the
 safety analysis of Section~\ref{sec:safety_check} is quantitative evidence rather than clinical
 validation. Finally, the external datasets are small, sixteen and eighteen images, so the transfer
