@@ -10,11 +10,47 @@ import os
 import re
 import statistics
 
-OUT = "outputs/revision"
-DEST = "revision/sections/generated"
+# Resolve both paths from this file rather than from the working directory.
+# Running the script from inside revision/ used to create revision/revision/ and
+# silently write the tables where nothing reads them, while the manuscript kept
+# the previous run's numbers.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_ROOT = os.path.dirname(_HERE)
+OUT = os.path.join(_ROOT, "outputs", "revision")
+DEST = os.path.join(_HERE, "sections", "generated")
 BB = ["nafnet", "dncnn", "swinir", "kbnet"]
 LABEL = {"nafnet": "NAFNet", "dncnn": "DnCNN", "kbnet": "KBNet", "swinir": "SwinIR"}
 CLIN = ["CNR", "TCI", "EPI", "BS", "ENL", "SNR"]
+
+# Shared between table_in_distribution and table_transfer, both of which read
+# validate_crossdataset's zeroshot files rather than the per image summaries
+# the PKU37 runs produce, so the percentage change is formed the same way in
+# both places from this one pair of helpers.
+PAIR = {"CNR": "cnr", "TCI": "tci", "EPI": "epi", "BS": "boundary_sharpness",
+        "ENL": "enl", "SNR": "snr"}
+
+
+def transfer_raw_values(rec):
+    """psnr_delta, psnr_corrected, plus each clinical measure's percentage change.
+
+    Returns None if rec itself is missing.
+    """
+    if rec is None:
+        return None
+    # The first numeric column of the table is the BACKBONE value in every block,
+    # so the transfer rows must read psnr_backbone. They previously read
+    # psnr_corrected, which made one column carry two different quantities and
+    # gave the frozen backbone a spurious spread across seeds.
+    out = {"PSNR": rec["psnr_delta"], "PSNR_abs": rec.get("psnr_backbone")}
+    for k in CLIN:
+        b, c = rec.get(PAIR[k] + "_backbone"), rec.get(PAIR[k] + "_corrected")
+        out[k] = None if b is None or c is None else 100.0 * (c - b) / (abs(b) + 1e-12)
+    return out
+
+
+def find_transfer_rec(recs, tag):
+    return next((r for r in recs
+                 if tag in str(r.get("dataset", "")).lower().replace("-", "")), None)
 
 
 def load(path):
@@ -36,7 +72,30 @@ def d(summary, key, pct=True, signed=True):
 def bold_if_pos(txt):
     if txt == "--":
         return txt
-    return f"$\\mathbf{{{txt}}}$" if txt.startswith("+") else txt
+    if not txt.startswith("+"):
+        return txt
+    # fmt_mean_sd may already hand back a self-contained "$\pm$" pair, which
+    # would nest math mode inside this wrapper's own $...$. Strip those inner
+    # dollars since this wrapper supplies the enclosing math delimiters.
+    return f"$\\mathbf{{{txt.replace('$', '')}}}$"
+
+
+def clinical_cell(values):
+    """One clinical cell for the merged results table, mean only, two decimals,
+    signed, the spread dropped rather than printed. Bold marks a cell whose mean
+    minus one seed standard deviation clears zero, so every seed agrees on the
+    sign within one spread. A cell left plain and positive is within one spread
+    of zero, and a cell left plain and negative is simply negative. A single
+    value, with no seed spread to subtract, reduces to bolding on sign alone.
+    The full per seed spread is not lost, it is emitted separately by
+    table_full_spreads for the supplementary material.
+    """
+    if not values:
+        return "--"
+    mean = statistics.mean(values)
+    spread = statistics.stdev(values) if len(values) > 1 else 0.0
+    txt = f"{mean:+.2f}"
+    return f"$\\mathbf{{{txt}}}$" if (mean - spread) > 0 else txt
 
 
 def collect_seeds(prefix):
@@ -68,44 +127,212 @@ def fmt_mean_sd(values, fmt="%+.2f"):
     return f"{mean} $\\pm$ {sd}"
 
 
-def table_in_distribution():
-    lines, means = [], {k: [] for k in ["PSNR (dB)"] + CLIN}
+def transfer_block(tag):
+    """Rows for one no adaptation dataset block, backbone name plus absolute PSNR.
+
+    Reuses transfer_raw_values and find_transfer_rec, the same code table_transfer
+    uses, so the two tables cannot disagree on how a percentage change is formed.
+    """
+    lines = []
     seed_counts = []
+    for b in BB:
+        seeds = collect_seeds(f"zeroshot_{b}")
+        if seeds:
+            seed_counts.append(len(seeds))
+            per_key = {"PSNR": [], "PSNR_abs": []}
+            per_key.update({k: [] for k in CLIN})
+            for _, recs in seeds:
+                rv = transfer_raw_values(find_transfer_rec(recs, tag))
+                if rv is None:
+                    continue
+                per_key["PSNR"].append(rv["PSNR"])
+                if rv["PSNR_abs"] is not None:
+                    per_key["PSNR_abs"].append(rv["PSNR_abs"])
+                for k in CLIN:
+                    if rv[k] is not None:
+                        per_key[k].append(rv[k])
+            # Same guard as the in distribution block. The frozen backbone must read
+            # identically at every seed, so print one value and fail loudly rather than
+            # average if it does not.
+            if per_key["PSNR_abs"]:
+                _sp = max(per_key["PSNR_abs"]) - min(per_key["PSNR_abs"])
+                if _sp > 0.005:
+                    raise SystemExit(
+                        "backbone PSNR differs across seeds in a transfer block, spread %.4f dB. "
+                        "The frozen reference is not frozen." % _sp)
+                abs_psnr = "%.2f" % per_key["PSNR_abs"][0]
+            else:
+                abs_psnr = "--"
+            row = [LABEL[b], abs_psnr, fmt_mean_sd(per_key["PSNR"])]
+            row += [clinical_cell(per_key[k]) for k in CLIN]
+        else:
+            recs = load(f"{OUT}/zeroshot_{b}.json") or []
+            rv = transfer_raw_values(find_transfer_rec(recs, tag))
+            if rv is None:
+                row = [LABEL[b]] + ["--"] * 8
+            else:
+                abs_psnr = "--" if rv["PSNR_abs"] is None else f"{rv['PSNR_abs']:.2f}"
+                clin_cells = [clinical_cell([] if rv[k] is None else [rv[k]]) for k in CLIN]
+                row = [LABEL[b], abs_psnr, "%+.2f" % rv["PSNR"]] + clin_cells
+        lines.append(" & ".join(row) + r" \\")
+    return lines, (max(seed_counts) if seed_counts else 0)
+
+
+def table_in_distribution():
+    lines = []
+    seed_counts = []
+    lines.append(r"\multicolumn{9}{l}{\textit{PKU37 test set, 173 images}} \\")
     for b in BB:
         seeds = collect_seeds(f"test_{b}")
         if seeds:
             seed_counts.append(len(seeds))
-            psnr_deltas, psnr_correcteds = [], []
+            psnr_deltas, psnr_backbones = [], []
             clin_deltas = {k: [] for k in CLIN}
             for _, r in seeds:
                 s = r["summary"]
                 psnr_deltas.append(s["PSNR (dB)"]["delta_mean"])
-                psnr_correcteds.append(s["PSNR (dB)"]["corrected_mean"])
+                psnr_backbones.append(s["PSNR (dB)"]["backbone_mean"])
                 for k in CLIN:
                     clin_deltas[k].append(s[k]["delta_mean"])
-            abs_psnr = f"{statistics.mean(psnr_correcteds):.2f}"
+            # The backbone is frozen, so every seed must measure it identically. A
+            # silent average here would hide exactly the kind of drift that was
+            # found in the DnCNN batch normalisation layers, so this fails loudly.
+            if max(psnr_backbones) - min(psnr_backbones) > 0.005:
+                raise SystemExit(
+                    "backbone PSNR differs across seeds for %s, spread %.4f dB. "
+                    "The frozen reference is not frozen." % (b, max(psnr_backbones) - min(psnr_backbones)))
+            abs_psnr = f"{psnr_backbones[0]:.2f}"
             row = [LABEL[b], abs_psnr, fmt_mean_sd(psnr_deltas)]
-            row += [bold_if_pos(fmt_mean_sd(clin_deltas[k])) for k in CLIN]
+            row += [clinical_cell(clin_deltas[k]) for k in CLIN]
             lines.append(" & ".join(row) + r" \\")
-            means["PSNR (dB)"].append(statistics.mean(psnr_deltas))
-            for k in CLIN:
-                means[k].append(statistics.mean(clin_deltas[k]))
         else:
             r = load(f"{OUT}/eval_{b}.json")
             s = r["summary"] if r else None
-            abs_psnr = f"{s['PSNR (dB)']['corrected_mean']:.2f}" if s else "--"
-            row = [LABEL[b], abs_psnr, d(s, "PSNR (dB)")] + [bold_if_pos(d(s, k)) for k in CLIN]
+            abs_psnr = f"{s['PSNR (dB)']['backbone_mean']:.2f}" if s else "--"
+            clin_cells = [clinical_cell([] if not s else [s[k]["delta_mean"]]) for k in CLIN]
+            row = [LABEL[b], abs_psnr, d(s, "PSNR (dB)")] + clin_cells
             lines.append(" & ".join(row) + r" \\")
-            if s:
-                means["PSNR (dB)"].append(s["PSNR (dB)"]["delta_mean"])
-                for k in CLIN:
-                    means[k].append(s[k]["delta_mean"])
-    if means["PSNR (dB)"]:
-        mrow = ["\\textit{mean}", "", f"{sum(means['PSNR (dB)'])/len(means['PSNR (dB)']):+.2f}"]
-        mrow += [f"{sum(means[k])/len(means[k]):+.2f}" for k in CLIN]
+    # No mean row here. Averaging a percentage change across four backbones with
+    # different starting values is not a meaningful number, so it is not printed.
+    zs_seed_counts = []
+    for ds, tag in (("Duke17", "duke17"), ("Duke2013", "duke2013")):
         lines.append(r"\midrule")
-        lines.append(" & ".join(mrow) + r" \\")
-    return "\n".join(lines), (max(seed_counts) if seed_counts else 0)
+        lines.append(r"\multicolumn{9}{l}{\textit{%s, no adaptation}} \\" % ds)
+        block_lines, block_seeds = transfer_block(tag)
+        lines.extend(block_lines)
+        if block_seeds:
+            zs_seed_counts.append(block_seeds)
+    for title, rows in (
+            ("NAFNet on PKU37, one component removed",
+             [("Full method", "lopo_none"), ("No rule layer", "comp_no_negotiator"),
+              ("No edge branch", "comp_no_edge"), ("No cooperation map", "comp_no_uncertainty"),
+              ("No background smoothing", "comp_no_bg_smooth")]),
+            ("NAFNet on PKU37, alternatives of similar complexity on the same backbone output",
+             [("Uniform allocation, trained", "matched_plain_eval"),
+              ("Unsharp masking", "classical_unsharp"),
+              ("Adaptive equalisation", "classical_clahe")])):
+        block = []
+        for name, stem in rows:
+            r = load(f"{OUT}/{stem}.json")
+            if not r:
+                continue
+            sm = r["summary"]
+            cells = [r"\multicolumn{2}{l}{%s}" % name, d(sm, "PSNR (dB)")]
+            cells += [d(sm, k) for k in CLIN]
+            block.append(" & ".join(cells) + r" \\")
+        if block:
+            lines.append(r"\midrule")
+            lines.append(r"\multicolumn{9}{l}{\textit{%s}} \\" % title)
+            lines.extend(block)
+    ad = adapted_block()
+    if ad:
+        lines.append(r"\midrule")
+        lines.append(r"\multicolumn{9}{l}{\textit{Adapted on the target set, leave one subject "
+                     r"out, NAFNet only}} \\")
+        lines.extend(ad)
+    header = [r"\begin{tabular}{lcccccccc}", r"\toprule",
+              r"Backbone & Backbone PSNR (dB) & $\Delta$PSNR (dB) & $\Delta$CNR & $\Delta$TCI & "
+              r"$\Delta$EPI & $\Delta$BS & $\Delta$ENL & $\Delta$SNR \\", r"\midrule"]
+    footer = [r"\bottomrule", r"\end{tabular}"]
+    all_seeds = seed_counts + zs_seed_counts
+    return "\n".join(header + lines + footer), (max(all_seeds) if all_seeds else 0)
+
+
+def adapted_block():
+    """The adapted protocol of the original submission, NAFNet only, read from the
+    leave one subject out result files. One seed and one fold per subject, so no
+    spread and no bold. Emitted here rather than typed into the tex file, so the
+    numbers cannot drift from the run that produced them."""
+    key = {"CNR": "CNR", "TCI": "TCI", "EPI": "EPI", "BS": "Boundary Sharpness",
+           "ENL": "ENL", "SNR": "SNR"}
+    lines = []
+    for ds, tag in (("Duke17", "duke17"), ("Duke2013", "duke2013")):
+        f = f"{OUT}/loo_{tag}_nafnet/loo_results.json"
+        r = load(f)
+        if not r:
+            continue
+        # Compare by the tail of the path, since the result files record the
+        # path as it was on the machine that produced them while OUT is resolved
+        # from this file.
+        want = "sw_nafnet_halo41_dz06_s0/best_model_cooperative.pth"
+        got = (r.get("config", {}) or {}).get("resume_checkpoint") or ""
+        if not got.endswith(want):
+            raise SystemExit(
+                "%s resumed from %s but the reported NAFNet model is %s. The "
+                "adapted block would describe a different model from the rest of "
+                "the table." % (f, got, want))
+        sm = r["summary"]
+        row = ["NAFNet, %s" % ds,
+               "%.2f" % sm["PSNR (dB)"]["backbone_mean"],
+               "%+.2f" % sm["PSNR (dB)"]["delta_mean"]]
+        row += ["%+.2f" % sm[key[k]]["delta_mean"] for k in CLIN]
+        lines.append(" & ".join(row) + r" \\")
+    return lines
+
+
+def table_full_spreads():
+    """Every clinical cell's full mean plus or minus one seed standard deviation,
+    four backbones by three blocks by six measures, for the supplementary
+    material. tab_in_distribution.tex prints the mean alone and encodes the
+    robustness test in the bold, this table gives the spread the bold was
+    computed from. Generated from the same twelve test files and twelve
+    zeroshot files as the merged results table, never typed by hand.
+    """
+    def block_rows(prefix, tag=None):
+        rows = []
+        for b in BB:
+            seeds = collect_seeds(prefix % b)
+            clin = {k: [] for k in CLIN}
+            for _, payload in seeds:
+                if tag is None:
+                    s = payload["summary"]
+                    for k in CLIN:
+                        clin[k].append(s[k]["delta_mean"])
+                else:
+                    rv = transfer_raw_values(find_transfer_rec(payload, tag))
+                    if rv is None:
+                        continue
+                    for k in CLIN:
+                        if rv[k] is not None:
+                            clin[k].append(rv[k])
+            row = [LABEL[b]] + [fmt_mean_sd(clin[k]) for k in CLIN]
+            rows.append(" & ".join(row) + r" \\")
+        return rows
+
+    blocks = [("PKU37 test set, 173 images", block_rows("test_%s", tag=None)),
+              ("Duke17, no adaptation", block_rows("zeroshot_%s", tag="duke17")),
+              ("Duke2013, no adaptation", block_rows("zeroshot_%s", tag="duke2013"))]
+    lines = [r"\begin{tabular}{lcccccc}", r"\toprule",
+             r"Backbone & $\Delta$CNR & $\Delta$TCI & $\Delta$EPI & $\Delta$BS & "
+             r"$\Delta$ENL & $\Delta$SNR \\"]
+    for i, (title, rows) in enumerate(blocks):
+        lines.append(r"\midrule")
+        lines.append(r"\multicolumn{7}{l}{\textit{%s}} \\" % title)
+        lines.append(r"\midrule")
+        lines.extend(rows)
+    lines.append(r"\bottomrule")
+    lines.append(r"\end{tabular}")
+    return "\n".join(lines)
 
 
 def table_transfer():
@@ -113,34 +340,22 @@ def table_transfer():
 
     validate_crossdataset writes a list of per dataset records holding the mean of
     each measure before and after correction, not the per image summary that the
-    PKU37 runs produce. The percentage change is therefore formed here from those
-    two means. Peak signal to noise ratio stays an absolute difference in decibels.
+    PKU37 runs produce. The percentage change is therefore formed here, by
+    transfer_raw_values, from those two means. Peak signal to noise ratio stays an
+    absolute difference in decibels.
+
+    No longer input by the main paper, since table_in_distribution now folds
+    these same two blocks into the merged results table with transfer_block. Kept
+    so tab_transfer.tex still exists for anything else that reads it.
     """
-    PAIR = {"CNR": "cnr", "TCI": "tci", "EPI": "epi", "BS": "boundary_sharpness",
-            "ENL": "enl", "SNR": "snr"}
-
-    def raw_values(rec):
-        """psnr_delta plus each clinical measure's percentage change, or None if missing."""
-        if rec is None:
-            return None
-        out = {"PSNR": rec["psnr_delta"]}
-        for k in CLIN:
-            b, c = rec.get(PAIR[k] + "_backbone"), rec.get(PAIR[k] + "_corrected")
-            out[k] = None if b is None or c is None else 100.0 * (c - b) / (abs(b) + 1e-12)
-        return out
-
     def cells(rec):
-        rv = raw_values(rec)
+        rv = transfer_raw_values(rec)
         if rv is None:
             return ["--"] * 7
         out = ["%+.2f" % rv["PSNR"]]
         for k in CLIN:
             out.append("--" if rv[k] is None else "%+.2f" % rv[k])
         return out
-
-    def find_rec(recs, tag):
-        return next((r for r in recs
-                     if tag in str(r.get("dataset", "")).lower().replace("-", "")), None)
 
     lines = []
     seed_counts = []
@@ -153,7 +368,7 @@ def table_transfer():
                 per_key = {"PSNR": []}
                 per_key.update({k: [] for k in CLIN})
                 for _, recs in seeds:
-                    rv = raw_values(find_rec(recs, tag))
+                    rv = transfer_raw_values(find_transfer_rec(recs, tag))
                     if rv is None:
                         continue
                     per_key["PSNR"].append(rv["PSNR"])
@@ -164,12 +379,16 @@ def table_transfer():
                 row += [bold_if_pos(fmt_mean_sd(per_key[k])) for k in CLIN]
             else:
                 recs = load(f"{OUT}/zeroshot_{b}.json") or []
-                rec = find_rec(recs, tag)
+                rec = find_transfer_rec(recs, tag)
                 vals = cells(rec)
                 row = ["", LABEL[b], vals[0]] + [bold_if_pos(v) for v in vals[1:]]
             lines.append(" & ".join(row) + r" \\")
         lines.append(r"\midrule")
-    return "\n".join(lines[:-1]), (max(seed_counts) if seed_counts else 0)
+    header = [r"\begin{tabular}{llccccccc}", r"\toprule",
+              r"Protocol & Backbone & $\Delta$PSNR (dB) & $\Delta$CNR & $\Delta$TCI & "
+              r"$\Delta$EPI & $\Delta$BS & $\Delta$ENL & $\Delta$SNR \\", r"\midrule"]
+    footer = [r"\bottomrule", r"\end{tabular}"]
+    return "\n".join(header + lines[:-1] + footer), (max(seed_counts) if seed_counts else 0)
 
 
 def table_lopo():
@@ -182,17 +401,24 @@ def table_lopo():
         s = r["summary"] if r else None
         lines.append(" & ".join([f"without $P_{i}$", d(s, "PSNR (dB)")] +
                                 [d(s, k) for k in CLIN]) + r" \\")
-    return "\n".join(lines)
+    header = [r"\begin{tabular}{lccccccc}", r"\toprule",
+              r"Properties used & $\Delta$PSNR (dB) & $\Delta$CNR & $\Delta$TCI & "
+              r"$\Delta$EPI & $\Delta$BS & $\Delta$ENL & $\Delta$SNR \\", r"\midrule"]
+    footer = [r"\bottomrule", r"\end{tabular}"]
+    return "\n".join(header + lines + footer)
 
 
 def table_ablation():
-    rows = [("Full method", f"{OUT}/eval_nafnet.json"),
+    rows = [# The unmodified run of the same checkpoint the component rows ablate,
+            # so every row of this table describes one model. eval_nafnet.json is
+            # an earlier checkpoint and must not be used here.
+            ("Full method", f"{OUT}/lopo_none.json"),
             ("No rule layer", f"{OUT}/comp_no_negotiator.json"),
             ("No edge branch", f"{OUT}/comp_no_edge.json"),
-            ("No confidence", f"{OUT}/comp_no_uncertainty.json"),
+            ("No cooperation map", f"{OUT}/comp_no_uncertainty.json"),
             ("No background smoothing", f"{OUT}/comp_no_bg_smooth.json"),
             (None, None),
-            ("Plain corrector, same size", f"{OUT}/matched_plain_eval.json"),
+            ("Uniform allocation, trained", f"{OUT}/matched_plain_eval.json"),
             ("Unsharp masking", f"{OUT}/classical_unsharp.json"),
             ("Adaptive equalisation", f"{OUT}/classical_clahe.json")]
     lines = []
@@ -203,8 +429,12 @@ def table_ablation():
         r = load(path)
         s = r["summary"] if r else None
         lines.append(" & ".join([name, d(s, "PSNR (dB)")] +
-                                [d(s, k) for k in CLIN[:5]]) + r" \\")
-    return "\n".join(lines)
+                                [d(s, k) for k in CLIN]) + r" \\")
+    header = [r"\begin{tabular}{lccccccc}", r"\toprule",
+              r"Configuration & $\Delta$PSNR & $\Delta$CNR & $\Delta$TCI & "
+              r"$\Delta$EPI & $\Delta$BS & $\Delta$ENL & $\Delta$SNR \\", r"\midrule"]
+    footer = [r"\bottomrule", r"\end{tabular}"]
+    return "\n".join(header + lines + footer)
 
 
 def theory_numbers():
@@ -222,6 +452,32 @@ def theory_numbers():
                      ("boundary_not_worsened", "BoundOK")):
         if key in g and "true" in g[key]:
             out.append(r"\newcommand{\%s}{%d}" % (cmd, g[key]["true"]))
+    # The two leakage terms have means near zero with a long negative tail, so the
+    # mean alone misreads them. Emit the per image sign counts as well, which is
+    # what the margin condition of Theorem 2 actually depends on.
+    per = r.get("per_image", [])
+    if per and "invented_edge_rate_backbone" in per[0]:
+        out.append(r"\newcommand{\EdgeInvUp}{%d}"
+                   % sum(1 for x in per
+                         if x["invented_edge_rate_corrected"] > x["invented_edge_rate_backbone"]))
+        out.append(r"\newcommand{\WeakRetDown}{%d}"
+                   % sum(1 for x in per
+                         if x["weak_retention_corrected"] < x["weak_retention_backbone"]))
+    if per and "pass_energy_descent" in per[0]:
+        for key, cmd in (("pass_energy_descent", "ConEnergy"),
+                         ("pass_pareto_efficient", "ConPareto"),
+                         ("pass_lipschitz_bounded", "ConLip")):
+            out.append(r"\newcommand{\%s}{%d}" % (cmd, sum(1 for x in per if x.get(key))))
+        npass = [int(x.get("n_pass", -1)) for x in per]
+        out.append(r"\newcommand{\ConAllThree}{%d}" % sum(1 for v in npass if v == 3))
+        out.append(r"\newcommand{\ConMin}{%d}" % min(npass))
+        out.append(r"\newcommand{\BlendOne}{%d}"
+                   % sum(1 for x in per if abs(float(x.get("blend_weight", 0)) - 1.0) < 1e-9))
+    if per and "eta_T" in per[0]:
+        out.append(r"\newcommand{\EtaTPos}{%d}"
+                   % sum(1 for x in per if x["eta_T"] > 0))
+        out.append(r"\newcommand{\EtaBNeg}{%d}"
+                   % sum(1 for x in per if x["eta_B"] < 0))
     if "calibration" in r:
         out.append(r"\newcommand{\CalibRho}{%.3f}" % r["calibration"]["spearman_pooled"])
         out.append(r"\newcommand{\CalibAuse}{%.3f}" % r["calibration"]["sparsification_error"])
@@ -239,6 +495,7 @@ def theory_numbers():
     mac("WeakRetCorr", "weak_retention_corrected", scale=100, fmt="%.1f")
     mac("DarkFrac", "dark_region_fraction", scale=100, fmt="%.1f")
     mac("DarkChange", "dark_region_abs_change", fmt="%.4f")
+    mac("GlobalMax", "global_abs_change", field="max", fmt="%.4f")
     mac("IlmShiftBack", "ilm_shift_backbone", fmt="%.2f")
     mac("IlmShiftCorr", "ilm_shift_corrected", fmt="%.2f")
     mac("RpeShiftBack", "rpe_shift_backbone", fmt="%.2f")
@@ -259,6 +516,7 @@ def main():
     transfer_body, transfer_seeds = table_transfer()
     parts = {"tab_in_distribution.tex": in_dist_body,
              "tab_transfer.tex": transfer_body,
+             "tab_full_spreads.tex": table_full_spreads(),
              "tab_lopo.tex": table_lopo(),
              "tab_ablation.tex": table_ablation(),
              "theory_numbers.tex": theory_numbers()}
@@ -267,6 +525,9 @@ def main():
     seed_info = {"tab_in_distribution.tex": in_dist_seeds, "tab_transfer.tex": transfer_seeds}
     for name, body in parts.items():
         with open(os.path.join(DEST, name), "w") as f:
+            # Each table file is a complete tabular (or, for theory_numbers.tex, a
+            # macro file) and is included with \input from outside any alignment, so
+            # a plain trailing newline is always safe.
             f.write(body + "\n")
         # A body that only says the diagnostics are absent has no dashes in it, so
         # counting dashes alone would report it as complete. Check for that first.

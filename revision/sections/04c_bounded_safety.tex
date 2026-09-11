@@ -1,0 +1,103 @@
+\section{Bounded Change and the Safety Decision}
+\label{sec:bounded_safety}
+
+\subsection{Stage five, applying the change}
+\label{sec:composition}
+The admitted gain is the raw proposal modulated by the allocation and the strength map, then bounded,
+\begin{equation}
+\boldsymbol{\alpha} = \mathrm{clamp}\big(\boldsymbol{\Delta} \odot \mathbf{a} \odot \boldsymbol{\lambda},\, -0.20,\, 0.20\big).
+\label{eq:alpha}
+\end{equation}
+A gate suppresses any change in the dark background,
+\begin{equation}
+\mathbf{g} = \sigma\big(20\,(\mathbf{b} - q_{0.15})\big),
+\label{eq:gate}
+\end{equation}
+where $q_{0.15}$ is the fifteenth percentile of the backbone output of that image. Using a percentile
+rather than a fixed level makes the gate work across scanners with different brightness. A second form
+of the gate, used where the selection of Section~\ref{sec:weight_selection} chose it, is a soft step at
+the per image Otsu threshold followed by a maximum filter of fixed radius, so that the gate is
+identically zero beyond that radius from tissue.
+
+The gated gain is applied multiplicatively to give the change $\mathbf{v}$, with the brightening part
+smoothed before it is added so that it cannot create a new high frequency edge,
+\begin{equation}
+\mathbf{v} = \big(\,\mathrm{smooth}(\mathrm{ReLU}(\boldsymbol{\alpha}) \odot \mathbf{b})
+ + (\boldsymbol{\alpha} - \mathrm{ReLU}(\boldsymbol{\alpha})) \odot \mathbf{b}\,\big) \odot \mathbf{g},
+\label{eq:apply}
+\end{equation}
+where $\mathrm{smooth}$ is a three by three mean filter. The darkening part is left unsmoothed because
+it has zero mean and cancels itself. In the background, defined by the complement of the gate eroded
+by two pixels, a masked three by three mean filter is blended in at half strength, which lowers the
+background standard deviation without letting blur cross into tissue. Finally the edge proposal is
+added and the result is clipped to the valid range,
+\begin{equation}
+\mathbf{q} = \mathrm{clamp}\big(\mathbf{b} + \mathbf{v} + \boldsymbol{\delta}_{\mathrm{e}} \odot \mathbf{g},\, 0,\, 1\big).
+\label{eq:candidate}
+\end{equation}
+
+\subsection{Stage six, the safety decision}
+\label{sec:safety}
+The candidate $\mathbf{q}$ is not returned directly. Three constraints are checked on it.
+
+\textbf{Aggregate quality must not fall.} Define for any image $\mathbf{t}$ the energy
+\begin{equation}
+E(\mathbf{t}) = 1 - \tfrac{1}{6}\sum_{i=1}^{6} s_i(\mathbf{t})
+ + 0.1 \sum_{i=1}^{6} \max\big(0,\, 0.5 - s_i(\mathbf{t})\big),
+\label{eq:energy}
+\end{equation}
+which is small when the image is good, and whose second term penalises any single property below one
+half, so a good average cannot hide one broken property. The first constraint requires
+$E(\mathbf{q}) \le E(\mathbf{b}) + 0.10$.
+
+\textbf{No property may be sacrificed for another.} The second constraint requires that at least one
+property improves by more than $0.01$ and that no property falls by more than $0.10$.
+
+\textbf{The image must not move far.} The third constraint requires
+$\lVert \mathbf{q} - \mathbf{b} \rVert_2 \,/\, \lVert \mathbf{b} \rVert_2 < 0.2$.
+
+Let $n \in \{0,1,2,3\}$ be the number of constraints that hold. The output is
+\begin{equation}
+\hat{\mathbf{x}} = (1 - w)\,\mathbf{b} + w\,\mathbf{q},
+\qquad
+w = \begin{cases}
+1, & n \ge 2, \\[2pt]
+0.05 + 0.10\,\dfrac{n}{3}, & n < 2 .
+\end{cases}
+\label{eq:blend}
+\end{equation}
+Otherwise the output falls back to the backbone while retaining five to eight percent of the proposal,
+so the decision remains visible rather than silently discarded.
+
+
+\begin{figure*}[!tb]
+\centering
+\includegraphics[width=0.783\textwidth]{figures/architecture.pdf}
+\caption{The six stages. A frozen backbone and a small head produce the image and the cooperation
+map. Two networks propose changes. Six properties are measured. Five rules allocate. The change is
+bounded and gated. Three constraints decide how much is kept.}
+\label{fig:architecture}
+\end{figure*}
+
+
+\begin{table}[!tb]
+\centering
+\caption{Here $e$ is the Sobel edge magnitude of the backbone output, $\sigma_k$ is
+the local standard deviation over a window of size $k$, and $cv$ is the local coefficient of
+variation of the log residual.}
+\label{tab:predicates}
+\setlength{\tabcolsep}{3pt}
+\footnotesize
+\begin{tabular}{clp{0.45\columnwidth}c}
+\toprule
+$P_i$ & Property & Where the map is large & $\tau_i$ \\
+\midrule
+$P_1$ & edge continuity & away from detected edges, where a boundary should continue but does not & 0.60 \\
+$P_2$ & local contrast & where $\sigma_9$ falls below the image mean, and in nearly flat tissue & 0.50 \\
+$P_3$ & flat smoothness & inside flat regions that still carry residual variation & 0.75 \\
+$P_4$ & structural coherence & where the edge map is itself rough, a sign of broken structure & 0.50 \\
+$P_5$ & speckle conformity & where $cv$ departs from the value expected for OCT speckle & 0.30 \\
+$P_6$ & layer visibility & where the local variance of the edge map is high across depth & 0.70 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -6,67 +6,46 @@ arises from coherent light scattering inside tissue~\cite{goodman2007speckle}. S
 border between retinal layers, lowers the contrast between tissue and background, and makes
 automatic layer segmentation less reliable~\cite{devalla2018drunet}.
 
-Deep denoisers remove much of that disturbance. They are almost always trained to minimise the
-squared error against a clean reference, so they are rewarded for average pixel accuracy and
-nothing else. A denoiser can therefore raise the peak signal to noise ratio (PSNR) of a scan while
-making the scan less useful to a clinician. Three things commonly get worse. Layer boundaries
-become smooth and lose definition. The contrast between tissue and the dark vitreous falls. Thin
-structures with weak signal fade into the background. None of these losses is visible in a PSNR
-number, and none of them is corrected by training the same objective harder.
+Deep denoisers remove much of that disturbance, but they are almost always trained to minimise the
+squared error against a clean reference, so a denoiser can raise the peak signal to noise ratio (PSNR)
+of a scan while making it less useful to a clinician. Layer boundaries lose definition, the contrast
+between tissue and the dark vitreous falls, and thin structures with weak signal fade into the
+background. None of these losses is visible in a PSNR number, and none is corrected by training the
+same objective harder.
 
 \subsection{Motivation}
-The gap we address is not a missing denoiser. Strong denoisers already exist. The gap is that
-nothing sits between the denoiser and the clinical reader to state, in explicit terms, what a good
-OCT image should look like and to repair the specific ways in which a denoised image falls short.
-Building that missing part as another neural block would reproduce the original problem, because
-the reason for every change would again be hidden inside learned weights. A clinician, a regulator,
-or a reviewer who sees a modified scan needs to know which property was judged deficient, where in
-the image that judgement was made, and how large a change was allowed as a result.
-
-This paper therefore treats post correction as its own problem. We keep the denoiser frozen and we
-attach a small policy that decides where the image should be changed and by how much. The policy is
-written down as named image properties, explicit logical rules over those properties, and explicit
-limits on the size of any change. Nothing in the decision path is an unnamed attention map.
+The gap we address is not a missing denoiser. It is that nothing sits between the denoiser and the
+clinical reader to state in explicit terms what a good OCT image should look like and to repair the
+specific ways in which a denoised image falls short. Building that part as another neural block would
+hide the reason for every change inside learned weights again, while a clinician, a regulator or a
+reviewer who sees a modified scan needs to know which property was judged deficient, where that
+judgement was made, and how large a change was allowed. This paper therefore treats post correction as
+its own problem. We keep the denoiser frozen and attach a small policy, written as named image
+properties, explicit logical rules over them, and explicit limits on the size of any change, that
+decides where the image should change and by how much. Every learned map in the decision path is
+bounded, and its effect reaches the image only through a named rule.
 
 \subsection{New ideas in this paper}
 \label{sec:contributions}
-We do not claim that edge filters, confidence maps, or fuzzy operators are new on their own. The
-new ideas are the following five.
+The new ideas are three, and we do not claim that edge filters, gating maps or fuzzy operators are
+new on their own.
 
 \begin{enumerate}
-\item \textbf{Post correction written as a constrained optimisation problem.}
-Section~\ref{sec:problem} states the objective, the decision variables, the constraints, and the
-solver. The clinical goal becomes a term in an objective rather than an informal aim, and the
-safety requirements become constraints that are checked on every image at test time.
-
 \item \textbf{Six clinical properties given in closed form.}
-Section~\ref{sec:predicates} defines six ground truth free predicates. Each one returns a score for
-the whole image and a map that says where in the image the property is unsatisfied. Both are written
-as formulas, so the input to the rule layer can be recomputed by anyone from the released code.
+Section~\ref{sec:predicates} defines six predicates that need no ground truth. Each returns a score
+for the whole image and a map of where the property is unsatisfied. Both are formulas, so the input
+to the rule layer can be recomputed by anyone from the released code.
 
 \item \textbf{A fuzzy allocation rule with a proved and measured sensitivity bound.}
 Section~\ref{sec:negotiator} builds the allocation from Lukasiewicz connectives.
-Section~\ref{sec:stability} defines what stability means here, proves a Lipschitz bound for the
-allocation, and Section~\ref{sec:theory_check} measures the true sensitivity on real images and
-compares it with the bound.
+Section~\ref{sec:stability} defines what stability means here and proves a Lipschitz bound, and
+Section~\ref{sec:theory_check} measures the true sensitivity on real images and compares it with the
+bound. A bound that is never checked against data is a claim, not a guarantee.
 
 \item \textbf{A safety layer that decides how much of a proposal to keep.}
-Section~\ref{sec:safety} states three constraints at three different scales and shows how the number
-of satisfied constraints sets the amount of the proposed change that is applied. A margin condition
+Section~\ref{sec:safety} states three constraints at three scales and shows how the number of
+satisfied constraints sets the fraction of the proposed change that is applied. A margin condition
 under which the correction cannot lower the contrast to noise ratio is proved and then tested
 numerically.
-
-\item \textbf{Transfer evidence that separates two different claims.}
-Section~\ref{sec:results_ood} reports two protocols that earlier work often mixes together. In the
-first the policy trained on one scanner is applied to another scanner with no further training. In
-the second it is allowed a small amount of adaptation on images from the new scanner. We report both
-so the reader can see what transfers for free and what has to be paid for.
 \end{enumerate}
 
-\subsection{How the paper is organised}
-Section~\ref{sec:related} reviews related work. Section~\ref{sec:problem} states the notation and the
-optimisation problem. Section~\ref{sec:method} describes the method from the top down, one stage at a
-time. Section~\ref{sec:stability} gives the formal results. Section~\ref{sec:training} gives the
-training algorithm and every constant it uses. Section~\ref{sec:tests} reports the tests.
-Section~\ref{sec:discussion} discusses what the results mean and where the method fails, and
-Section~\ref{sec:conclusion} concludes.

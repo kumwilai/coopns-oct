@@ -273,16 +273,16 @@ def main():
     args = ap.parse_args()
     setup()
 
-    fig = plt.figure(figsize=(7.16, 3.1))
+    fig = plt.figure(figsize=(7.16, 2.5))
     gs = fig.add_gridspec(1, 3, width_ratios=[1.0, 1.05, 0.95], wspace=0.62,
-                          left=0.075, right=0.99, top=0.87, bottom=0.30)
+                          left=0.075, right=0.99, top=0.87, bottom=0.19)
 
     ax_a = fig.add_subplot(gs[0, 0])
     im = panel_a(ax_a, args.results_dir)
     if im is not None:
         pos = ax_a.get_position()
-        cax = fig.add_axes([pos.x0, 0.055, pos.width, 0.045])
-        cb = fig.colorbar(im, cax=cax, orientation="horizontal")
+        cax = fig.add_axes([pos.x1 + 0.006, pos.y0, 0.010, pos.height])
+        cb = fig.colorbar(im, cax=cax, orientation="vertical")
         cb.outline.set_visible(False)
         cb.set_ticks([-1, 0, 1])
         cb.set_ticklabels(["worse", "0", "better"])

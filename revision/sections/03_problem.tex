@@ -1,9 +1,6 @@
 \section{Notation and Problem Statement}
 \label{sec:problem}
 
-This section fixes the notation used in the rest of the paper and states the problem that the
-method solves. Every symbol is defined here before it is used anywhere else.
-
 \subsection{Notation}
 \label{sec:notation}
 Images are real valued arrays of height $H$ and width $W$ with values in $[0,1]$. We write $\mathbf{y}$
@@ -11,10 +8,10 @@ for the noisy B scan that comes off the scanner and $\mathbf{x}$ for the clean r
 averaging many repeated scans of the same location. A pixel index is written $p$, so $y_p$ is one
 pixel of $\mathbf{y}$.
 
-Two products appear. The symbol $\odot$ is the Hadamard product, which multiplies two arrays of the
-same shape entry by entry, so $(\mathbf{a} \odot \mathbf{b})_p = a_p b_p$. Ordinary multiplication of
-two numbers is written by juxtaposition with no symbol between the factors. Table~\ref{tab:notation}
-lists every remaining symbol in the order in which the paper introduces it.
+The symbol $\odot$ is the Hadamard product, $(\mathbf{t} \odot \mathbf{t}')_p = t_p t'_p$, and ordinary
+multiplication of two numbers is written by juxtaposition. Table~\ref{tab:notation}
+lists the symbols that recur across sections, in the order in which the paper introduces them, and a
+symbol used in one place only is defined in the sentence that introduces it.
 
 \begin{table}[!tb]
 \centering
@@ -31,22 +28,19 @@ $\mathbf{x}$ & Clean reference B scan \\
 $f_\theta$ & Frozen denoising backbone with parameters $\theta$ \\
 $\mathbf{b}$ & Backbone output, $\mathbf{b} = f_\theta(\mathbf{y})$ \\
 $\phi$ & Trainable parameters of the wrapper \\
-$\mathbf{z}$ & Backbone feature map read by the confidence head \\
-$\mathbf{c}$ & Confidence map with values in $[0,1]$ \\
-$\mathbf{u}$ & Uncertainty map, $\mathbf{u} = \mathbf{1} - \mathbf{c}$ \\
+$\mathbf{c}$ & Cooperation map with values in $[0,1]$ \\
+$\mathbf{u}$ & Demand map, $\mathbf{u} = \mathbf{1} - \mathbf{c}$ \\
 $s_i$ & Score of clinical property $i$, a number in $[0,1]$ \\
 $\mathbf{m}_i$ & Failure map of clinical property $i$, values in $[0,1]$ \\
 $\tau_i$ & Decision threshold for property $i$ \\
-$f_i$ & Soft failure signal derived from $s_i$ and $\tau_i$ \\
 $\boldsymbol{\Delta}$ & Raw multiplicative gain proposed by the gain network \\
 $\boldsymbol{\lambda}$ & Per pixel strength map with values in $[0,1]$ \\
 $\mathbf{a}$ & Allocation map produced by the rule layer \\
 $\boldsymbol{\alpha}$ & Gain after allocation, strength and clamping \\
-$\mathbf{g}$ & Intensity gate that suppresses change in the background \\
+$\mathbf{g}$ & Background gate that suppresses change in the background \\
+$\mathbf{v}$ & Gated multiplicative change added to the backbone output \\
 $\boldsymbol{\delta}_{\mathrm{e}}$ & Additive edge correction \\
 $\mathbf{q}$ & Candidate image before the safety decision \\
-$n$ & Number of satisfied safety constraints, an integer in $\{0,1,2,3\}$ \\
-$w$ & Blend weight chosen from $n$ \\
 $\hat{\mathbf{x}}$ & Final output of the wrapper \\
 $\mathcal{T},\mathcal{B}$ & Sets of tissue pixels and background pixels \\
 $\mu_\mathcal{T},\mu_\mathcal{B}$ & Mean value over tissue and over background \\
@@ -55,45 +49,38 @@ $\sigma_\mathcal{B}$ & Standard deviation over background \\
 \end{tabular}
 \end{table}
 
+
+
+
 \subsection{The optimisation problem}
+\label{sec:optimisation}
 The denoiser is given and is not changed. The task is to produce an image that beats
 $\mathbf{b} = f_\theta(\mathbf{y})$ on named clinical measures, stays close to it everywhere, and can
-explain every change it makes.
-\label{sec:optimisation}
-We now state the problem in the form that the training procedure actually solves. This makes precise
-what is being optimised, over what, and subject to what.
-
-\textbf{Decision variables.} The only free quantities are the wrapper parameters $\phi$. These are the
-confidence head, the gain network, the edge network, the strength predictor and the rule layer. The
-backbone parameters $\theta$ are held fixed throughout.
-
-\textbf{Objective.} Let $\mathcal{D}$ be a set of paired scans. Let $\hat{\mathbf{x}}(\phi)$ be the
-output of the wrapper. We minimise the expected value of a weighted sum of five terms,
+explain every change it makes. The only free quantities are the wrapper parameters $\phi$, namely the
+cooperation head, the gain network, the edge network, the strength predictor and the rule layer, while
+the backbone parameters $\theta$ are held fixed throughout. Let $\mathcal{D}$ be a set of paired scans
+and $\hat{\mathbf{x}}(\phi)$ the output of the wrapper. We minimise the expected value of a weighted
+sum of five terms with fixed weights $w_c$, $w_p$, $w_o$ and $w_s$,
 \begin{equation}
+\begin{split}
 \min_{\phi}\;\; \mathbb{E}_{(\mathbf{y},\mathbf{x}) \sim \mathcal{D}}
-\Big[\, \mathcal{L}_{\mathrm{fid}} + w_c \mathcal{L}_{\mathrm{clin}}
-      + w_p \mathcal{L}_{\mathrm{pred}} + w_o \mathcal{L}_{\mathrm{coop}}
-      + w_s \mathcal{L}_{\mathrm{edge}} \,\Big],
+\Big[\, &\mathcal{L}_{\mathrm{fid}} + w_c \mathcal{L}_{\mathrm{clin}} \\
+      &+ w_p \mathcal{L}_{\mathrm{pred}} + w_o \mathcal{L}_{\mathrm{coop}}
+       + w_s \mathcal{L}_{\mathrm{edge}} \,\Big],
+\end{split}
 \label{eq:objective}
 \end{equation}
 where $\mathcal{L}_{\mathrm{fid}}$ keeps the output near the clean reference,
 $\mathcal{L}_{\mathrm{clin}}$ rewards improvement of the clinical measures over the backbone,
 $\mathcal{L}_{\mathrm{pred}}$ calibrates the property scores against their thresholds,
-$\mathcal{L}_{\mathrm{coop}}$ ties the amount of correction to the estimated uncertainty, and
+$\mathcal{L}_{\mathrm{coop}}$ ties the amount of correction to the estimated correction demand, and
 $\mathcal{L}_{\mathrm{edge}}$ supervises the additive edge branch. Section~\ref{sec:training} gives
-each term in full and lists the weights.
-
-\textbf{Constraints.} Three requirements must hold for the output on every image. They are stated
-formally in Section~\ref{sec:safety} and summarised here. The aggregate clinical quality must not
-fall by more than a fixed tolerance. No single clinical property may fall by more than a fixed
-tolerance while another rises. The relative change from the backbone output must stay below a fixed
-bound.
-
-\textbf{How the problem is solved.} The objective is differentiable in $\phi$, including the rule
-layer, because every logical connective is replaced by a smooth piecewise linear surrogate. We
-therefore solve the problem by mini batch stochastic gradient descent with the AdamW
-optimiser~\cite{loshchilov2019decoupled}. The three constraints are handled in two ways. During
-training they enter the objective as penalties, so the optimiser is pushed toward feasible
-solutions. At test time they are evaluated exactly on each image, and the number of satisfied
-constraints decides how much of the proposed change is applied. That second mechanism is what makes
-the constraints binding rather than advisory, and it is described in Section~\ref{sec:safety}.
+each term in full. Three constraints must hold on every image, stated formally in
+Section~\ref{sec:safety}. The aggregate clinical quality must not fall by more than a fixed tolerance,
+no single property may fall by more than a fixed tolerance while another rises, and the relative
+change from the backbone output must stay below a fixed bound. The objective is differentiable in
+$\phi$, including the rule layer, because every logical connective is replaced by a smooth piecewise
+linear surrogate, so it is solved by mini batch stochastic gradient descent with the AdamW
+optimiser~\cite{loshchilov2019decoupled}. During training the constraints enter the objective as
+penalties. At test time they are evaluated exactly on each image and the number satisfied decides how
+much of the proposed change is applied, which is what makes them binding rather than advisory.

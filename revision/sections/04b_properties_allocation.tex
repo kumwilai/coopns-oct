@@ -1,0 +1,62 @@
+\section{Clinical Properties and Fuzzy Allocation}
+\label{sec:properties_allocation}
+
+\subsection{Stage three, the six clinical properties}
+\label{sec:predicates}
+The six properties are the interface between clinical language and the arithmetic of the method. Each
+names a way a denoised OCT image is known to fail and each is written as a formula so it can be
+recomputed by anyone. Table~\ref{tab:predicates} gives, for every property, the reason it exists,
+where its map $\mathbf{m}_i \in [0,1]^{H \times W}$ is large, and the threshold $\tau_i$ that separates
+satisfied from unsatisfied. Each score $s_i \in [0,1]$ is a weighted sum of named subterms, given in
+closed form in the supplementary file. A larger score means the property is better satisfied and a
+larger map value means stronger local evidence that it is not. None of these quantities needs a clean
+reference. They are computed from the noisy input and the backbone output only, so they remain
+available at test time on a scanner the method has never seen, and the supplementary file shows the
+six maps for one image.
+
+\subsection{Stage four, the rule layer}
+\label{sec:negotiator}
+The rule layer decides where the gain proposal should act through five named rules, each casting a
+signed vote.
+
+Each property score is first turned into a soft failure signal by comparing it with its threshold,
+\begin{equation}
+f_i = \sigma\big(\kappa (\tau_i - s_i)\big), \qquad \kappa = 10 ,
+\label{eq:soft_failure}
+\end{equation}
+so $f_i$ is near one when property $i$ is failing and near zero when it is satisfied. The same soft comparison is used to test the cooperation
+map and the strength of a proposal against their own thresholds. Each corrector produces that
+strength as a per pixel map from the backbone output and the failure maps it serves, large where its
+property is far below threshold, so it says where that corrector believes it can help. Before the rules fire, that strength is multiplied by one half plus the
+demand map, so the same proposal looks stronger to the rules at a pixel where the head reports low
+cooperation. Conjunction uses the Lukasiewicz
+form $\mathrm{AND}(a,b) = \max(0, a + b - 1)$, which is piecewise linear and has a bounded slope,
+which is what makes the bound in Section~\ref{sec:stability} tight.
+
+The five rules are the following. Rule one fires when the cooperation map is high and the proposal is
+weak, and it votes against changing the image. Rule two fires when the map is low and the
+proposal is strong, and it votes for changing it. Rule three fires when a relevant property is
+failing, and it votes for changing it. Rule four fires when the map and the proposal strength are both
+middling, and it votes weakly for changing it. Rule five fires when several correctors want the same
+pixel, and it votes against changing it. Write $r_1$ to $r_5$ for the resulting truth values.
+
+The allocation at each pixel is the bounded weighted vote
+\begin{equation}
+\begin{aligned}
+a ={}& \underbrace{B_{\min} + (B_{\max} - B_{\min})\,\sigma(\beta)}_{\text{base, no rule firing}} \\
+    &- C_1 w_1 r_1 + C_2 w_2 r_2 + C_3 w_3 r_3 + C_4 w_4 r_4 - C_5 w_5 r_5 ,
+\end{aligned}
+\label{eq:allocation}
+\end{equation}
+where $\beta$ is a learnable base logit, $w_k = \sigma(\theta_k) \in (0,1)$ are learnable rule weights
+and the budgets are $B_{\min} = 0.25$, $B_{\max} = 0.50$, $C_1 = 0.15$, $C_2 = 0.25$, $C_3 = 0.15$,
+$C_4 = 0.10$ and $C_5 = 0.10$.
+
+Those budgets are not arbitrary. They satisfy $B_{\max} + C_2 + C_3 + C_4 = 1$ and
+$B_{\min} - C_1 - C_5 = 0$, so since every truth value lies in $[0,1]$ and every weight in $(0,1)$,
+the value of Equation~\eqref{eq:allocation} lies in $[0,1]$ for every input and every parameter value
+and no clipping is ever needed. In the submitted version of this work the identity did not hold, the
+allocation saturated at one end of its clamp on every pixel of every image, and the rule weights
+received no gradient, so the rule layer was inert while appearing to work, and a bound enforced by
+clipping would also make the stability result of Section~\ref{sec:stability} vacuous.
+\label{sec:allocation_defect}

@@ -1,0 +1,68 @@
+\section{Leave one out procedure for the clinical properties}
+\label{sec:supp_studies}
+
+The results section of the main paper reports the contribution of each clinical property. The procedure is
+a leave one out ablation. At test time, one property at a time is switched off by setting its score
+to the satisfied value and its failure map to zero, and the whole test set is re evaluated with that
+property held out. This is the same kind of one at a time removal used for the rule constants and for
+the components of the method, applied here to the six clinical properties instead.
+
+\section{Full per cell spreads}
+\label{sec:supp_full_spreads}
+
+The results table of the main paper prints each clinical cell as a mean, with the robustness
+test folded into the choice of bold, and drops the per seed spread to keep the table one page.
+Table~\ref{tab:supp_full_spreads} here restores that spread for every cell, four backbones by three
+blocks by six measures, each as mean plus or minus one standard deviation across three seeds,
+generated directly from the same result files.
+
+\begin{table*}[!tb]
+\centering
+\caption{Every clinical cell of the merged results table, with its full mean plus or minus one seed
+standard deviation restored. Each cell here is the same one that table shows as a mean
+alone, where bold marks a mean that exceeds its spread.}
+\label{tab:supp_full_spreads}
+\setlength{\tabcolsep}{4pt}
+\footnotesize
+\input{../sections/generated/tab_full_spreads}
+\end{table*}
+
+\section{The cooperation map, in full}
+\label{sec:supp_cooperation}
+
+The main paper reports that the map produced by the head reading the backbone features does not
+predict the error of that backbone. This section gives the rest of the analysis.
+
+Two measures were computed over the 173 test images. The rank correlation between the map and the
+absolute error of the backbone output with respect to the clean reference is $-0.258$. The
+sparsification error, defined as the area between the curve obtained by removing the pixels the map
+calls least reliable and the curve obtained by removing the pixels that are actually worst, is
+$0.775$. A perfect ordering scores zero on the second measure and one on the first.
+
+The reason is structural rather than a matter of tuning. The head is trained only through the
+cooperation term of the objective, which rewards agreement between the map and the estimated
+correction potential. That potential is itself a learned quantity. A map supervised only against
+another learned map has no path by which the error of the backbone could reach it, so there is no
+reason for it to acquire the meaning the original name implied.
+
+Repairing this would require a term that regresses the map on the measured backbone error. Such a
+term would compete with the cooperation term rather than complement it, because one pulls the map
+toward the error of the backbone and the other pulls it toward where the correctors want to act. The
+relative weight of the two would have to be selected, and every result in this paper would have to be
+recomputed. We therefore report the measurement and leave the repair as the clearest piece of future
+work this revision has identified.
+
+\begin{figure*}[!tb]
+\centering
+\includegraphics[width=0.86\textwidth]{figures/fig_studies.pdf}
+\caption{The three studies of the main paper drawn together. Left, removing one clinical property at
+a time, in points of the measure. Only $P_5$, $P_1$ and $P_2$ move any measure by more than a quarter
+point, so $P_3$, $P_4$ and $P_6$ are close to inert here. Middle, the fourteen variations of the rule
+constants, none of which turns a clinical measure negative, with the base allocation level the only
+visible effect. Right, the safety analysis, each of the invented edge rate, weak structure retention
+and the two boundary shifts shown as the ratio of corrected to backbone value, one meaning unchanged,
+the arrow giving the direction and the word whether it is better or worse for that measure. Three
+ratios sit on the worse side, though the retinal pigment epithelium shift moves one percent and is
+not significant. All panels are the selected NAFNet checkpoint on the same \NImages{} test images.}
+\label{fig:supp_studies}
+\end{figure*}

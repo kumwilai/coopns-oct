@@ -2,19 +2,11 @@
 \label{sec:conclusion}
 
 We presented a post correction layer for OCT denoising that is attached to a frozen denoiser rather
-than replacing it. The method states six clinical properties in closed form, turns them into a per
-pixel decision through five named rules, and limits how far the resulting change may move the image.
-Each of those three parts is written down rather than learned in the dark, so a change to an image
-can be traced back to the property that motivated it, the place where that property failed, and the
-constraint that allowed the change to stand.
-
-The decision layer is stable in an exact sense. Its response to a change in the evidence is bounded
-by a constant that can be computed from the trained weights, and that constant is attained rather
-than conservative. Under three stated conditions the correction cannot reduce contrast to noise
-ratio, and we measure how often those conditions hold rather than assuming them.
-
-Across four backbone families and three datasets from three sources the same correction policy
-improves the clinical measures at a small and bounded cost in fidelity, with only the confidence head
-refitted per backbone. The remaining work is clinical rather than technical. The measures used here
-are proxies, and the natural next step is a reader study that asks whether the changes the method
-makes are the changes a grader would want.
+than replacing it. It states six clinical properties in closed form, turns them into a per pixel
+decision through five named rules, and limits how far the resulting change may move the image, so a
+change can be traced back to the property that motivated it and the constraint that allowed it to
+stand. Across four backbone families the same rules with the same fixed weights raise the clinical
+measures at a fidelity cost between 0.17 and 0.98 dB, and no measure falls on three of the four. The
+exception is boundary sharpness on DnCNN, which falls by 1.4 percent from a value that already
+exceeded the clean reference, showing where the method has no room to act. The measures are proxies, and the next step is a reader study asking
+whether the changes the method makes are the changes a grader would want.

@@ -1,49 +1,41 @@
 # OJCS-2026-04-0386 revision tracker
 
-Deadline 15 Sep 2026. Today 09 Sep 2026.
-Deliverables: revised manuscript (LaTeX) and response to reviewers (docx).
+Deadline 15 Sep 2026. Last audited 10 Sep 2026 evening.
+Main paper 12 pages. Supplement 9 pages. Both compile with no undefined reference.
+Response letter has no unresolved bracket and every section, table and figure reference verified.
 
-Author style rules for the whole manuscript.
-No em dash. No colon. No semicolon. Plain words. Top down explanation.
-Every variable and equation defined before first use. Figures redrawn.
+| ID | Concern | Where it is answered | Status |
+|---|---|---|---|
+| R1-1 | cooperation map has no loss enforcing an uncertainty meaning | IX H measures it, rank correlation minus 0.258, renamed, calibrated removed | CLOSED |
+| R1-2 | no predicate level ablation | IX D, all six removals on the reported checkpoint | CLOSED |
+| R1-3 | risk of artificial sharpening and hallucinated boundaries | IX J, four measures, two reported as costs, named in Limitations | CLOSED |
+| R1-4 | fuzzy rule weights look heuristic | IX E, fourteen variations, none turns a measure negative | CLOSED |
+| R1-5 | missing expert network and neuro symbolic literature | II C, 34 references all resolved | CLOSED |
+| R1-6 | typos and grammar | style script clean, mechanical checks clean | CLOSED |
+| R2-1 | LOO protocol contradiction | Table 3 carries both protocols, S7 documents the adapted one | CLOSED |
+| R2-2 | explain the PSNR drop, SwinIR minus 1.69 dB | X A, cache defect fixed, SwinIR now minus 0.17 dB | CLOSED |
+| R3-1 | highlight the new ideas | I B | CLOSED |
+| R3-2 | motivation not clear | I A | CLOSED |
+| R3-3 | cite three specific modeling papers | II C, all three cited and discussed | CLOSED |
+| R3-4 | define stability | VII A, Definition 1 before the theorem | CLOSED |
+| R3-5 | state the optimization problem and how it is solved | III B | CLOSED |
+| R3-6 | embedded notation is hard to read | Table 1 defines every symbol before first use | CLOSED |
+| R3-7 | define the operator in equation 6 | III A, Hadamard product defined in words and symbols | CLOSED |
+| R3-8 | drop the multiplication dot | removed throughout, none in source | CLOSED |
+| R3-9 | justify the six predicates and give sensitivity | Table 2 and IX D and IX E | CLOSED |
+| R3-10 | training algorithm unclear | VIII, five parts, Algorithm 1 of the supplement | CLOSED |
+| R3-11 | safety validation on lesions, fluid, thin layers | IX J, expert reading stated as a limitation | CLOSED |
+| R3-12 | link theory to the results section | IX I, per constraint failure counts added | CLOSED |
+| R3-13 | public code and data link without password | answered with a reason, double blind, archive on acceptance | ANSWERED BY DECISION |
+| R3-14 | follows from 13 | release documents the five defects and the checks | CLOSED |
+| R3-15 | do not call them experiments | zero occurrences in the source | CLOSED |
+| R3-16 | fair comparison at similar complexity | Table 3 lower blocks, text narrowed to match the code | CLOSED |
+| R3-17 | how were the fuzzy parameters computed | V B and IX E and the constants table of the supplement | CLOSED |
+| R3-18 | transferability needs cost and variability numbers | IX K, wall clock and seed spread per backbone | CLOSED |
+| R3-19 | verify the assumed constants and bounds hold | IX I, honest majority statement, failures reported | CLOSED |
 
-## Status legend
-TODO, RUNNING, DONE, BLOCKED
+## Not a reviewer concern, still open
 
-| ID | Reviewer concern | Closure plan | Needs new run | Status |
-|----|------------------|--------------|---------------|--------|
-| R1-1 | Confidence head has no loss enforcing an uncertainty meaning | Measure whether the map predicts backbone error. Report rank correlation, sparsification error, reliability curve. Rename honestly if it fails. | yes E4 | TODO |
-| R1-2 | No predicate level ablation | Leave one predicate out for P1 to P6 at inference on PKU37 | yes E2 | TODO |
-| R1-3 | Risk of artificial sharpening and hallucinated boundaries | New safety section. False edge rate against clean reference, weak structure retention, worst case per image table | yes E6 | TODO |
-| R1-4 | Fuzzy rule weights look heuristic | Sensitivity sweep over rule weights and alternative t norms. State how each constant was chosen | yes E3 | TODO |
-| R1-5 | Missing deep expert network and neuro symbolic literature | Expand related work with recent expert network and neuro symbolic image processing papers | no | TODO |
-| R1-6 | Typos and grammar | Full rewrite pass | no | TODO |
-| R2-1 | LOO protocol contradiction, what is trained per fold | Code shows per fold few shot adaptation from the PKU37 corrector with EWC. Report protocol exactly and add a true zero shot transfer table | yes E1 | RUNNING |
-| R2-2 | Explain the PSNR drop, SwinIR minus 1.69 dB | New subsection on the fidelity and clinical trade off with a per backbone explanation | no | TODO |
-| R3-1 | Highlight the new ideas | Rewrite introduction with an explicit novelty list | no | TODO |
-| R3-2 | Motivation not clear | Rewrite motivation top down from the clinical problem | no | TODO |
-| R3-3 | Cite three specific modeling papers | Add the three references and discuss them where they are relevant | no | TODO |
-| R3-4 | Define stability | Give a formal definition of the stability notion used before the theorem | no | TODO |
-| R3-5 | State the optimization problem and how it is solved | New problem statement section with the objective, the constraints, the variables and the solver | no | TODO |
-| R3-6 | Embedded notation is hard to read | Notation table first, one symbol per concept, no nested subscripts | no | TODO |
-| R3-7 | Define the operator in equation 6 | Define the Hadamard product in the notation table before first use | no | TODO |
-| R3-8 | Drop the multiplication dot | Remove explicit dots for scalar products | no | TODO |
-| R3-9 | Justify the six predicates and give sensitivity | Clinical and mathematical justification per predicate plus the E2 sensitivity study | yes E2 | TODO |
-| R3-10 | Training algorithm unclear | Full training algorithm box, targets, losses, initialization, parameter selection, and a clear statement about paired data use | no | TODO |
-| R3-11 | Safety validation on lesions, fluid, thin layers, expert reading | Quantitative safety study on dark fluid like regions and thin layers. State plainly that no expert reading was performed | yes E6 | TODO |
-| R3-12 | Link theory to the results section | Add a subsection that tests each theoretical claim numerically | yes E5 | TODO |
-| R3-13 | Public code and data link without password | Prepare a public release bundle and put the link in the paper | no | TODO |
-| R3-14 | Follows from 13 | Same as R3-13 | no | TODO |
-| R3-15 | Do not call them experiments | Global rename to tests and results | no | TODO |
-| R3-16 | Fair comparison at similar complexity | Train a plain corrector with the same parameter budget and the same loss, plus classical post processing baselines | yes E7 | TODO |
-| R3-17 | How were the fuzzy parameters computed | Document every constant, its source, and its sensitivity | yes E3 | TODO |
-| R3-18 | Transferability needs cost and variability numbers | Report per backbone head size, adaptation data, epochs, wall clock, and fold variability | yes E8 | TODO |
-| R3-19 | Verify the assumed constants and bounds hold | Empirical check of the Lipschitz constant, the margins and the background leakage | yes E5 | TODO |
-
-## Internal problems found that must be fixed regardless of the reviewers
-
-| ID | Problem | Evidence | Fix |
-|----|---------|----------|-----|
-| X1 | Paper says the corrector is trained only on PKU37 and transferred. The code fine tunes it on the n minus 1 Duke images of every fold with EWC | run_duke17_loo.py lines 74 to 212 | Report the real protocol and add a zero shot table |
-| X2 | Paper Section IV describes a negotiator that is not the one used | SymbolicNegotiator in the cooperative module implements five different rules | Rewrite the section around the implemented rules and reprove stability for them |
-| X3 | The SwinIR PKU37 row has no result file on disk | Only four PKU37 result files match the table, SwinIR is not one of them | Recompute the SwinIR row |
+- Received date 14 April 2026 is inferred from the manuscript number and needs the journal acknowledgement email to confirm.
+- Whether the selection criterion is blind to the safety measures is being measured on the validation split for the selected gate and the runner up gate. One Limitations sentence will report the outcome either way.
+- The seeded zeroshot result files carry no checkpoint field. Provenance was established from the sweep log ordering and from the fact that they differ from the pre sweep run, but it is not recorded in the files.

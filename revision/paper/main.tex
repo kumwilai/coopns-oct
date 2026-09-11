@@ -12,6 +12,10 @@
 \usepackage{algpseudocode}
 \usepackage{hyperref}
 \hypersetup{hidelinks=true}
+\setlength{\textfloatsep}{1.0\baselineskip plus 0.2\baselineskip minus 0.3\baselineskip}
+\setlength{\dbltextfloatsep}{1.0\baselineskip plus 0.2\baselineskip minus 0.3\baselineskip}
+\setlength{\floatsep}{0.8\baselineskip plus 0.2\baselineskip minus 0.2\baselineskip}
+\setlength{\dblfloatsep}{0.8\baselineskip plus 0.2\baselineskip minus 0.2\baselineskip}
 \AtBeginDocument{\definecolor{tmlcncolor}{cmyk}{0.93,0.59,0.15,0.02}\definecolor{NavyBlue}{RGB}{0,86,125}}
 
 \makeatletter
@@ -31,7 +35,9 @@
 \input{../sections/generated/theory_numbers}
 
 \begin{document}
-\receiveddate{}
+% วันที่ได้รับอนุมานจากหมายเลขต้นฉบับ OJCS-2026-04-0386 ซึ่งระบุเดือนเมษายน 2026
+% และจากวันที่ของไฟล์ที่ส่ง ต้องยืนยันกับอีเมลตอบรับจากวารสารก่อนส่ง
+\receiveddate{14 April 2026}
 \reviseddate{}
 \accepteddate{}
 \publisheddate{}
@@ -42,11 +48,9 @@
 \author{Anonymous Author(s)\authorrefmark{1}}
 \affil{\authorrefmark{1} Anonymous Affiliation}
 \corresp{Correspondence withheld for double blind review.}
-\authornote{This revised manuscript is prepared for double blind review. Author names, affiliations,
-funding statements and biographies are withheld and will be supplied on acceptance.}
 
 \begin{abstract}
-ABSTRACT PLACEHOLDER. Denoisers for optical coherence tomography are trained to reduce a pixel
+Denoisers for optical coherence tomography are trained to reduce a pixel
 error, so they can raise fidelity while lowering the properties a clinician reads, namely layer
 contrast, boundary definition and the visibility of weak structures. This paper treats the repair of
 those properties as a separate problem. A frozen denoiser is kept unchanged and a small policy is
@@ -55,10 +59,14 @@ a per pixel decision through five explicit rules, and limits how far the image m
 that the decision layer responds to a change in evidence by at most an exact constant below
 \num{0.75}, and we measure the realised response against that constant on real images. We give three
 conditions under which the correction cannot lower contrast to noise ratio, and report how often they
-hold. The policy adds \num{168630} trainable parameters to a backbone of about seven million. Across
-four backbone families and three datasets from three sources it improves the clinical measures at a
-small and bounded cost in fidelity, and it transfers to two other scanners with no adaptation of any
-kind. RESULTS PLACEHOLDER.
+hold. The policy adds \num{168630} shared trainable parameters plus a small backbone specific head to a
+backbone of about seven million. On the 173 held out test
+images, with the same rules and the same fixed weights for every backbone, the correction improves
+21 of the 24 backbone and measure pairs by more than their spread across three seeds, leaves two
+within that spread, and lowers one, boundary sharpness on DnCNN by 1.4 percent from a starting value
+already above the clean reference, at a fidelity cost of 0.17 to 0.98 dB. No clinical measure falls on three of the four backbones. On two other scanners with no adaptation
+of any kind NAFNet and SwinIR improve every measure, while DnCNN and KBNet each lose the same two
+measures on both scanners, 40 of 48 pairs in all.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -72,6 +80,8 @@ image restoration, modular post-correction, clinical quality assessment.
 \input{../sections/02_related}
 \input{../sections/03_problem}
 \input{../sections/04_method}
+\input{../sections/04b_properties_allocation}
+\input{../sections/04c_bounded_safety}
 \input{../sections/05_stability}
 \input{../sections/06_training}
 \input{../sections/07_results}

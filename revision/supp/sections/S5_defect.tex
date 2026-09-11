@@ -37,6 +37,11 @@ The repair also tightens the theory. Because the allocation is affine in the rul
 signed coefficients and no clipping intervenes, the Lipschitz constant of Theorem~1 of the main paper
 is attained rather than merely an upper bound.
 
+This is also what the trained model shows and not only a property of the formula. Measured on the
+released weights, the allocation now spans $\AllocMin$ to $\AllocMax$ with mean $\AllocMean$ and
+standard deviation $\AllocStd$, and $\AllocClamp$ percent of pixels sit at either end of the clamp,
+against the whole image before the repair, direct confirmation that no pixel saturates in practice.
+
 \subsection{Reproducing the earlier behaviour}
 Setting the environment variable \texttt{LEGACY\_SATURATING\_ALLOCATION} to $1$ restores the original
 computation exactly. We verified this against a copy of the pre revision source on twenty random

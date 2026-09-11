@@ -1,10 +1,11 @@
 \section{Visual comparison for all four backbones}
 \label{sec:supp_subjective}
 
-Fig.~\ref{fig:supp_subjective} repeats the visual comparison of the main paper for every backbone
-rather than the two extremes. The layout is the same. Every cell is a zoomed region chosen
-automatically as the window with the strongest layer structure in the clean reference, because the
-differences that matter sit at layer boundaries and are invisible at full scale. The last column
+Fig.~\ref{fig:supp_subjective} repeats the visual comparison of the main paper for all four
+backbones at full resolution. The layout is the same. Every cell is a zoomed region chosen
+automatically as the window inside tissue where the wrapper changed the NAFNet output most, because
+a change too small to see at full scale is the normal case and the reader should be shown the
+largest one rather than an average one. The last column
 shows the change the wrapper applied, on a scale symmetric about zero, so the reader can see where
 the correction acted rather than inferring it.
 
@@ -12,7 +13,8 @@ the correction acted rather than inferring it.
 \centering
 \includegraphics[width=\textwidth]{figures/fig_subjective_all.pdf}
 \caption{Visual comparison on PKU37 for all four backbones. Columns are the noisy input, the backbone
-output, the corrected output, the clean reference, and the change applied. Blue means the wrapper
-lowered the value and orange means it raised it.}
+output, the corrected output, the clean reference, and the change applied. Orange means the wrapper
+lowered the value and blue means it raised it. The rightmost panel is the difference profile across
+depth for all four backbones over the same crop.}
 \label{fig:supp_subjective}
 \end{figure*}

@@ -43,7 +43,7 @@ $\operatorname{Var}_7(e(x))/(\max \operatorname{Var}_7(e(x))+\varepsilon)$ &
 \end{table*}
 
 {\footnotesize
-\noindent\textbf{Expanded subterms in Table~\ref{tab:predicates}.}
+\noindent\textbf{Expanded subterms in the property table of the main paper.}
 \textbf{$P_1$.}
 $c_{\text{cont}}=\langle\operatorname{erode}(\operatorname{dilate}(b_e)),b_e\rangle/(\|b_e\|_1+\varepsilon)$,
 $c_{\text{efr}}=\exp(-5|r_e-0.2|)$ with
@@ -76,3 +76,13 @@ These are the implemented predicates. The maps $\mathbf{m}_i$ are the spatial qu
 \noindent The released code computes exactly these quantities. The relevant class is named
 \texttt{EnhancedGTFreePredicates} and the speckle property is computed by
 \texttt{PhysicsAccurateSpecklePredicate}.
+
+\begin{figure*}[!tb]
+\centering
+\includegraphics[width=0.98\textwidth]{figures/fig_predicate_maps.pdf}
+\caption{The six clinical properties on one backbone output. Each panel shows where that property is
+locally unsatisfied, on a shared scale, with the image level score in the corner. Edge continuity,
+local contrast and speckle conformity carry most of the evidence on this image, while the other three
+are close to satisfied everywhere.}
+\label{fig:supp_predicate_maps}
+\end{figure*}

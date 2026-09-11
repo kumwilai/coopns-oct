@@ -52,3 +52,7 @@ experiments/
 
 # The website is a separate repository.
 website/
+
+# The assembled submission bundle. It is produced by revision/make_submission.sh
+# from the sources in this repository, so it is a build product, not a source.
+revision/submission/

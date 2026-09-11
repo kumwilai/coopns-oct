@@ -1,16 +1,15 @@
 \section{Stability and Guarantees}
 \label{sec:stability}
 
-This section states what the method guarantees. We first define the notion of stability that is used,
-because the word carries several meanings, then prove that the rule layer has it, and then give the
-condition under which the correction cannot reduce contrast. Section~\ref{sec:theory_check} tests
-both results numerically on real images.
+This section defines the notion of stability that is used, proves that the rule layer has it, and
+gives the condition under which the correction cannot reduce contrast. Section~\ref{sec:theory_check}
+tests both results on real images.
 
 \subsection{What stability means here}
 \label{sec:stability_def}
 This is not stability in the sense of Lyapunov and we claim no fixed point. The quantity that must
-not behave erratically is the decision the rule layer makes, which is a function of the five rule
-truth values. Those values are exactly what shift when the backbone or the scanner changes.
+not behave erratically is the decision of the rule layer, a function of the five rule truth values,
+which are exactly what shift when the backbone or the scanner changes.
 
 \begin{definition}[Stability of the allocation]
 \label{def:stability}
@@ -25,9 +24,9 @@ parameters held fixed. The allocation is said to be stable with constant $L$ if
 \end{definition}
 
 In words, a small change in the evidence produces a proportionally small change in the decision, and
-$L$ is the worst case ratio between the two. A method without such a bound could swing from applying
-no correction to applying all of it because one property score moved slightly, which is precisely the
-behaviour a clinical user cannot audit.
+$L$ is the worst case ratio between the two. Without such a bound the layer could swing from applying
+no correction to applying all of it because one property score moved slightly, which is precisely
+the behaviour a clinical user cannot audit.
 
 \subsection{The rule layer is stable, with an exact constant}
 
@@ -43,30 +42,9 @@ exact Lipschitz constant and not merely an upper bound. Moreover $L < C_1 + C_2 
 0.75$ for every possible setting of the parameters.
 \end{theorem}
 
-\begin{proof}
-Write $s_k = -1$ for $k \in \{1,5\}$ and $s_k = +1$ otherwise, so that
-Equation~\eqref{eq:allocation} reads $a(\mathbf{r}) = b + \sum_{k} s_k C_k w_k r_k$ with $b$
-independent of $\mathbf{r}$. Subtracting two such expressions gives
-\begin{equation*}
-a(\mathbf{r}) - a(\mathbf{r}') = \sum_{k} s_k C_k w_k (r_k - r'_k).
-\end{equation*}
-Taking absolute values and applying the triangle inequality,
-\begin{equation*}
-\big| a(\mathbf{r}) - a(\mathbf{r}') \big|
-\le \sum_{k} C_k w_k \, |r_k - r'_k|
-\le \Big( \sum_{k} C_k w_k \Big) \lVert \mathbf{r} - \mathbf{r}' \rVert_\infty ,
-\end{equation*}
-which is Equation~\eqref{eq:stability_def} with $L$ as claimed. The bound is attained by taking
-$r_k - r'_k = s_k t$ for any $t$ small enough to keep both vectors in the unit cube, since then every
-term of the sum has the same sign. Because each $C_k$ is positive and each $w_k = \sigma(\theta_k)$
-lies strictly in $(0,1)$, the sum is strictly less than $\sum_k C_k = 0.75$.
-\end{proof}
-
-Two properties do the work. The allocation is affine in the rule truth values, which makes the
-constant exact rather than conservative. The budgets satisfy $B_{\max} + C_2 + C_3 + C_4 = 1$ and
-$B_{\min} - C_1 - C_5 = 0$, so no clipping is ever applied. Had a clip been active the bound would
-still hold, but the gradient would vanish wherever it was tight and the rule weights could not be
-trained at all.
+The allocation is affine in $\mathbf{r}$ with coefficients $\pm C_k w_k$, so the bound follows from
+the triangle inequality and is attained when each $r_k - r'_k$ takes the sign of its coefficient. The
+full proof is given in the supplementary file.
 
 \begin{corollary}[Behaviour under a change of backbone]
 \label{cor:transfer}
@@ -76,12 +54,12 @@ changes by at most $L\epsilon$, with $L$ from Equation~\eqref{eq:lipschitz}.
 \end{corollary}
 
 This is a statement about the routing rule alone. It says the decision layer degrades gracefully when
-the evidence shifts. It is not a claim that image quality transfers, which is an empirical question
-answered in Section~\ref{sec:results_ood}.
+the evidence shifts, not that image quality transfers, which is the empirical question of
+Section~\ref{sec:results_ood}.
 
 \subsection{When the correction cannot reduce contrast}
 Contrast to noise ratio is the measure this method targets most directly. Write
-$\mathrm{CNR}(\mathbf{v}) = (\mu_\mathcal{T}(\mathbf{v}) - \mu_\mathcal{B}(\mathbf{v})) / \sigma_\mathcal{B}(\mathbf{v})$
+$\mathrm{CNR}(\mathbf{t}) = (\mu_\mathcal{T}(\mathbf{t}) - \mu_\mathcal{B}(\mathbf{t})) / \sigma_\mathcal{B}(\mathbf{t})$
 for the separation between tissue and background divided by the variability of the background.
 
 \begin{theorem}[Contrast margin]
@@ -105,18 +83,15 @@ contrast to noise ratio.
 inequality for the denominator. It is given in full in the supplementary file.
 
 
-Three parts of the design work to make the hypotheses of Theorem~\ref{thm:cnr} hold in practice. The
-gate of Equation~\eqref{eq:gate} keeps $\eta_\mathcal{B}$ small by suppressing change in the dark
-region. The brightness branch of the gain network cannot be negative, which keeps $\eta_\mathcal{T}$
-non negative. The background smoothing lowers $\sigma_\mathcal{B}(\mathbf{q})$ rather than raising it.
-Section~\ref{sec:theory_check} measures all three quantities on every test image and reports how often
-the hypotheses actually hold.
+Three parts of the design make the hypotheses of Theorem~\ref{thm:cnr} hold in practice. The gate of
+Equation~\eqref{eq:gate} keeps $\eta_\mathcal{B}$ small by suppressing change in the dark region, the
+brightness branch of the gain network cannot be negative, which keeps $\eta_\mathcal{T}$ non negative,
+and the background smoothing lowers $\sigma_\mathcal{B}(\mathbf{q})$ rather than raising it.
+Section~\ref{sec:theory_check} measures all three on every test image and reports how often the
+hypotheses hold.
 
-\subsection{What is not claimed}
-These results are deliberately narrow. Theorem~\ref{thm:stability} bounds how much the routing
-decision can move when the evidence moves, and says nothing about whether the decision is correct.
-Theorem~\ref{thm:cnr} gives a sufficient condition for contrast not to fall, and says nothing about
-the other five measures. Neither result promises that the corrected image is closer to the clean
-reference, and in fact Section~\ref{sec:results_id} reports that peak signal to noise ratio usually
-falls slightly. The guarantees are about the behaviour of the policy, not about the quality of the
+Both results are deliberately narrow. Theorem~\ref{thm:stability} bounds how far the routing decision
+can move, not whether it is correct, Theorem~\ref{thm:cnr} concerns contrast alone and says nothing
+about the other five measures, and neither promises that the output is closer to the clean reference,
+which Section~\ref{sec:results_id} shows it usually is not. The guarantees concern the policy, not the
 denoiser underneath it.

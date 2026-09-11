@@ -1,6 +1,34 @@
-\section{Proof of the contrast margin result}
+\section{Proofs}
 \label{sec:supp_proof}
 
+\subsection{Proof of the allocation stability result}
+\label{sec:supp_proof_stability}
+This is the proof of Theorem~1 of the main paper (Allocation stability), repeated here in full.
+Write $s_k = -1$ for $k \in \{1,5\}$ and $s_k = +1$ otherwise, so that the allocation equation of the
+main paper reads $a(\mathbf{r}) = b + \sum_{k} s_k C_k w_k r_k$ with $b$ independent of $\mathbf{r}$,
+where $\mathbf{r} = (r_1, \ldots, r_5) \in [0,1]^5$ is the vector of rule truth values at one pixel,
+$C_k$ are the fixed budgets, and $w_k = \sigma(\theta_k)$ are the learned rule weights.
+
+\begin{proof}
+Subtracting two such expressions gives
+\begin{equation*}
+a(\mathbf{r}) - a(\mathbf{r}') = \sum_{k} s_k C_k w_k (r_k - r'_k).
+\end{equation*}
+Taking absolute values and applying the triangle inequality,
+\begin{equation*}
+\big| a(\mathbf{r}) - a(\mathbf{r}') \big|
+\le \sum_{k} C_k w_k \, |r_k - r'_k|
+\le \Big( \sum_{k} C_k w_k \Big) \lVert \mathbf{r} - \mathbf{r}' \rVert_\infty ,
+\end{equation*}
+which is the stability bound of Definition~1 of the main paper with $L = \sum_k C_k w_k$ as claimed.
+The bound is attained by taking $r_k - r'_k = s_k t$ for any $t$ small enough to keep both vectors in
+the unit cube, since then every term of the sum has the same sign. Because each $C_k$ is positive and
+each $w_k = \sigma(\theta_k)$ lies strictly in $(0,1)$, the sum is strictly less than
+$\sum_k C_k = 0.75$.
+\end{proof}
+
+\subsection{Proof of the contrast margin result}
+\label{sec:supp_proof_cnr}
 This is the proof of Theorem~2 of the main paper, repeated here in full. Write
 $\mu_\mathcal{T}$ and $\mu_\mathcal{B}$ for the mean over tissue and over background, and
 $\sigma_\mathcal{B}$ for the standard deviation over background. Let $\mathbf{b}$ be the backbone
@@ -48,5 +76,5 @@ claim. Since $w > 0$ in every branch of the blending rule, the bound is at least
 contrast whenever $\eta_\mathcal{T} > \eta_\mathcal{B}$.
 \end{proof}
 
-\noindent Section~VII of the main paper reports how often each of the three hypotheses holds on the
+\noindent The results section of the main paper reports how often each of the three hypotheses holds on the
 test set, so the reader can see when the guarantee is active rather than assuming it always is.

@@ -116,6 +116,9 @@ def main():
     ap.add_argument("--test_jsonl", default="pku37_oct_dataset/pku37_real_test.jsonl")
     ap.add_argument("--output_json", required=True)
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--bg_rule", default="intensity",
+                    help="background gate rule, must match the one the checkpoint "
+                         "was selected under, one of intensity, otsu, haloR")
     args = ap.parse_args()
     torch.set_num_threads(2)
 
@@ -128,7 +131,9 @@ def main():
     ms = model.state_dict()
     model.load_state_dict({k: v for k, v in sd.items()
                            if k in ms and v.shape == ms[k].shape}, strict=False)
+    model.corrector.bg_rule = args.bg_rule
     model.eval()
+    print(f"background gate  {args.bg_rule}")
     neg = model.corrector.negotiator
     L_theory = float(neg.lipschitz_constant(include_rule5=False))
 
@@ -194,9 +199,12 @@ def main():
         v = info.get("verification", {})
         r["n_pass"] = int(v.get("guarantees_passed", -1))
         r["blend_weight"] = float(v.get("blend_weight", float("nan")))
-        for g in (v.get("guarantees") or []):
-            if isinstance(g, (list, tuple)) and len(g) == 2:
-                r["pass_" + g[0]] = bool(g[1].get("passed", False))
+        # The verifier returns a dict of named guarantees. Iterating the dict
+        # itself yields only the keys, so the per constraint flags were never
+        # recorded. Iterate the items.
+        for name, g in (v.get("guarantees") or {}).items():
+            if isinstance(g, dict):
+                r["pass_" + name] = bool(g.get("passed", False))
 
         # safety measurements against the clean reference
         e_b, e_q, e_c = edges(b), edges(out), edges(clean)
@@ -241,6 +249,7 @@ def main():
                       "min": float(np.min(vals)), "max": float(np.max(vals))}
 
     out = {"backbone": args.backbone_name, "checkpoint": args.checkpoint,
+           "bg_rule": args.bg_rule,
            "n_images": len(rows), "lipschitz_constant_theory": L_theory,
            "per_image": rows, "summary": agg}
     if unc_all:

@@ -6,6 +6,15 @@ Algorithm~\ref{alg:supp_training} states the procedure. The backbone is frozen t
 receives no gradient. The first stage activates only the clinical terms, so the correctors learn a
 useful direction. The second stage activates the fidelity term, so they learn how far to go.
 
+\subsection{Schedule and optimiser settings}
+We use AdamW with decoupled weight decay of $10^{-4}$, random crops of $96 \times 96$ pixels, and a
+batch of sixteen crops, reduced to eight for DnCNN and SwinIR, the two with the largest memory footprint.
+Three learning rates are used, a lower one for the corrector networks and higher ones for the
+strength predictor and the rule layer, because the last two have far fewer parameters and therefore
+need larger steps to move at all. The switch from the clinical only stage to the stage that also
+includes fidelity happens at the midpoint of the schedule, matching the epoch check in
+Algorithm~\ref{alg:supp_training}.
+
 \begin{algorithm}[t]
 \caption{Training the wrapper.}
 \label{alg:supp_training}
@@ -15,7 +24,7 @@ useful direction. The second stage activates the fidelity term, so they learn ho
 \For{$e = 1$ to $E$}
   \For{each batch of crops}
     \State compute the backbone output, with no gradient to $\theta$
-    \State compute the confidence map from the backbone features
+    \State compute the cooperation map from the backbone features
     \State compute the six property scores and failure maps
     \State compute the gain, edge and strength proposals
     \State compute the five rule truth values
@@ -28,9 +37,56 @@ useful direction. The second stage activates the fidelity term, so they learn ho
 \end{algorithmic}
 \end{algorithm}
 
+\subsection{Constants that carry a design decision}
+\label{sec:supp_constants_design}
+Table~\ref{tab:constants} lists the constants that carry a design decision, where each acts, and how
+it was chosen. A constant marked \emph{measured} was set from a property of the data. A constant
+marked \emph{selected} was chosen on the validation split and never on the test split. A constant
+marked \emph{fixed} is a structural choice that was not tuned.
+
+The networks use the default initialisation of their layers. Two exceptions are deliberate. The bias
+of the brightness head starts at a small positive value so that the multiplicative branch begins from
+a mild brightening rather than from zero, which avoids a flat region of the loss at the start of
+training. The threshold of each property starts at the value reported in the clinical literature for
+that property and is then free to move.
+
+\begin{table}[!tb]
+\centering
+\caption{Every constant in the method, where it acts and how it was chosen. Fixed means a structural
+choice that was not tuned. Set in development means it was chosen once on the validation split while
+the method was being built and never revisited for this revision. Selected in the revision means it
+entered the grid search of the revision, on the validation split and never on the test split.
+Learned means it is a parameter of the model fitted by the objective. No constant was ever chosen on
+the test split.}
+\label{tab:constants}
+\setlength{\tabcolsep}{3pt}
+\footnotesize
+\begin{tabular}{llll}
+\toprule
+Constant & Value & Acts on & Origin \\
+\midrule
+$\alpha_{\max}$ & 0.15 & scale of the raw gain & set in development \\
+gain bound & $\pm 0.20$ & Eq.~(5) of the main paper & set in development \\
+gate percentile & 0.15 & Eq.~(6) of the main paper & set in development \\
+$\kappa$ & 10 & Eq.~(3) of the main paper & fixed \\
+$B_{\min}, B_{\max}$ & 0.25, 0.50 & base of Eq.~(4) of the main paper & fixed by budget \\
+$C_1 \ldots C_5$ & 0.15, 0.25, 0.15, 0.10, 0.10 & rule votes & fixed by budget \\
+$\tau_1 \ldots \tau_6$ & 0.6, 0.5, 0.75, 0.5, 0.3, 0.7 & Eq.~(3) of the main paper & learned \\
+$\beta, \theta_1 \ldots \theta_5$ & learned & Eq.~(4) of the main paper & learned \\
+energy tolerance & 0.10 & constraint one & set in development \\
+Pareto tolerance & 0.10 & constraint two & set in development \\
+change bound & 0.2 & constraint three & set in development \\
+background blend & 0.5 & background smoothing & set in development \\
+learning rates & $2{\times}10^{-4}$, $5{\times}10^{-4}$, $3{\times}10^{-4}$ & training & set in development \\
+fidelity dead zone $d$ & 0.6 or 0.9 dB & Eq.~(14) of the main paper & selected in the revision \\
+gate rule & percentile or tissue bounded & Eq.~(6) of the main paper & selected in the revision \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{Structural constants}
-The main paper lists the constants that carry a design decision. Table~\ref{tab:supp_constants} lists
-the remaining ones, which are structural and were not tuned.
+Table~\ref{tab:supp_constants} lists the remaining constants, which are structural and were not
+tuned.
 
 \begin{table}[t]
 \centering
@@ -46,9 +102,33 @@ failure sharpness & 10 & sharpness of the score to failure conversion \\
 smoothing window & $3 \times 3$ & smoothing of the brightening term \\
 erosion window & $5 \times 5$ & keeps background smoothing away from tissue \\
 crop size & $96 \times 96$ & training crops \\
-batch size & 4 & training batch \\
+batch size & 16, or 8 for DnCNN and SwinIR & training batch \\
 edge bound & $\pm 0.08$ & nominal bound of the additive branch \\
 quarter resolution & $H/4 \times W/4$ & the gain network runs at this scale \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Selected gate rule and dead zone per backbone}
+\label{sec:supp_gate_selection}
+Table~\ref{tab:supp_gate_selection} lists, for each backbone, the gate rule chosen by the search
+described in the training section of the main paper, the radius at which a tissue bounded gate
+applies, and the selected fidelity dead zone.
+
+\begin{table}[!tb]
+\centering
+\caption{The gate rule and fidelity dead zone selected for each backbone. The radius column applies
+only to the tissue bounded gate.}
+\label{tab:supp_gate_selection}
+\footnotesize
+\begin{tabular}{llll}
+\toprule
+Backbone & Gate rule & Radius & Dead zone \\
+\midrule
+NAFNet & tissue bounded & 41 & 0.6 \\
+DnCNN & percentile & not applicable & 0.9 \\
+KBNet & percentile & not applicable & 0.9 \\
+SwinIR & percentile & not applicable & 0.9 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -59,3 +139,22 @@ supervision of the edge branch. Testing uses no clean image anywhere in the corr
 properties are computed from the noisy input and the backbone output only, which is what allows them
 to run on a scanner the method has never seen. The clean reference is used to score results, as in
 any denoising study, and never to produce them.
+
+\begin{table}[!tb]
+\centering
+\caption{Feature tensor read by the cooperation head for each backbone. All heads share the same two
+layer design and differ only in the number of input channels.}
+\label{tab:supp_uncertainty_sources}
+\setlength{\tabcolsep}{4pt}
+\footnotesize
+\begin{tabular}{lll}
+\toprule
+Backbone & Feature tensor & Channels \\
+\midrule
+NAFNet & First encoder stage & 40 \\
+KBNet & First encoder stage & 32 \\
+DnCNN & First convolution & 228 \\
+SwinIR & Shallow feature convolution & 138 \\
+\bottomrule
+\end{tabular}
+\end{table}

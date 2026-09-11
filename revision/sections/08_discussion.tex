@@ -3,53 +3,37 @@
 
 \subsection{Why fidelity falls, and when that is the right trade}
 \label{sec:psnr_tradeoff}
-Peak signal to noise ratio usually falls slightly when the wrapper is applied, and the size of the
-drop differs by backbone. This is not an accident of tuning. It follows from what the two objectives
-reward. A denoiser trained on squared error is at a local optimum of that error, so any change to its
-output moves away from that optimum. The wrapper makes changes that raise contrast and boundary
-definition, and those changes are not free in squared error terms. The question is therefore not how
-to avoid the drop but how to decide when it is worth accepting.
-
-Two things decide it. A change of a few tenths of a decibel is smaller than the variation between two
-acquisitions of the same eye, so it does not change what a downstream algorithm can do. And the
-quantities that improve, namely boundary definition and tissue to background separation, are what a
-grader actually uses to place a segmentation boundary or judge a fluid pocket.
-
-The backbone that loses most fidelity is the one that had suppressed the most contrast to begin with.
-A transformer with windowed attention smooths aggressively inside a window, which is efficient for
-squared error and costly for local contrast. The wrapper restores that contrast, and restoring it
-necessarily moves the pixels further from the smoothed optimum. The pattern is therefore informative
-rather than embarrassing. The size of the correction tracks how much the backbone had given away.
-
-For a deployment that must not lose fidelity at all, the safety layer already provides the control.
-Tightening the third constraint of Section~\ref{sec:safety} reduces the admitted change, and the
-result moves smoothly toward the backbone output. What the method does not offer is a free lunch in
-which every measure improves at once, and we prefer to say so.
-
-\subsection{What the formal results buy, and what they do not}
-Theorem~\ref{thm:stability} is exact and it is about the code that ran. The constant follows from the
-trained weights and Section~\ref{sec:theory_check} measures the realised ratio against it. That is a
-different claim from a bound that holds vacuously because a clip enforces it.
-
-Theorem~\ref{thm:cnr} is a sufficient condition rather than a guarantee of improvement. It says which
-three quantities have to behave for contrast not to fall, and the method is built to make all three
-behave. Reporting how often they actually hold, rather than asserting that they must, is the honest
-form of that claim.
-
-\subsection{Why the correction layer is worth its complexity}
-A plain network with the same parameter budget can also improve clinical measures, as
-Section~\ref{sec:matched} shows. What it cannot do is say why it changed a pixel. Every change made
-here can be traced to a named property, a location where that property was measured to fail, a rule
-that fired, and a safety decision that admitted the result. That trace is the product, and the
-comparison at matched complexity is what shows the trace is not bought by giving up performance.
+Peak signal to noise ratio falls when the wrapper is applied, by 0.17 to 0.98 dB depending on the
+backbone. A denoiser trained on squared error sits at a local
+optimum of that error, so any change that raises contrast or boundary definition moves away from it,
+and the question is when the trade is worth making. A change of a few tenths of a decibel is smaller
+than the variation between two acquisitions of the same eye, while the quantities that improve are
+what a grader uses to place a boundary or judge a fluid pocket. The size of the gain tracks the room a
+backbone leaves on each measure rather than its overall fidelity. On boundary sharpness NAFNet starts
+lowest at 0.851 of the reference and gains most, and DnCNN starts at 1.031, above the reference, and
+is the only backbone that falls. On edge preservation KBNet starts highest at 0.835 and is the only
+backbone left unchanged. For a deployment that must not lose fidelity at all, tightening the third
+constraint of Section~\ref{sec:safety} moves the output smoothly toward the backbone output.
+SwinIR is the instructive case, since windowed attention smooths hard inside a window, so it leaves
+the most room on the contrast measures and yet pays the least fidelity of the four at 0.17 dB.
 
 \subsection{Limitations}
 The correction is bounded by construction, so a backbone that has destroyed a structure cannot be
-made to recover it. The formal results are narrow in the way stated at the end of
-Section~\ref{sec:stability}. The confidence head is the one part that must be refitted for a new
-backbone, and Section~\ref{sec:transfer_cost} reports what that costs rather than treating it as
-free. The clinical measures used here are established proxies, not outcomes, and no clinician read
-the images, so the safety analysis of Section~\ref{sec:safety_check} is quantitative evidence rather
-than clinical validation. Finally, the external datasets are small, sixteen and eighteen images, so
-the transfer results should be read as evidence of behaviour across scanners rather than as a
-precise estimate of the gain on any one device.
+made to recover it. Two safety measures move against it on the test set. The invented edge rate rises
+from \EdgeInvBack{} to \EdgeInvCorr{} percent and the retention of the weakest decile of structures
+falls from \WeakRetBack{} to \WeakRetCorr{} percent, on \EdgeInvUp{} and \WeakRetDown{} of \NImages{} images. Both are
+small and bounded in size, neither is zero, and the validation criterion that selected the operating
+point scores six clinical measures and fidelity and does not see either of them. We measured what
+that blindness costs, on the validation split so that the test split is used once. The setting the
+criterion ranked second for NAFNet raises weak structure retention from 40.7 to 43.9 percent where
+the selected setting lowers it to 37.7, and adds less to the invented edge rate. The criterion is
+therefore blind in a way that matters, and a user who values faint detail above contrast should score
+these two measures during selection. We did not reselect on this evidence, because the criterion was
+fixed before the test split was scored and changing it afterwards would spend that split twice. The formal results
+are narrow in the way stated at the end of Section~\ref{sec:stability}. Moving to a new backbone
+means refitting the whole wrapper, at the cost Section~\ref{sec:transfer_cost} reports. The clinical
+measures used here are established proxies, not outcomes, and no clinician read the images, so the
+safety analysis of Section~\ref{sec:safety_check} is quantitative evidence rather than clinical
+validation. Finally, the external datasets are small, sixteen and eighteen images, so the transfer
+results are evidence of behaviour across scanners rather than a precise estimate of the gain on any
+one device.

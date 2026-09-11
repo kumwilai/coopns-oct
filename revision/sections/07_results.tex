@@ -4,207 +4,234 @@
 \subsection{Setup}
 \label{sec:setup}
 
-\subsubsection{Data}
-Three retinal OCT datasets from three different sources are used, listed in
-Table~\ref{tab:datasets}. Paired data is expensive in OCT because a clean reference requires many
-repeated acquisitions under steady fixation~\cite{geng2022triplet}, so these are among the largest
-public paired sets available. PKU37~\cite{geng2022triplet} provides 37 cross sections from a
-spectral domain scanner with references averaged over 50 frames. We split it by clean image identity
-into 27 for training, 5 for validation and 5 for testing, which yields 1388, 173 and 173 noisy and
-clean pairs. Splitting by identity rather than by pair is what prevents a noisy realisation of a
-training image from appearing in the test set. Duke17~\cite{fang2012sparsity} provides 16 paired B
-scans from a clinical scanner at a different institution. Duke2013~\cite{fang2013fast} provides 18
-volumes with controlled degradation.
+\emph{Data.} Three retinal OCT datasets are used. PKU37~\cite{geng2022triplet} provides 37 cross sections of
+$640 \times 640$ pixels from a spectral domain scanner, with references averaged over 50 frames,
+split by clean image identity into 27, 5 and 5 for training, validation and testing, giving 1388, 173
+and 173 pairs. It is the only training domain. Duke17~\cite{fang2012sparsity} provides 16 paired B
+scans of $970 \times 520$ from a clinical scanner at a different institution, and
+Duke2013~\cite{fang2013fast} provides 18 volumes of $900 \times 450$ with controlled degradation.
 
-\subsubsection{The transfer protocol, stated exactly}
-\label{sec:protocol}
-This point was ambiguous in the previous version of this paper and we state it precisely here.
+\emph{Transfer protocol.} Every model is trained once on the PKU37 training split and applied to Duke17
+and Duke2013 directly, with no parameter or threshold fitted or recalibrated on Duke data and no Duke
+statistic used to select anything beyond the per image quantity that the gate of
+Equation~\eqref{eq:gate} computes by the same rule as on PKU37. This no adaptation protocol is the
+primary transfer protocol of the paper. The original submission instead used an adapted protocol, in
+which the PKU37 corrector was trained for fifteen further epochs on the other subjects of the target
+set in each leave one subject out fold, with the backbone frozen, the wrapper and the cooperation head
+trainable, and an L2 penalty holding every trainable weight near its PKU37 value. That protocol is
+rerun for NAFNet and reported in the adapted block of Table~\ref{tab:pku37} and in
+Section~\ref{sec:results_ood}, and the supplementary file gives its per subject spreads and tests.
 
-Every model is trained once on the PKU37 training split. The Duke17 and Duke2013 results in
-Table~\ref{tab:transfer} are produced by applying that model directly to the external images. No
-parameter is updated on Duke data. No threshold is recalibrated on Duke data. No statistic of the
-Duke images is used to select anything. The only quantity computed per image is the intensity
-percentile inside the gate of Equation~\eqref{eq:gate}, which is part of the method itself and is
-computed identically on PKU37.
+\emph{Measures.} Seven quantities are reported, peak signal to noise ratio against the clean reference
+for fidelity, and six clinical measures given as percentage change from backbone to corrected output,
+namely contrast to noise ratio (tissue-background separation), tissue contrast index (dynamic range in
+tissue), edge preservation index (agreement with the reference edge map), boundary sharpness (gradient
+across layer boundaries), equivalent number of looks (speckle suppression), and signal to noise ratio
+(signal against noise floor). Every measure is computed per
+image then averaged, never pooled across a batch, since pooling inflates the result. 
 
-For completeness we also report the alternative protocol, in which the model is allowed a short
-adaptation on the other images of the same external dataset before being applied to a held out image.
-Reporting both separates what transfers without cost from what has to be paid for, and
-Section~\ref{sec:results_ood} gives the gap between them.
-
-\subsubsection{Measures}
-Seven quantities are reported. Peak signal to noise ratio measures fidelity against the clean
-reference. The other six are clinical and are reported as a percentage change from the backbone
-output to the corrected output. Contrast to noise ratio measures the separation of tissue from
-background. Tissue contrast index measures dynamic range inside tissue. Edge preservation index
-measures agreement of the edge map with the reference. Boundary sharpness measures the gradient
-across layer boundaries. Equivalent number of looks measures speckle suppression. Signal to noise
-ratio measures signal strength against the noise floor. Every measure is computed per image and then
-averaged, never pooled across a batch, because pooling inflates the result.
-
-\subsubsection{Cost}
-The wrapper adds \num{168630} trainable parameters to a frozen backbone of about seven million,
-which is an increase of about 2.4 percent, summarised at the foot of Table~\ref{tab:datasets}.
+\begin{table*}[!tb]
+\centering
+\caption{PKU37 test set of 173 images, then Duke17 and Duke2013 with no adaptation, then the adapted
+protocol of the original submission for NAFNet described in Section~\ref{sec:setup}. The first numeric
+column is the backbone peak signal to noise ratio in decibels and the second its change after
+correction with the spread across three seeds. The six clinical measures are percentage change from
+backbone output to corrected output. Bold marks a clinical cell whose mean exceeds its seed spread. The adapted rows come from one seed and one fold per
+subject, so they carry no spread and no bold. The two lowest blocks use the selected NAFNet checkpoint on the
+same 173 test images with one component removed or an alternative operator substituted, so those rows
+differ only in that. Full spreads are given in the supplementary file.}
+\label{tab:pku37}
+\setlength{\tabcolsep}{4pt}
+\footnotesize
+\input{../sections/generated/tab_in_distribution}
+\end{table*}
 
 \subsection{In distribution results}
 \label{sec:results_id}
-Table~\ref{tab:pku37} reports the PKU37 test set. TBDRESULTS
+Table~\ref{tab:pku37} reports the PKU37 test set and Fig.~\ref{fig:subjective_pku37} the visual
+comparison across the four backbones. Contrast rose on 2064 of the 2076 image and seed combinations.
+The twelve exceptions all belong to NAFNet, the backbone with the smallest mean contrast gain, fall on
+ten images whose backbone PSNR lies above the NAFNet mean, and none exceeds 0.4 percent. The gain was
+larger where the backbone PSNR was lower, with a per image Spearman correlation between minus 0.46 and
+minus 0.71 across the four backbones. Of the 24 backbone by measure pairs, 21 are positive by more
+than one seed spread, one is positive but inside it, the tissue contrast index of DnCNN, one is
+unchanged at 0.00 percent, the edge preservation of KBNet, and one falls, the boundary sharpness of
+DnCNN at minus 1.44 percent. The fidelity cost ranges from 0.17 dB on SwinIR to 0.98 dB on DnCNN, and
+the two backbones that pay least are the two whose six measures all rise.
+
+\begin{figure*}[!tb]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/fig_subjective_pku37.pdf}
+\caption{Visual comparison on the PKU37 test image of median backbone fidelity, one row per backbone,
+in the 56 by 136 pixel band marked on the thumbnail where the NAFNet correction was largest. Cells
+show the backbone output and the corrected output on the display range 0.05 to 0.85, and their signed
+difference on a fixed scale of plus or minus 0.06. The mean absolute change is about one percent of
+the intensity range, so the two outputs are near identical by design and the difference column shows
+where and how much each backbone is corrected, most for SwinIR and least for KBNet. All values are from the seed 0 checkpoints of Table~\ref{tab:pku37}. The scatter places this image, ringed, among all 173 test images at three seeds
+for four backbones, with the twelve NAFNet points below zero marked. Full resolution pairs for every
+backbone are in the supplementary file.}
+\label{fig:subjective_pku37}
+\end{figure*}
 
 \subsection{Transfer to other scanners}
 \label{sec:results_ood}
-Table~\ref{tab:transfer} reports both protocols on Duke17 and Duke2013. TBDRESULTS
+Table~\ref{tab:pku37} reports the no adaptation protocol on Duke17 and Duke2013. All six clinical
+measures are positive on both target sets for NAFNet and SwinIR, the fidelity cost stays inside
+0.35 dB for those two, and 40 of the 48 backbone by measure by set pairs are positive, the eight
+exceptions being the tissue contrast index and the boundary sharpness of DnCNN and the edge
+preservation and the signal to noise ratio of KBNet. Contrast rises on every backbone and both sets.
+
+The adapted block of Table~\ref{tab:pku37} reports the adapted protocol for NAFNet. Adaptation raises the
+contrast gain on both scanners, from $+7.5$ to $+10.7$ percent on Duke17 and from $+7.4$ to $+15.4$
+percent on Duke2013, and on Duke2013 it also raises the tissue contrast index from $+1.4$ to $+5.1$
+percent. It pays for this on both scanners in fidelity, a further 0.06 and 0.10 dB, and in signal to
+noise ratio, which falls from $+5.4$ to $+2.9$ percent on Duke17 and from $+9.3$ to $-5.3$ percent on
+Duke2013, a decrease on 15 of 18 subjects, while the remaining measures move in opposite directions
+on the two sets. Adaptation therefore reliably improves only the measure the frozen model already
+improves, so the frozen model is the one we recommend and use everywhere else.
 
 \subsection{Contribution of each clinical property}
 \label{sec:predicate_ablation}
-Reviewer feedback asked whether all six properties are needed. We remove one property at a time at
-test time, which sets its score to the satisfied value and its failure map to zero, and re evaluate
-the whole test set. Fig.~\ref{fig:studies} reports the result. TBDRESULTS
+One property at a time is switched off
+at test time, by setting its score to the satisfied value and its failure map to zero, and the whole
+test set is re evaluated. Only $P_5$, $P_1$ and $P_2$ move any measure by more than a quarter point.
+$P_5$ costs the most at 3.19 points of the speckle gain, $P_1$ 1.72 and $P_2$ 0.74, while $P_3$,
+$P_4$ and $P_6$ change nothing by more than 0.23 points, so half the set is close to inert here. We
+keep all six, because they are the vocabulary of the rule layer and of the explanation shown to the
+reader, and one that rarely fires here can fire on another scanner.
 
 \subsection{Sensitivity to the rule constants}
 \label{sec:sensitivity}
-The rule layer contains a base level, five rule weights and five budgets. We vary each in turn and
-re evaluate. Fig.~\ref{fig:studies} reports the result. We also replace the Lukasiewicz
-conjunction by the product and by the minimum, which are the two other standard choices, to test
-whether the specific logic matters. TBDRESULTS
+The rule layer contains a base level, five rule weights and five budgets. The budgets are tied by the identity of Section~\ref{sec:allocation_defect}, so varying one alone
+would reintroduce the defect that identity prevents. We therefore vary the base level and the two
+rule weights that carry the allocation, and we replace the Lukasiewicz conjunction by the product and
+by the minimum, the two other standard choices, to test whether the specific logic matters. No
+variation turns any of the six clinical measures negative. Across the fourteen variations the
+contrast gain lies between 3.5 and 4.5 percent, the tissue contrast index between 2.3 and 2.9
+percent, the speckle measure between 22.6 and 23.5 percent and the fidelity cost between 0.16 and
+0.23 dB. The base level is the only constant whose effect is visible, since lowering it raises
+contrast and costs fidelity together, while the two rule weights move the result by under a fifth of
+a point. The product and the minimum change the contrast gain from 3.7 to 3.5 percent and leave the
+other five measures within one part in fifty, so the result rests on the shape of the rule layer and
+not on the particular t norm, which limits what the specific logic can be credited with as much as it
+reassures. No setting of either gate rule of
+Section~\ref{sec:weight_selection} recovers boundary sharpness on DnCNN.
 
 \subsection{Contribution of each component}
 \label{sec:component_ablation}
-Table~\ref{tab:ablation} removes one component at a time. TBDRESULTS
+The component block of Table~\ref{tab:pku37} removes one component at a time. Replacing the rule layer by a uniform
+allocation cuts the contrast gain from 3.7 to 0.8 percent and the tissue contrast index from 2.4 to
+0.4 percent while doubling the fidelity cost, the clearest evidence that the allocation and not the
+capacity of the correctors produces the clinical gain. Removing the edge branch turns both measures
+negative, and removing the cooperation map costs about a third of the contrast gain. Removing
+background smoothing leaves contrast, edge preservation and boundary sharpness almost intact while
+the speckle measure collapses from 23.3 to 5.8 percent and the signal to noise ratio from 10.7 to 2.9
+percent. The four components are therefore not interchangeable, and each carries a different measure.
 
 \subsection{Comparison at matched complexity}
 \label{sec:matched}
-A reviewer asked for a comparison against methods of similar complexity built with the same design
-approach. We therefore compare against three alternatives that all act on the same frozen backbone
-output. The first is a plain convolutional post corrector with the same parameter budget, trained
-with the same objective, with no properties, no rules and no safety layer. The second and third are
-classical post processing operators, namely unsharp masking and contrast limited adaptive histogram
-equalisation, tuned on the validation split. The lower block of Table~\ref{tab:ablation} reports the result. TBDRESULTS
+Three alternatives act on the same frozen backbone output. The first is the same architecture, budget,
+objective and ten epochs, with the rule layer replaced by a uniform allocation for the whole of
+training rather than only at test time, keeping the properties and the safety layer. It was fitted
+before the gate search, so it carries the percentile gate rather than the tissue bounded gate NAFNet
+was finally selected with, which we state rather than claim a match we cannot verify. The other two are classical operators, unsharp masking and contrast limited
+adaptive histogram equalisation, tuned on the validation split. Uniform allocation reaches a larger
+contrast gain and a much larger tissue contrast index than the full method, for 0.42 dB against 0.17
+dB, and is worse on four of the six measures, so the two are not ordered. What the full method buys
+with its fidelity is the per pixel account of why each change was made. The classical operators give
+the largest contrast numbers and fail elsewhere, lowering edge preservation by about 3.5 percent and
+the speckle measure by about 36 percent while raising boundary sharpness by about 25 percent by
+sharpening noise with structure, with adaptive equalisation also costing 4.4 dB. Every alternative
+that produces larger numbers changes the image several times as much, unbounded and unexplained.
 
-\subsection{Does the confidence map predict error}
+
+\subsection{Does the cooperation map predict error}
 \label{sec:confidence_check}
-A reviewer observed that nothing in the objective forces the confidence map to behave like a
-confidence. We test it directly. For every test image we compare the map against the absolute error
-of the backbone output with respect to the clean reference. The rank correlation, the sparsification error and the expected calibration error after a single affine
-fit. TBDRESULTS
+Called a confidence map in the original submission, this component was tested against the absolute
+error of the backbone output over \NImages{} images, and it does not predict that error. The rank
+correlation is \CalibRho{}, so the map is ordered the wrong way rather than merely uninformative, and
+removing the pixels it ranks as least reliable raises the remaining error to 1.88 times the starting
+value where an oracle ranking reaches 0.07, a sparsification error of \CalibAuse{}. The map is
+nevertheless load bearing, since replacing it by a constant lowers the contrast gain from $+3.71$ to
+$+2.51$ percent and worsens five of the six clinical measures. The head is shown only where a correction helps and never the error of the backbone, so nothing in the
+objective could have made it a confidence, and we call it a cooperation map rather than a calibrated
+one.
 
 \subsection{Do the theoretical conditions hold on real data}
 \label{sec:theory_check}
-This subsection connects Section~\ref{sec:stability} to measurements, which is what a reviewer asked
-for. Three things are checked. For the stability result we perturb the rule truth values by a
-controlled amount and measure the ratio in Equation~\eqref{eq:stability_def}, then compare it with
-the constant of Equation~\eqref{eq:lipschitz}. For the contrast result we measure the tissue gain,
-the background leakage and the ratio of background standard deviations on every image, and report how
-often the hypotheses of Theorem~\ref{thm:cnr} hold. For the safety layer we report how often each of
-the three constraints fails and which one is binding. TBDRESULTS
+We perturb the rule truth values and compare the ratio of Equation~\eqref{eq:stability_def} with the
+constant of Equation~\eqref{eq:lipschitz}, and we measure the tissue gain, the background leakage and
+the ratio of background standard deviations on every image against the hypotheses of
+Theorem~\ref{thm:cnr}. The stability bound holds with room to spare, a constant of \LipTheory{} from
+Equation~\eqref{eq:lipschitz} against a largest measured ratio of \LipMeasured{} over \NImages{}
+images, so the proof is conservative rather than tight. The
+allocation map spans \AllocMin{} to \AllocMax{} with mean \AllocMean{} and standard deviation
+\AllocStd{}, and \AllocClamp{} percent of pixels sit at either end of its clamp, direct evidence that
+the rule layer does work after the repair of Section~\ref{sec:allocation_defect}.
+
+The contrast hypotheses hold on a majority of images and not on all. The margin condition holds on
+\CondMargin{} of \NImages{} images and the standard deviation ratio condition on \CondSigma{}, a bare
+majority, with mean ratio \SigmaRatio{}, below one, which is why the result holds in the mean. Where a
+hypothesis fails the theorem makes no prediction, and the measured contrast change there is not
+systematically different in sign, so the conditions are sufficient rather than necessary. Both leakage
+terms of Theorem~\ref{thm:cnr} sit far below the mean absolute change over the whole image,
+\GlobalChange{}, at \EtaT{} in tissue and \EtaB{} in background. Their means are near zero with a long
+negative tail, so the per image sign carries what the theorem needs. Tissue is positive on \EtaTPos{}
+of \NImages{} images and background negative on \EtaBNeg{}, the direction the decomposition assumes.
 
 \subsection{Safety, and whether the correction invents structure}
 \label{sec:safety_check}
-A correction that raises contrast could in principle sharpen a boundary that is not there, or erase a
-faint one that is. Because PKU37 provides a clean reference we can measure both directly. We report
-the rate at which an edge appears in the corrected image where the reference has none, the retention
-of weak structures whose contrast in the reference is in the lowest decile, the behaviour inside dark
-fluid like regions enclosed by tissue, and the worst case per image change across the whole test set.
-Fig.~\ref{fig:studies} reports the result. TBDRESULTS
-
-We state one limitation plainly. No clinician read these images. The analysis above is quantitative
-and uses the averaged reference as the standard of truth. A reader study is the correct next step and
-is outside the scope of this revision.
+A correction that raises contrast could sharpen a boundary that is not there or erase a faint one
+that is, and the PKU37 clean reference lets us measure both. Two measures move against the correction. An edge appears where the
+reference has none on \EdgeInvCorr{} percent of pixels after correction against \EdgeInvBack{} percent
+for the backbone output, a rise on \EdgeInvUp{} of \NImages{} images with $p = 1.9 \times 10^{-12}$ under a two
+sided Wilcoxon signed rank test on the paired per image values, and the retention of structures whose
+reference contrast falls in the lowest decile falls from \WeakRetBack{} to \WeakRetCorr{} percent, on
+168 of \NImages{} images with $p = 6.2 \times 10^{-30}$. Both changes are small, 0.03 points of
+invented edge rate and 2.9 points of retention, and the clamp of Section~\ref{sec:safety} bounds how
+far any pixel may move but not how many pixels cross an edge threshold, so neither is zero by
+construction and Section~\ref{sec:discussion} lists both as limitations. What separates the correction
+from a sharpening filter is therefore Section~\ref{sec:matched}, where the two classical sharpeners
+lose edge preservation and the speckle measure while the wrapper gains on both. The remaining measures move with the correction. The two
+layer boundaries a clinician reads are not displaced, with a mean absolute shift of \IlmShiftBack{} to
+\IlmShiftCorr{} pixels for the inner limiting membrane, an improvement, and \RpeShiftBack{} to
+\RpeShiftCorr{} for the retinal pigment epithelium, unchanged within the spread across images. Dark
+fluid like regions occupy \DarkFrac{} percent of the image area with a mean absolute change of
+\DarkChange{} inside them against \GlobalChange{} over the whole image, and the largest change on any
+single image anywhere in the test set is \GlobalMax{}, so the correction is quieter
+where a hypodense region carries the finding. Boundary sharpness is not worsened on \BoundOK{} of
+\NImages{} images, reported as a count because the per image worst case is what matters for trusting a scan. Of the three constraints of
+Section~\ref{sec:safety}, energy and bounded change hold on all \NImages{} images and only the no
+sacrifice constraint ever fails, on 38 of them. Acceptance needs two of three and no image falls
+below two, so the blend of Equation~\eqref{eq:blend} returns the candidate in full everywhere, so the
+safety layer never had to act here.
 
 \subsection{Cost of moving to a new backbone}
 \label{sec:transfer_cost}
-Only the confidence head depends on the backbone, and adapting it is additional training, so its cost
-should be stated rather than assumed away. For each of the four backbones we report the size of the head, the data used to fit it, the number of epochs, the wall clock time and the spread across repeated runs. TBDRESULTS
-
-\begin{table}[!tb]
-\centering
-\caption{The three datasets. PKU37 is the training domain. The two Duke sets are used only for
-transfer and no parameter is fitted on them.}
-\label{tab:datasets}
-\setlength{\tabcolsep}{3pt}
-\footnotesize
-\begin{tabular}{llcc}
-\toprule
-Dataset & Scanner & Image size & Images \\
-\midrule
-PKU37~\cite{geng2022triplet} & spectral domain, PKU & $640 \times 640$ & 1388 / 173 / 173 \\
-Duke17~\cite{fang2012sparsity} & spectral domain, Duke & $970 \times 520$ & 16 \\
-Duke2013~\cite{fang2013fast} & synthetic degradation & $900 \times 450$ & 18 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-
-
-\begin{table*}[!tb]
-\centering
-\caption{Results on the PKU37 test set of 173 images. The peak signal to noise ratio is absolute and
-its change is in decibels. The six clinical measures are reported as the percentage change from the
-backbone output to the corrected output. TBDRESULTS}
-\label{tab:pku37}
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{lcccccccc}
-\toprule
-Backbone & PSNR (dB) & $\Delta$PSNR (dB) & $\Delta$CNR & $\Delta$TCI & $\Delta$EPI & $\Delta$BS & $\Delta$ENL & $\Delta$SNR \\
-\midrule
-\input{../sections/generated/tab_in_distribution}
-\bottomrule
-\end{tabular}
-\end{table*}
-
-\begin{table*}[!tb]
-\centering
-\caption{Transfer to two other scanners. The upper block applies the model trained on PKU37 with no
-adaptation of any kind. The lower block allows a short adaptation on the other images of the same
-dataset before testing on the held out image. The gap between the blocks is the price of the
-adaptation. TBDRESULTS}
-\label{tab:transfer}
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{llccccccc}
-\toprule
-Protocol & Backbone & $\Delta$PSNR (dB) & $\Delta$CNR & $\Delta$TCI & $\Delta$EPI & $\Delta$BS & $\Delta$ENL & $\Delta$SNR \\
-\midrule
-\input{../sections/generated/tab_transfer}
-\bottomrule
-\end{tabular}
-\end{table*}
-
-\begin{figure*}[!tb]
-\centering
-\includegraphics[width=\textwidth]{figures/fig_studies.pdf}
-\caption{Left, the effect of removing one clinical property at a time on the full PKU37 test set.
-Middle, sensitivity of the result to the constants of the rule layer. Right, the safety analysis.
-TBDRESULTS}
-\label{fig:studies}
-\end{figure*}
-
-
-
-\begin{table}[!tb]
-\centering
-\caption{Upper block, removing one component at a time. Lower block, alternatives of similar
-complexity acting on the same frozen backbone output. TBDRESULTS}
-\label{tab:ablation}
-\setlength{\tabcolsep}{2.5pt}
-\footnotesize
-\begin{tabular}{lcccccc}
-\toprule
-Configuration & $\Delta$PSNR & $\Delta$CNR & $\Delta$TCI & $\Delta$EPI & $\Delta$BS & $\Delta$ENL \\
-\midrule
-\input{../sections/generated/tab_ablation}
-\bottomrule
-\end{tabular}
-\end{table}
+A new backbone means refitting the whole wrapper, not only the head that reads its features. The
+trainable count is \num{168630} shared parameters plus a head whose width follows the feature tensor it
+reads, \num{175893} in all for NAFNet and \num{254538} for SwinIR, against about seven million in the
+backbone, an increase of about 2.4 percent.
+Every backbone is fitted on the same 1388 PKU37 pairs for the same ten epochs, so only the wall clock
+time and the spread across seeds vary. Fitting one seed of the selected setting on a single RTX 5070
+Ti takes 2.0 minutes for NAFNet, 2.5 for KBNet, 3.9 for DnCNN and 8.3 for SwinIR, an ordering that
+follows the cost of one backbone forward pass and not anything in the wrapper. The spread of the
+fidelity cost across the three seeds is 0.02 dB for NAFNet, 0.06 for SwinIR, 0.08 for KBNet and 0.21
+for DnCNN. The backbone with the widest spread is also the only one with a clinical measure that
+falls, so a new user should read the seed spread as the first warning sign rather than the mean.
+Adoption therefore costs under ten minutes of fitting per seed, no change to the backbone, and one
+sweep of the fidelity dead zone.
 
 
 
 
 
-\begin{figure*}[!tb]
-\centering
-\includegraphics[width=0.98\textwidth]{figures/fig_subjective_pku37.pdf}
-\caption{Visual comparison on PKU37 for the two extreme cases. Rows are NAFNet, which loses the least
-fidelity, and SwinIR, which gains the most contrast. Columns are the noisy input, the backbone
-output, the corrected output and the clean reference. The remaining two backbones are shown in the
-supplementary file.}
-\label{fig:subjective_pku37}
-\end{figure*}
+
+
+
+
+
+
+
+
+

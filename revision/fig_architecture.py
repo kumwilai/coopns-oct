@@ -15,10 +15,22 @@ from figstyle import setup, save, INK, INK2, GREY
 
 S = {1: "#2a78d6", 2: "#1baf7a", 3: "#eda100", 4: "#4a3aa7", 5: "#eb6834", 6: "#0f7a53"}
 
-ROW_T, ROW_M, ROW_B = 0.700, 0.420, 0.140
+# Geometry. One spine through the middle row, the head above it, the properties below it.
+ROW_M = 0.420
+PITCH = 0.265
+ROW_T, ROW_B = ROW_M + PITCH, ROW_M - PITCH
 H = 0.170
-COL = {"a": 0.062, "b": 0.240, "c": 0.418, "d": 0.596, "e": 0.774}
-W = 0.148
+W = 0.162
+GAP = 0.0215
+COL = {k: 0.050 + i * (W + GAP) for i, k in enumerate("abcde")}
+DASH = (0, (2.4, 1.8))
+
+# Axes limits and size. The axes is the drawn area, so the limits are set to the
+# content and the figure is sized to keep the old scale of 400 pt per x unit and
+# 119 pt per y unit. Width stays at 403.8 pt, height falls from 122 pt to 102 pt.
+XLIM = (-0.010, 1.015)
+YLIM = (0.070, 0.905)
+FIGSIZE = (5.568, 0.835 * 119.2 / 72)
 
 
 def box(ax, x, y, title, sub, stage, w=W, h=H, tag=None):
@@ -26,7 +38,7 @@ def box(ax, x, y, title, sub, stage, w=W, h=H, tag=None):
         ax.add_patch(FancyBboxPatch((x, y), w, h,
                      boxstyle="round,pad=0.006,rounding_size=0.02",
                      linewidth=lw, edgecolor=S[stage], facecolor=fc, alpha=al, zorder=z))
-    ax.text(x + w / 2, y + h * 0.63, title, ha="center", va="center", fontsize=7.3,
+    ax.text(x + w / 2, y + h * 0.63, title, ha="center", va="center", fontsize=6.8,
             color=INK, zorder=4)
     ax.text(x + w / 2, y + h * 0.27, sub, ha="center", va="center", fontsize=6.6,
             color=INK2, zorder=4)
@@ -49,19 +61,20 @@ def arrow(ax, pts, color=GREY, ls="-", lw=0.9):
 
 def main():
     setup()
-    fig, ax = plt.subplots(figsize=(7.16, 2.15))
-    ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis("off")
+    fig = plt.figure(figsize=FIGSIZE)
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.set_xlim(*XLIM); ax.set_ylim(*YLIM); ax.axis("off")
 
     boxes = [
         ("a", ROW_M, "frozen backbone", r"$\mathbf{b}=f_\theta(\mathbf{y})$", 1),
-        ("a", ROW_T, "confidence head", r"$\mathbf{c}$", 1),
-        ("b", ROW_T, "gain and edge", r"$\Delta,\ \delta_{\mathrm{e}},\ \lambda$", 2),
+        ("a", ROW_T, "cooperation head", r"$\mathbf{c},\ \ \mathbf{u}=\mathbf{1}-\mathbf{c}$", 1),
+        ("b", ROW_M, "two correctors", r"$\Delta,\ \delta_{\mathrm{e}},\ \lambda$", 2),
         ("b", ROW_B, "six properties", r"$s_i,\ \mathbf{m}_i$", 3),
-        ("c", ROW_M, "five fuzzy rules", r"allocation $\mathbf{a}$", 4),
+        ("c", ROW_M, "five rules", r"allocation $\mathbf{a}$", 4),
         ("d", ROW_M, "bound and gate", r"candidate $\mathbf{q}$", 5),
-        ("e", ROW_M, "three constraints", r"blend weight $w$", 6),
+        ("e", ROW_M, "safety decision", r"blend weight $w$", 6),
     ]
-    tags = {("a", ROW_M): 1, ("a", ROW_T): 1, ("b", ROW_T): 2, ("b", ROW_B): 3,
+    tags = {("a", ROW_M): 1, ("a", ROW_T): 1, ("b", ROW_M): 2, ("b", ROW_B): 3,
             ("c", ROW_M): 4, ("d", ROW_M): 5, ("e", ROW_M): 6}
     for col, row, t, sub, st in boxes:
         box(ax, COL[col], row, t, sub, st, tag=tags.get((col, row)))
@@ -69,38 +82,43 @@ def main():
     m = lambda r: r + H / 2
     x0 = lambda c: COL[c]
     x1 = lambda c: COL[c] + W
+    xc = lambda c: COL[c] + W / 2
 
-    ax.text(0.022, m(ROW_M), r"$\mathbf{y}$", fontsize=10, color=INK, ha="center", va="center")
-    ax.text(0.022, m(ROW_M) - 0.085, "noisy", fontsize=6.3, color=INK2, ha="center", va="center")
-    ax.text(0.965, m(ROW_M), r"$\hat{\mathbf{x}}$", fontsize=10, color=INK, ha="center", va="center")
-    ax.text(0.965, m(ROW_M) - 0.085, "corrected", fontsize=6.3, color=INK2, ha="center", va="center")
+    ax.text(0.018, m(ROW_M), r"$\mathbf{y}$", fontsize=10, color=INK, ha="center", va="center")
+    ax.text(0.018, m(ROW_M) - 0.085, "noisy", fontsize=6.3, color=INK2, ha="center", va="center")
+    ax.text(0.972, m(ROW_M), r"$\hat{\mathbf{x}}$", fontsize=10, color=INK, ha="center", va="center")
+    ax.text(0.972, m(ROW_M) - 0.085, "corrected", fontsize=6.3, color=INK2, ha="center", va="center")
 
-    arrow(ax, [(0.040, m(ROW_M)), (x0("a"), m(ROW_M))])
-    arrow(ax, [(x0("a") + W / 2, ROW_M + H), (x0("a") + W / 2, ROW_T)])
-    # backbone feeds the two middle column blocks
-    arrow(ax, [(x1("a"), m(ROW_M)), (0.212, m(ROW_M)), (0.212, m(ROW_T)), (x0("b"), m(ROW_T))])
-    arrow(ax, [(x1("a"), m(ROW_M)), (0.212, m(ROW_M)), (0.212, m(ROW_B)), (x0("b"), m(ROW_B))])
-    # into the rule layer
-    arrow(ax, [(x1("b"), m(ROW_T)), (0.412, m(ROW_T)), (0.412, m(ROW_M) + 0.030),
-               (x0("c"), m(ROW_M) + 0.030)], color=S[2])
-    arrow(ax, [(x1("b"), m(ROW_B)), (0.412, m(ROW_B)), (0.412, m(ROW_M) - 0.030),
-               (x0("c"), m(ROW_M) - 0.030)], color=S[3])
-    # confidence into the rule layer, routed above everything
-    arrow(ax, [(x1("a"), m(ROW_T)), (0.232, m(ROW_T)), (0.222, 0.940), (0.452, 0.940),
-               (0.470, ROW_M + H)], color=S[1])
-    arrow(ax, [(x1("c"), m(ROW_M)), (x0("d"), m(ROW_M))])
-    arrow(ax, [(x1("d"), m(ROW_M)), (x0("e"), m(ROW_M))])
-    arrow(ax, [(x1("e"), m(ROW_M)), (0.948, m(ROW_M))])
-    # properties are re measured on the candidate for the constraint check
-    arrow(ax, [(x0("b") + W / 2, ROW_B), (x0("b") + W / 2, 0.052), (x0("e") + W * 0.32, 0.052),
-               (x0("e") + W * 0.32, ROW_M)], color=S[3], ls=(0, (2.4, 1.8)))
-    # backbone anchor for the blend
-    arrow(ax, [(x0("a") + W / 2, ROW_M), (x0("a") + W / 2, 0.052)], color=GREY, ls=(0, (2.4, 1.8)))
-    ax.plot([x0("a") + W / 2, x0("e") + W * 0.68], [0.052, 0.052], color=GREY,
-            linewidth=0.9, linestyle=(0, (2.4, 1.8)), zorder=0)
-    arrow(ax, [(x0("e") + W * 0.68, 0.052), (x0("e") + W * 0.68, ROW_M)], color=GREY,
-          ls=(0, (2.4, 1.8)))
-    ax.text(0.505, 0.075, "backbone anchor and re measured properties", fontsize=6.2,
+    # the spine, stages one, two, four, five, six, each arrow in the colour of its source
+    arrow(ax, [(0.032, m(ROW_M)), (x0("a"), m(ROW_M))])
+    arrow(ax, [(x1("a"), m(ROW_M)), (x0("b"), m(ROW_M))])
+    arrow(ax, [(x1("b"), m(ROW_M)), (x0("c"), m(ROW_M))], color=S[2])
+    arrow(ax, [(x1("c"), m(ROW_M)), (x0("d"), m(ROW_M))], color=S[4])
+    arrow(ax, [(x1("d"), m(ROW_M)), (x0("e"), m(ROW_M))], color=S[5])
+    arrow(ax, [(x1("e"), m(ROW_M)), (0.958, m(ROW_M))])
+    # backbone features up into the head
+    arrow(ax, [(xc("a"), ROW_M + H), (xc("a"), ROW_T)])
+    # the cooperation map into the rule layer, one bend, entering from above
+    arrow(ax, [(x1("a"), m(ROW_T)), (xc("c"), m(ROW_T)), (xc("c"), ROW_M + H)], color=S[1])
+    # backbone output down one trunk. Solid branch into the properties, dashed
+    # continuation is the anchor the safety decision blends back to.
+    Y_IN = m(ROW_B) + 0.035
+    Y_ANCHOR = ROW_B - 0.065
+    arrow(ax, [(xc("a"), ROW_M), (xc("a"), Y_IN), (x0("b"), Y_IN)])
+    ax.plot([xc("a")], [Y_IN], marker="o", markersize=2.2, color=GREY, zorder=2)
+    arrow(ax, [(xc("a"), Y_IN), (xc("a"), Y_ANCHOR), (x0("e") + W * 0.68, Y_ANCHOR),
+               (x0("e") + W * 0.68, ROW_M)], color=GREY, ls=DASH)
+    # failure maps up into the correctors, for the strength map
+    arrow(ax, [(xc("b"), ROW_B + H), (xc("b"), ROW_M)], color=S[3])
+    # scores into the rule layer, one bend, entering from below
+    arrow(ax, [(x1("b"), Y_IN), (xc("c"), Y_IN), (xc("c"), ROW_M)], color=S[3])
+    # properties re measured on the candidate for the constraint check, own channel
+    Y_RE = m(ROW_B) - 0.045
+    arrow(ax, [(x1("b"), Y_RE), (x0("e") + W * 0.32, Y_RE), (x0("e") + W * 0.32, ROW_M)],
+          color=S[3], ls=DASH)
+    ax.text(0.665, Y_RE + 0.012, r"$s_i$ re measured on $\mathbf{q}$", fontsize=6.2,
+            color=INK2, ha="center", va="bottom")
+    ax.text(0.600, Y_ANCHOR + 0.012, r"$\mathbf{b}$ kept as the anchor", fontsize=6.2,
             color=INK2, ha="center", va="bottom")
 
     save(fig, "fig_architecture")

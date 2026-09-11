@@ -1,22 +1,14 @@
 \section{Training}
 \label{sec:training}
 
-This section gives the training procedure in full. It states what data is used, what each loss term
-measures, how the parameters are initialised, how every constant was chosen, and what is left fixed.
-
 \subsection{What data is used, and where a clean image is needed}
 \label{sec:paired_data}
-This point matters for the credibility of the method, so we state it plainly. Training uses paired
-data. Each training sample is a noisy scan together with a clean reference produced by averaging
-many repeated acquisitions. The clean reference enters two of the five loss terms, namely the
-fidelity term and the clinical term, and it also supervises the additive edge branch. Nothing in the
-method pretends to be unsupervised.
-
-Testing uses no clean image at any point. The six clinical properties of
-Section~\ref{sec:predicates} are computed from the noisy input and the backbone output alone. That
-is what the phrase ground truth free means in this paper. It refers to the inputs of the rule layer
-at test time, not to the training procedure. The clean reference is used to score the results, as it
-is in any denoising study, but it never reaches the correction path.
+Training uses paired data. Each training sample is a noisy scan with a clean reference produced by
+averaging many repeated acquisitions, and the reference enters two of the five loss terms, the
+fidelity term and the clinical term, and supervises the additive edge branch. Testing uses no clean image at any point. The six clinical properties of
+Section~\ref{sec:predicates} are computed from the noisy input and the backbone output alone, which is
+what the phrase ground truth free means in this paper. The clean reference scores the results, as in any denoising
+study, but never reaches the correction path.
 
 \subsection{The five loss terms}
 \label{sec:loss_terms}
@@ -30,39 +22,40 @@ the structural similarity index~\cite{wang2004image},
  + \big(1 - \mathrm{SSIM}(\hat{\mathbf{x}}, \mathbf{x})\big).
 \label{eq:loss_fid}
 \end{equation}
-A dead zone is applied to the peak signal to noise ratio part of this term. No penalty is charged
-while the drop with respect to the backbone stays below $d$ decibels. The purpose is to buy clinical
-quality with a small and bounded amount of fidelity rather than to defend fidelity at any price.
+A dead zone is applied to the peak signal to noise ratio part of this term, so no penalty is charged
+while the drop with respect to the backbone stays below $d$ decibels, which buys clinical quality with
+a small and bounded amount of fidelity rather than defending fidelity at any price.
 
 \textbf{Clinical improvement.} This term rewards a rise in the clinical measures relative to the
-backbone. Working with the logarithm of a ratio makes the term scale free, so an image with a low
-starting contrast is not treated differently from an image with a high one,
+backbone, beginning with the contrast to noise ratio and the tissue contrast index, TCI. The logarithm
+of a ratio makes the term scale free,
 \begin{equation}
 \mathcal{L}_{\mathrm{clin}} = -\log\frac{\mathrm{CNR}(\hat{\mathbf{x}})}{\mathrm{CNR}(\mathbf{b})}
  - \log\frac{\mathrm{TCI}(\hat{\mathbf{x}})}{\mathrm{TCI}(\mathbf{b})}.
 \label{eq:loss_clin}
 \end{equation}
-The implementation adds the same construction for the edge preservation index, the equivalent number
-of looks and the signal to noise ratio, each with its own weight, so that a gain in one measure
-cannot be bought by a collapse in another.
+The same construction is added for the edge preservation index, the equivalent number of looks and
+the signal to noise ratio, each with its own weight, so a gain in one measure cannot be bought by a
+collapse in another.
 
-\textbf{Property calibration.} The rule layer compares each property score with a threshold. If the
-scores drift away from the thresholds the comparison becomes uninformative. This term pulls the
-scores toward the operating point,
+\textbf{Property calibration.} The rule layer compares each property score with a threshold, and if the scores drift away from the
+thresholds the comparison becomes uninformative, so this term pulls the scores toward the operating
+point,
 \begin{equation}
 \mathcal{L}_{\mathrm{pred}} = \sum_{i=1}^{6}\big(s_i(\hat{\mathbf{x}}) - \tau_i\big)^2 .
 \label{eq:loss_pred}
 \end{equation}
 
 \textbf{Cooperation.} The wrapper should act where the backbone is unsure and stay quiet where it is
-confident. We measure the agreement between the uncertainty map and the map of estimated correction
-potential with the Pearson correlation $\rho$, and penalise disagreement,
+confident. We measure the agreement between the demand map $\mathbf{u}$ and $\boldsymbol{\pi}$, the summed
+strength map of the two proposals that the rule layer of Section~\ref{sec:negotiator} reads, with the
+Pearson correlation $\rho$, and penalise disagreement,
 \begin{equation}
 \mathcal{L}_{\mathrm{coop}} = \tfrac{1}{2}\,\mathrm{ReLU}\big(1 - \rho(\mathbf{u}, \boldsymbol{\pi})\big).
 \label{eq:loss_coop}
 \end{equation}
-The Pearson correlation is used because it is differentiable everywhere, it is invariant to an
-affine change of either map, and it introduces no window size to tune.
+The Pearson correlation is differentiable everywhere, invariant to an affine change of either map, and
+introduces no window size to tune.
 
 \textbf{Edge supervision.} The additive branch is trained to reproduce the gradient that the backbone
 lost, measured with the Sobel operator $\nabla$,
@@ -72,135 +65,44 @@ lost, measured with the Sobel operator $\nabla$,
 \end{equation}
 
 \subsection{Optimisation schedule}
-The backbone is trained first on the training split with the squared error alone and is then frozen.
-Every result in this paper uses that frozen backbone without further change.
+The backbone is trained first, on the training split with the squared error alone, and is then
+frozen. The wrapper is then trained in two stages. Only the clinical terms are active at first, so
+the correctors learn a useful direction, and the fidelity term switches on at the midpoint, so they
+learn how far they may go. The learning rate groups, the optimiser settings, the full schedule and the procedure as a step by
+step algorithm are given in the supplementary file.
 
-The wrapper is then trained in two stages. In the first stage only the clinical terms are active, so
-the correctors learn to move the image in a useful direction. In the second stage the fidelity term
-is switched on, so the correctors learn how far they may go. The switch happens at the midpoint of
-the schedule. We use AdamW~\cite{loshchilov2019decoupled} with decoupled weight decay of $10^{-4}$,
-random crops of $96 \times 96$ pixels, and a batch of sixteen crops, reduced to eight for the two backbones with the largest memory footprint. Three learning rates are used, a
-lower one for the corrector networks and higher ones for the strength predictor and the rule layer,
-because the last two have far fewer parameters and therefore need larger steps to move at all.
-Algorithm~\ref{alg:training} states the procedure in full. The supplementary file repeats it with
-every constant filled in.
-
-\begin{algorithm}[t]
-\caption{Training the wrapper around a frozen backbone}
-\label{alg:training}
-\begin{algorithmic}[1]
-\Require frozen backbone $f$, paired set $\{(\mathbf{y},\mathbf{x})\}$, epochs $E$, dead zone $d$, seed
-\State seed every generator, then initialise the wrapper parameters $\phi$
-\State set each property threshold $\tau_i$ to its value from the clinical literature
-\State freeze $f$, and hold its normalisation statistics fixed for the whole run
-\For{epoch $=1$ to $E$}
-  \For{each batch of $96 \times 96$ crops}
-    \State $\mathbf{b} \gets f(\mathbf{y})$ \Comment{no update reaches $f$}
-    \State $\mathbf{u} \gets$ confidence map from the features of $f$
-    \State $s_i, \mathbf{m}_i \gets$ score and failure map of property $i$, for $i=1..6$
-    \State $\boldsymbol{\pi} \gets$ correction potential, and the gain and edge proposals
-    \State $\mathbf{a} \gets$ allocation from the rule layer applied to $s_1..s_6$
-    \State $\mathbf{g} \gets$ gate from the background rule, evaluated on $\mathbf{b}$
-    \State $\hat{\mathbf{x}} \gets \mathbf{b} + \mathbf{g} \odot \mathbf{a} \odot (\text{proposals})$
-    \If{epoch $\le E/2$}
-      \State $\mathcal{L} \gets \mathcal{L}_{\mathrm{clin}} + \mathcal{L}_{\mathrm{pred}}
-             + \mathcal{L}_{\mathrm{coop}} + \mathcal{L}_{\mathrm{edge}}$
-    \Else
-      \State $\mathcal{L} \gets \mathcal{L}_{\mathrm{clin}} + \mathcal{L}_{\mathrm{pred}}
-             + \mathcal{L}_{\mathrm{coop}} + \mathcal{L}_{\mathrm{edge}}
-             + \mathcal{L}_{\mathrm{fid}}(d)$
-    \EndIf
-    \State update $\phi$ with AdamW, three learning rate groups
-  \EndFor
-\EndFor
-\State \Return $\phi$
-\end{algorithmic}
-\end{algorithm}
-
-The clinical terms act alone in the first half of the schedule so that the correctors learn a useful
-direction before they are told how far they may go. The fidelity term with its dead zone $d$ enters
-in the second half and sets that distance. Holding the normalisation statistics of $f$ fixed matters
-more than it appears. One of the four backbones contains batch normalisation, and leaving those
-layers in training mode lets the reference against which every clinical change is measured drift
-while the wrapper is being fitted to it.
+Throughout both stages the normalisation statistics of $f$ are held fixed. DnCNN is the one backbone with batch normalisation, and left in training mode 45 of its
+buffers move during fitting, so the frozen reference against which every clinical change of that
+backbone is measured reads 30.68 dB and a boundary sharpness of 1.031 when the statistics are held
+fixed against 31.21 dB and 0.948 when they are not. The drift moves the result without touching the
+wrapper.
 
 \subsection{How the operating point was chosen}
 \label{sec:weight_selection}
-The terms of Equation~\eqref{eq:objective} carry fixed relative weights. Only one quantity in the
-objective is tuned, the fidelity dead zone $d$ of Equation~\eqref{eq:loss_fid}, together with one
-structural choice, the rule that decides where a correction is allowed to act. Everything else is
-held at the value stated in Table~\ref{tab:constants} for every backbone and every run. We state this
-plainly because a search over many weights would be hard to check and easy to overfit, and because
-one budget is enough. The dead zone is exactly the quantity a reader wants to control. It says how
-much fidelity the method is permitted to spend, and the rest of the objective then decides how to
-spend it.
-
-The selection runs on the validation split alone. For each backbone we train every setting at three
-random seeds and score all of them on the validation images. A setting is admissible only if it
-clears its bounds at its \emph{worst} seed rather than on average, so a setting cannot qualify by
-being fortunate once. Among the admissible settings we take the one with the largest lower confidence
-bound on its weakest clinical measure, which prefers a setting that is reliably good over one that is
-occasionally excellent. When no setting clears the first pair of bounds we relax them one step at a
-time and record which step was needed, so a backbone that required a looser condition is visible in
-the table rather than hidden by it.
-
-Two properties of this procedure matter more than the rule itself. The first is that the three seeds
-are fixed and every source of randomness is seeded, so a setting can be trained again and give the
-same model. On a graphics processor that holds up to the nondeterminism of the convolution kernels
-themselves, which we do not force to a deterministic choice because the cost is large. Two runs of
-one seed therefore agree closely rather than exactly, and the seed to seed spread we report is an
-upper bound on what a repeat would show. The second is that the checkpoints chosen on validation are the checkpoints scored on the
-test split. Nothing is retrained between selection and reporting. An earlier version of this work
-selected a setting on validation and then trained a fresh model with it, and because that training
-was not seeded the model in the tables was never the model that had been selected. The spread between
-two runs of one setting was larger than the spread between settings, which made the choice close to
-arbitrary and let a backbone pass on validation and fail on test. Reporting the selected weights
-directly removes that failure, and the seed to seed spread is now reported beside every number so a
-reader can see how much of a difference is real.
+The terms of Equation~\eqref{eq:objective} carry fixed relative weights. Two quantities are selected
+per backbone on the validation split, the fidelity dead zone $d$ of Equation~\eqref{eq:loss_fid} and
+the rule of Equation~\eqref{eq:gate} that decides where a correction may act, from the grid listed in
+the supplementary file, and everything else is held at the value stated in the constants table there
+for every backbone and every run. For each backbone every setting is trained at three random seeds
+and scored on the validation images. A setting is admissible only if it clears its bounds at its
+\emph{worst} seed rather than on average, and among the
+admissible settings we take the one with the largest lower confidence bound on its weakest clinical
+measure. When no setting clears the first pair of bounds we relax them one step at a time and record
+the step that was needed, so a backbone that required a looser condition is visible rather than
+hidden. The selected dead zone is 0.6 dB for NAFNet and 0.9 dB for the other three backbones, with
+the tissue bounded gate for NAFNet and the percentile gate for the others. Every source of randomness
+is seeded, up to the nondeterminism of the convolution kernels, the spread across seeds is reported
+where it is available, and the checkpoints chosen on validation are the checkpoints scored on test,
+with no retraining in between.
 
 \subsection{Initialisation and the choice of every constant}
 \label{sec:constants}
-Table~\ref{tab:constants} lists the constants that carry a design decision, where each acts, and how it was chosen. The remaining constants, namely the window sizes, the gate steepness, the crop size and the batch size, are structural and are listed in the supplementary file.
-We separate three cases. A constant marked \emph{measured} was set from a property of the data. A
-constant marked \emph{selected} was chosen on the validation split and never on the test split. A
-constant marked \emph{fixed} is a structural choice that was not tuned. Section~\ref{sec:sensitivity}
-reports how much the results move when the constants of the rule layer are changed, which is the
-direct test of whether any of them is doing hidden work.
-
-The networks use the default initialisation of their layers. Two exceptions are deliberate. The bias
-of the brightness head starts at a small positive value so that the multiplicative branch begins from
-a mild brightening rather than from zero, which avoids a flat region of the loss at the start of
-training. The threshold of each property starts at the value reported in the clinical literature for
-that property and is then free to move.
-
-\begin{table}[!tb]
-\centering
-\caption{Every constant in the method, where it acts and how it was chosen. Fixed means a structural
-choice that was not tuned. Measured means it is computed from the data at run time. Selected means it
-was chosen on the validation split and never on the test split. Learned means it is a parameter of
-the model.}
-\label{tab:constants}
-\setlength{\tabcolsep}{3pt}
-\footnotesize
-\begin{tabular}{llll}
-\toprule
-Constant & Value & Acts on & Origin \\
-\midrule
-$\alpha_{\max}$ & 0.15 & scale of the raw gain & selected \\
-gain bound & $\pm 0.20$ & Eq.~\eqref{eq:alpha} & selected \\
-gate percentile & 0.15 & Eq.~\eqref{eq:gate} & measured \\
-$\kappa$ & 10 & Eq.~\eqref{eq:soft_failure} & fixed \\
-$B_{\min}, B_{\max}$ & 0.25, 0.50 & base of Eq.~\eqref{eq:allocation} & fixed by budget \\
-$C_1 \ldots C_5$ & 0.15, 0.25, 0.15, 0.10, 0.10 & rule votes & fixed by budget \\
-$\tau_1 \ldots \tau_6$ & 0.6, 0.5, 0.75, 0.5, 0.3, 0.7 & Eq.~\eqref{eq:soft_failure} & learned \\
-$\beta, \theta_1 \ldots \theta_5$ & learned & Eq.~\eqref{eq:allocation} & learned \\
-energy tolerance & 0.10 & constraint one & selected \\
-Pareto tolerance & 0.10 & constraint two & selected \\
-change bound & 0.2 & constraint three & selected \\
-background blend & 0.5 & background smoothing & selected \\
-learning rates & $2{\times}10^{-4}$, $5{\times}10^{-4}$, $3{\times}10^{-4}$ & training & selected \\
-\bottomrule
-\end{tabular}
-\end{table}
+Every constant that carries a design decision is fixed, a structural choice that was not tuned,
+measured from a property of the data at run time, set once on the validation split while the method
+was being built, or learned by the objective. Only the two quantities of Section~\ref{sec:weight_selection} entered a
+grid search, and nothing was ever chosen on the test split. The full list, the two deliberate departures from default
+initialisation, and the structural constants are given in the supplementary file, and
+Section~\ref{sec:sensitivity} reports how much the results move when the constants of the rule layer
+are changed, the direct test of whether any of them does hidden work.
 
 

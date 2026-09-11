@@ -10,6 +10,7 @@ Math, labels, references, citations, URLs and the bibliography are exempt.
 usage  python3 revision/style_check.py path/to/file.tex
 """
 import re
+import os
 import sys
 
 EXEMPT_CMDS = r"\\(label|ref|eqref|cite|includegraphics|input|include|url|href|hypersetup|usepackage|documentclass|newtheorem|def|renewcommand|newcommand|bibitem|definecolor|setlength|resizebox|usetikzlibrary|markboth|doiinfo)\b"
@@ -85,4 +86,19 @@ def main(path):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1] if len(sys.argv) > 1 else "submission_ojcs/tj-template-s1.tex"))
+    import glob as _glob
+    args = sys.argv[1:]
+    if not args:
+        # No argument means check the whole manuscript, which is what a reader of
+        # the response letter will try. Pointing at a template that does not
+        # exist made the bare invocation crash.
+        here = os.path.dirname(os.path.abspath(__file__))
+        args = sorted(_glob.glob(os.path.join(here, "sections", "*.tex")))
+        args += sorted(_glob.glob(os.path.join(here, "supp", "sections", "*.tex")))
+        if not args:
+            print("no manuscript sources found next to this script")
+            sys.exit(2)
+    rc = 0
+    for a in args:
+        rc |= main(a)
+    sys.exit(rc)
