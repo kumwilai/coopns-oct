@@ -72,18 +72,20 @@
 \corresp{Correspondence withheld for double blind review.}
 
 \begin{abstract}
-A denoiser for optical coherence tomography minimises a pixel error, so it can raise fidelity while
-lowering the layer contrast and boundary sharpness a clinician reads. We repair those properties
-afterwards, with the denoiser frozen. Four things are new. Six clinical properties in closed form read
-the noisy input and the denoised output alone, each returning a score and a map of where it fails, so
-no clean image is needed at test time. Five fuzzy rules turn those maps into a per-pixel allocation
-whose response to a shift in evidence is bounded by an exact rather than a loose constant. A bounded
-proposal is admitted in proportion to how many of three constraints hold, we prove when contrast
-cannot fall, and every change traces to a named property at a named place. One set of rules and
-weights serves four denoisers, only a small head refitted. All six measures rise on two of them and
-five of six on the others, contrast by 3.5 to 11.3 percent, speckle suppression by 23.7 to 57.1 and
-signal to noise by 8.0 to 23.0, at 0.17 to 0.98 dB of fidelity. Carried unchanged to two other
-datasets, 40 of 48 measures improve.
+Optical coherence tomography is read through the contrast between retinal layers and the sharpness of
+their boundaries. A deep denoiser is trained on a pixel error instead, so it can raise fidelity and
+still hand back a scan that has lost them. Nothing sits between the denoiser and the reader to say
+what a good scan looks like and repair where one falls short. We make that repair a problem of its
+own, solved after denoising with the denoiser frozen. Four things are new. Six clinical properties in
+closed form read only the noisy input and the denoised output, each returning a score and a map of
+where it fails, so they need no clean image and run on any scanner. Five rules in fuzzy logic turn
+those maps into a per-pixel allocation, whose response to a shift in evidence we bound by an exact,
+attained constant. A bounded proposal is admitted in proportion to how many of three constraints
+hold, we prove when the correction cannot lower contrast, and every change traces to a named property
+at a named place. One set of rules, budgets and weights serves four denoisers of different families,
+only a small head refitted. All six measures rise on two of the four, five of six on the others,
+contrast by 3.5 to 11.3 percent, speckle suppression by 23.7 to 57.1 and signal to noise by 8.0 to
+23.0, at 0.17 to 0.98 dB of fidelity. Carried unchanged to two other datasets, 40 of 48 improve.
 \end{abstract}
 
 \begin{IEEEkeywords}

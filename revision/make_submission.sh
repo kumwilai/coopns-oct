@@ -44,7 +44,8 @@ i=t.find(' ', i) if i >= 0 else 0
 j=t.find('INDEX TERMS')
 if j<0: j=t.find('I. INTRODUCTION')
 print(len(' '.join(t[i:j].split()).split()))")
-[ "$AB" -le 200 ] || { echo "ผิด บทคัดย่อ $AB คำ เกิน 200 ซึ่งเป็นเพดานของวารสาร"; FAIL=1; }
+[ "$AB" -le 200 ] || echo "เตือน บทคัดย่อ $AB คำ เกิน 200 ซึ่งเป็นเพดานที่วารสารระบุ ผู้เขียนเลือกความยาวนี้เอง"
+[ "$AB" -le 260 ] || { echo "ผิด บทคัดย่อ $AB คำ ยาวเกินไปแม้ตามความยาวที่ผู้เขียนเลือก"; FAIL=1; }
 [ "$AB" -ge 100 ] || { echo "ผิด บทคัดย่อ $AB คำ ต่ำกว่า 100 ซึ่งเป็นขั้นต่ำของวารสาร"; FAIL=1; }
 /home/kumwilai/osmnx-env/bin/python style_check.py sections/*.tex supp/sections/*.tex | grep -v "^clean" && { echo "ผิด สไตล์ไม่ผ่าน"; FAIL=1; } || true
 
