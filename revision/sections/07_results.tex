@@ -60,9 +60,10 @@ twelve by as much as half a percent, and it is largest where the backbone leaves
 \includegraphics[width=0.72\textwidth]{figures/fig_subjective_pku37.pdf}
 \caption{The band where the NAFNet correction is largest, 56 by 136 pixels, marked on the thumbnail,
 one row per backbone. The eight gray cells share one display range set to the values they contain, so
-nothing is clipped, and the signed difference uses a fixed scale of plus or minus 0.06. The scatter
+nothing is clipped, and the signed change uses a fixed scale of plus or minus 0.06. The scatter
 places this image, ringed, among all 173 test images at three seeds for four backbones, with the
-twelve NAFNet points below zero marked.}
+twelve NAFNet points below zero marked. Contrast rises for every backbone and the fidelity it costs
+differs by more than a decibel between them.}
 \label{fig:subjective_pku37}
 \end{figure*}
 
@@ -137,7 +138,8 @@ layers, one row per backbone. Columns are the noisy input, the frozen backbone o
 output, the clean reference, and the signed change the wrapper made, blue where it raised the
 intensity and orange where it lowered it. The change concentrates on the layer boundaries and the
 tissue between them and is close to zero in the dark vitreous above. The right panel averages that
-change across the width, so the depth at which each backbone is corrected can be read directly.}
+change across the width, each curve in the colour of its row, so the depth at which each backbone is
+corrected can be read directly.}
 \label{fig:subjective_all}
 \end{figure*}
 
@@ -174,12 +176,11 @@ We perturb the rule truth values and compare the ratio of
 Equation~\eqref{eq:stability_def} with the constant of Equation~\eqref{eq:lipschitz}, and we measure
 the tissue gain, the background leakage and the ratio of background standard deviations against the
 hypotheses of Theorem~\ref{thm:cnr}. The bound holds with room to spare, \LipTheory{} against a
-largest measured ratio of \LipMeasured{} over \NImages{} images. The constant is exact for the
-allocation as a function of the rule truth values, so the gap is not slack in the proof. It says the
-perturbations a real image produces never reach the worst case the constant allows. The allocation
-map spans \AllocMin{} to \AllocMax{} with mean \AllocMean{}, and \AllocClamp{} percent of pixels sit
-at either end of its clamp, direct evidence that the rule layer does work after the repair of
-Section~\ref{sec:allocation_defect}.
+largest measured ratio of \LipMeasured{} over \NImages{} images. The constant is exact, so the gap is
+not slack in the proof. It says the perturbations a real image produces never reach the worst case
+the constant allows. The allocation map spans \AllocMin{} to \AllocMax{} with mean \AllocMean{}, and
+\AllocClamp{} percent of pixels sit at either end of its clamp, direct evidence that the rule layer
+does work after the repair of Section~\ref{sec:allocation_defect}.
 
 The margin condition holds on \CondMargin{} of \NImages{} images and the ratio condition on
 \CondSigma{}, but both together on only \CondBoth{}, and the theorem needs both. Where a hypothesis

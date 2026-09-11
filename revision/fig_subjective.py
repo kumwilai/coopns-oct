@@ -359,7 +359,7 @@ def main():
 
         fig = plt.figure(figsize=(7.16, 2.55))
         outer = fig.add_gridspec(1, 2, width_ratios=[3.0, 1.0], wspace=0.10,
-                                 left=0.035, right=0.99, top=0.91, bottom=0.03)
+                                 left=0.075, right=0.99, top=0.91, bottom=0.03)
 
         # ------------------------------------------------------------ LEFT BLOCK
         gsL = outer[0, 0].subgridspec(4, 4, width_ratios=[1, 1, 1, 0.06],
@@ -392,7 +392,7 @@ def main():
             ax0 = fig.add_subplot(gsL[i, 0])
             ax0.imshow(crop_b, cmap="gray", vmin=GLO, vmax=GHI, interpolation="nearest")
             style_img_ax(ax0)
-            row_label(ax0, bb)
+            row_label(ax0, bb, outside=True)
             if i == 0:
                 ax0.set_title(col_titles[0], fontsize=6.6, color=INK, pad=2)
 
@@ -546,9 +546,9 @@ def main():
     axP.tick_params(axis="both", labelsize=5.5, colors=INK2, length=2, pad=1)
     for sp in axP.spines.values():
         sp.set_edgecolor("#c9c8c3"); sp.set_linewidth(0.5)
-    # loc="best" put the key over the curves it labels
-    axP.legend(fontsize=5.3, frameon=False, loc="lower right", handlelength=1.2,
-              borderpad=0.15, labelspacing=0.16, borderaxespad=0.2)
+    # No legend. Wherever it was placed it sat on the curves it labelled, and it
+    # repeats what the row labels already say, each backbone name printed in its
+    # own colour beside its own row.
 
     save(fig, "fig_subjective_all")
     print(f"drew image {idx} (fig_subjective_all), crop {nh}x{nw}px")
