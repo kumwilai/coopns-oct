@@ -1,6 +1,19 @@
-outputs/
-figures/
-weights/*.pth
-data/*.tif
+# Weights and images are distributed separately, see README.md. Result files
+# (outputs/revision/*.json) and generated tables are tracked on purpose so every
+# number in the paper can be traced to the file that produced it.
+*.pth
+*.pt
+# The four correctors the revised paper reports are the exception. They are what
+# every table describes, so a reader should be able to inspect them without
+# fetching an archive.
+!checkpointpaper/selected/*.pth
+*.tif
+*.tiff
 __pycache__/
 *.pyc
+logs/
+pku37_oct_dataset/PKU37_OCT_Denoising
+duke_sota_datasets/Sparsity_SDOCT_DATASET_2012
+duke_sota_datasets/Duke2013_SBSDI
+revision/figures/*.png
+revision/figures/*.pdf

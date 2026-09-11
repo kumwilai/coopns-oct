@@ -1,0 +1,154 @@
+{
+  "nafnet": {
+    "config": "int_dz03",
+    "n_seeds": 3,
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "d_psnr_mean": -0.4091513086817015,
+    "d_psnr_worst": -0.4538699508912342,
+    "d_psnr_sd": 0.04725327704959927,
+    "clinical_mean": {
+      "CNR": 4.438941646420857,
+      "TCI": 11.243576069199015,
+      "EPI": 0.9010313142179063,
+      "BS": 3.677208685383632,
+      "ENL": 16.029787724305095,
+      "SNR": 6.107739606058966
+    },
+    "clinical_min": {
+      "CNR": 4.068729678617793,
+      "TCI": 9.769764903143543,
+      "EPI": 0.8413717518825058,
+      "BS": 2.9834621542914435,
+      "ENL": 14.574769322546457,
+      "SNR": 5.28534194059329
+    },
+    "worst_measure_min": 0.8413717518825058,
+    "worst_measure_mean": 0.9010313142179063,
+    "worst_measure_lcb": 0.8679502980943797,
+    "n_negative_worst_seed": 0,
+    "checkpoints": [
+      "outputs/revision/sw_nafnet_int_dz03_s0",
+      "outputs/revision/sw_nafnet_int_dz03_s1",
+      "outputs/revision/sw_nafnet_int_dz03_s2"
+    ],
+    "level": "strict"
+  },
+  "dncnn": {
+    "config": "int_dz09",
+    "n_seeds": 3,
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "d_psnr_mean": -0.971826397236353,
+    "d_psnr_worst": -1.1337623105852472,
+    "d_psnr_sd": 0.18702943061195182,
+    "clinical_mean": {
+      "CNR": 11.265561315272809,
+      "TCI": 0.4253702455786086,
+      "EPI": 3.979559750728473,
+      "BS": -1.4210293406217223,
+      "ENL": 52.70591154403096,
+      "SNR": 21.212438611353612
+    },
+    "clinical_min": {
+      "CNR": 10.642289202989627,
+      "TCI": -1.5138738502747708,
+      "EPI": 3.8299056699070246,
+      "BS": -2.1710113995041684,
+      "ENL": 45.12199053241493,
+      "SNR": 18.83079865326438
+    },
+    "worst_measure_min": -2.1710113995041684,
+    "worst_measure_mean": -1.4210293406217223,
+    "worst_measure_lcb": -1.9545233949037732,
+    "n_negative_worst_seed": 2,
+    "checkpoints": [
+      "outputs/revision/sw_dncnn_int_dz09_s0",
+      "outputs/revision/sw_dncnn_int_dz09_s1",
+      "outputs/revision/sw_dncnn_int_dz09_s2"
+    ],
+    "level": "none"
+  },
+  "swinir": {
+    "config": "int_dz09",
+    "n_seeds": 3,
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "d_psnr_mean": -0.16111944641760476,
+    "d_psnr_worst": -0.23266858273311228,
+    "d_psnr_sd": 0.06311390828369455,
+    "clinical_mean": {
+      "CNR": 7.30115641809573,
+      "TCI": 11.373612735010662,
+      "EPI": 2.7335351760312427,
+      "BS": 2.077725333687345,
+      "ENL": 25.541476183271634,
+      "SNR": 10.26896286815019
+    },
+    "clinical_min": {
+      "CNR": 6.511450928756995,
+      "TCI": 10.472482922563357,
+      "EPI": 2.542796704794329,
+      "BS": 1.5186033572904019,
+      "ENL": 24.401273597764327,
+      "SNR": 10.139257161453102
+    },
+    "worst_measure_min": 1.5186033572904019,
+    "worst_measure_mean": 2.077725333687345,
+    "worst_measure_lcb": 1.7726538583686298,
+    "n_negative_worst_seed": 0,
+    "checkpoints": [
+      "outputs/revision/sw_swinir_int_dz09_s0",
+      "outputs/revision/sw_swinir_int_dz09_s1",
+      "outputs/revision/sw_swinir_int_dz09_s2"
+    ],
+    "level": "strict"
+  },
+  "kbnet": {
+    "config": "int_dz09",
+    "n_seeds": 3,
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "d_psnr_mean": -0.9501237532408693,
+    "d_psnr_worst": -0.9925150342204744,
+    "d_psnr_sd": 0.06695907973817292,
+    "clinical_mean": {
+      "CNR": 7.096136776633357,
+      "TCI": 5.567338847714915,
+      "EPI": -0.011111120959178442,
+      "BS": 2.3713621489560683,
+      "ENL": 23.464310910072456,
+      "SNR": 7.618601286098327
+    },
+    "clinical_min": {
+      "CNR": 5.92672241919453,
+      "TCI": 4.29496627266051,
+      "EPI": -0.08588677685261327,
+      "BS": 1.1216805744969154,
+      "ENL": 22.046386221391067,
+      "SNR": 7.148749551552224
+    },
+    "worst_measure_min": -0.08588677685261327,
+    "worst_measure_mean": -0.011111120959178442,
+    "worst_measure_lcb": -0.048744630560986164,
+    "n_negative_worst_seed": 1,
+    "checkpoints": [
+      "outputs/revision/sw_kbnet_int_dz09_s0",
+      "outputs/revision/sw_kbnet_int_dz09_s1",
+      "outputs/revision/sw_kbnet_int_dz09_s2"
+    ],
+    "level": "none"
+  }
+}

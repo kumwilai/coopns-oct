@@ -1,0 +1,154 @@
+{
+  "nafnet": {
+    "config": "otsu_dz09",
+    "n_seeds": 3,
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "d_psnr_mean": -0.2457686758839114,
+    "d_psnr_worst": -0.3890014548946109,
+    "d_psnr_sd": 0.12461309944017002,
+    "clinical_mean": {
+      "CNR": 3.3445910729183663,
+      "TCI": 1.1400171373098724,
+      "EPI": 1.3869145919910997,
+      "BS": 5.040555901768482,
+      "ENL": 19.695451159677376,
+      "SNR": 10.142391933745145
+    },
+    "clinical_min": {
+      "CNR": 3.1325245068854963,
+      "TCI": 0.8043056808937229,
+      "EPI": 1.325414613572234,
+      "BS": 4.536252348833268,
+      "ENL": 19.271920494438703,
+      "SNR": 10.084005546405914
+    },
+    "worst_measure_min": 0.8043056808937229,
+    "worst_measure_mean": 1.0203472461505239,
+    "worst_measure_lcb": 0.8634684978365649,
+    "n_negative_worst_seed": 0,
+    "checkpoints": [
+      "outputs/revision/sw_nafnet_otsu_dz09_s0",
+      "outputs/revision/sw_nafnet_otsu_dz09_s1",
+      "outputs/revision/sw_nafnet_otsu_dz09_s2"
+    ],
+    "level": "strict"
+  },
+  "dncnn": {
+    "config": "otsu_dz09",
+    "n_seeds": 3,
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "d_psnr_mean": -0.14308034799933936,
+    "d_psnr_worst": -0.4774571089126091,
+    "d_psnr_sd": 0.3552387939372943,
+    "clinical_mean": {
+      "CNR": 4.799256172791015,
+      "TCI": -5.974378455665295,
+      "EPI": 4.870246645444494,
+      "BS": -5.056124847379712,
+      "ENL": 35.28570874889644,
+      "SNR": 16.019400177966514
+    },
+    "clinical_min": {
+      "CNR": 3.4819290081888075,
+      "TCI": -8.915856378617379,
+      "EPI": 4.628069200736742,
+      "BS": -7.202210248031116,
+      "ENL": 33.90597955477932,
+      "SNR": 15.785440088191734
+    },
+    "worst_measure_min": -8.915856378617379,
+    "worst_measure_mean": -6.081787497189273,
+    "worst_measure_lcb": -7.502078082813751,
+    "n_negative_worst_seed": 2,
+    "checkpoints": [
+      "outputs/revision/sw_dncnn_otsu_dz09_s0",
+      "outputs/revision/sw_dncnn_otsu_dz09_s1",
+      "outputs/revision/sw_dncnn_otsu_dz09_s2"
+    ],
+    "level": "none"
+  },
+  "swinir": {
+    "config": "otsu_dz09",
+    "n_seeds": 3,
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "d_psnr_mean": 0.28828676527329195,
+    "d_psnr_worst": 0.22704060547904745,
+    "d_psnr_sd": 0.099169199269719,
+    "clinical_mean": {
+      "CNR": 7.165689678560739,
+      "TCI": 3.5191873863527032,
+      "EPI": 4.787146476697728,
+      "BS": -1.6432198479809896,
+      "ENL": 33.720059082756315,
+      "SNR": 15.322129448880982
+    },
+    "clinical_min": {
+      "CNR": 6.2185659802853674,
+      "TCI": 2.082564206025579,
+      "EPI": 4.622896255872212,
+      "BS": -3.050282217439439,
+      "ENL": 32.766924219102215,
+      "SNR": 15.172091256698325
+    },
+    "worst_measure_min": -3.050282217439439,
+    "worst_measure_mean": -1.6432198479809896,
+    "worst_measure_lcb": -2.3569609481725613,
+    "n_negative_worst_seed": 1,
+    "checkpoints": [
+      "outputs/revision/sw_swinir_otsu_dz09_s0",
+      "outputs/revision/sw_swinir_otsu_dz09_s1",
+      "outputs/revision/sw_swinir_otsu_dz09_s2"
+    ],
+    "level": "none"
+  },
+  "kbnet": {
+    "config": "otsu_dz09",
+    "n_seeds": 3,
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "d_psnr_mean": -0.18564975620796792,
+    "d_psnr_worst": -0.25809199962264895,
+    "d_psnr_sd": 0.07122751316225258,
+    "clinical_mean": {
+      "CNR": 0.7918623696649626,
+      "TCI": -1.2112871306076187,
+      "EPI": 0.23572308012444276,
+      "BS": 1.9145866575247619,
+      "ENL": 4.276832104591837,
+      "SNR": 1.9200529994931204
+    },
+    "clinical_min": {
+      "CNR": 0.07422161669498999,
+      "TCI": -1.9972180279950036,
+      "EPI": 0.21175492808058397,
+      "BS": 1.2214098002538596,
+      "ENL": 4.0948041470419705,
+      "SNR": 1.750966826437975
+    },
+    "worst_measure_min": -1.9972180279950036,
+    "worst_measure_mean": -1.2112871306076187,
+    "worst_measure_lcb": -1.7725414417183196,
+    "n_negative_worst_seed": 1,
+    "checkpoints": [
+      "outputs/revision/sw_kbnet_otsu_dz09_s0",
+      "outputs/revision/sw_kbnet_otsu_dz09_s1",
+      "outputs/revision/sw_kbnet_otsu_dz09_s2"
+    ],
+    "level": "none"
+  }
+}

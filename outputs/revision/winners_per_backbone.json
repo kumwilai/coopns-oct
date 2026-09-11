@@ -1,0 +1,30 @@
+{
+  "nafnet": {
+    "config": "soft",
+    "level": 0,
+    "d_psnr": -0.436,
+    "worst_clinical": 0.82,
+    "args": "--clinical_weight 1.5 --tci_weight 5.0  --psnr_dead_zone 0.3 --cnr_weight 1.0"
+  },
+  "dncnn": {
+    "config": "strong",
+    "level": 0,
+    "d_psnr": -0.712,
+    "worst_clinical": 0.67,
+    "args": "--clinical_weight 5.0 --tci_weight 9.0  --psnr_dead_zone 0.9 --cnr_weight 2.0"
+  },
+  "kbnet": {
+    "config": "strong",
+    "level": 2,
+    "d_psnr": -0.488,
+    "worst_clinical": 0.1,
+    "args": "--clinical_weight 5.0 --tci_weight 9.0  --psnr_dead_zone 0.9 --cnr_weight 2.0"
+  },
+  "swinir": {
+    "config": "mid",
+    "level": 3,
+    "d_psnr": -2.049,
+    "worst_clinical": 4.85,
+    "args": "--clinical_weight 3.0 --tci_weight 6.0  --psnr_dead_zone 0.6 --cnr_weight 1.5"
+  }
+}
