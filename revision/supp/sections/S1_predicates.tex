@@ -51,7 +51,15 @@ $\operatorname{Var}_7(e(\mathbf{b}))/(\max \operatorname{Var}_7(e(\mathbf{b}))+\
 {\footnotesize
 \textbf{Subterms.}
 $P_1$.
-$c_{\text{cont}}=\langle\operatorname{erode}(\operatorname{dilate}(b_e)),b_e\rangle/(\|b_e\|_1+\varepsilon)$,
+$c_{\text{cont}}=\langle\operatorname{erode}(\operatorname{dilate}(b_e)),b_e\rangle/(\|b_e\|_1+\varepsilon)$
+carries no information and we say so rather than leave a reader to derive it. Erosion after dilation
+by the same $3\times3$ element is a morphological closing, which contains the set it closes, so the
+inner product equals $\|b_e\|_1$ and the ratio is one wherever the closing is defined. Measured on
+$256\times256$ fields it reads $0.952$, and every pixel of the shortfall lies on the two pixel border,
+where the zero padding erodes the dilated set. Restricted to the interior it is exactly $1$. The
+subterm therefore contributes a constant near $0.4$ to $P_1$ and the score varies only through
+$c_{\text{efr}}$ and $c_{\text{ang}}$. The failure map of $P_1$ does not read it at all, so the
+allocation is unaffected,
 $c_{\text{efr}}=\exp(-5|r_e-0.2|)$ with
 $r_e=\|\mathbf{1}[e>1.5\bar e]\|_1/(\|\mathbf{1}[e<0.5\bar e]\|_1+\varepsilon)$,
 and $c_{\text{ang}}=\exp(-2\,\operatorname{mean}(\sigma_5(\theta)))$ with $\theta$ the Sobel edge angle of $\mathbf{b}$.
@@ -62,19 +70,26 @@ $s_{\text{var}}=\max(0.2,\operatorname{sigm}(-20(v_\sigma-0.02)+2))$ with $v_\si
 and $s_{\text{cov}}=\operatorname{sigm}(5(\gamma-0.4))$ with $\gamma=\operatorname{mean}(\mathbf{1}[\sigma_9(\mathbf{b})>0.3\bar\sigma])$.
 $P_3$.
 $F=\mathbf{1}[e<0.3\bar e]$,
-$q_{\text{var}}=1-\langle F,\sigma_5(\mathbf{b})/(\sigma_5(\mathbf{y})+\varepsilon)\rangle/(\|F\|_1+\varepsilon)$,
+$q_{\text{var}}=\operatorname{clip}\big(1-\langle F,\sigma_5(\mathbf{b})/(\sigma_5(\mathbf{y})+\varepsilon)\rangle/(\|F\|_1+\varepsilon),0,1\big)$,
+the clip being necessary because the variance ratio may exceed one and leave the subterm negative,
 and $q_{\text{res}}=\exp(-5\,\operatorname{mean}|\mathbf{y}-\mathbf{b}|)$.
 $P_4$.
-$s_{\text{self}}$ is the mean Pearson correlation between $\mathbf{b}$ and its shifts by $(0,2)$, $(2,0)$ and $(2,2)$ pixels,
+$s_{\text{self}}$ is the mean Pearson correlation between $\mathbf{b}$ and its shifts by $(0,2)$,
+$(2,0)$ and $(2,2)$ pixels, each clipped to $[-1,1]$ and the mean then clipped to $[0,1]$, since a
+correlation may be negative,
 $s_{\text{reg}}=\exp(-12\,\operatorname{mean}(e(e)))$,
 and $s_{\text{vert}}=\operatorname{clip}(\max |\nabla_z v(\mathbf{b})|/(8\,\operatorname{mean}|\nabla_z v(\mathbf{b})|),0,1)$.
 $P_5$.
 $z=\log(\mathbf{y}+\varepsilon)-\log(\mathbf{b}+\varepsilon)$,
 $cv=\sigma_{15}(|z|)/(\mu_{15}(|z|)+\varepsilon)$ with $\mu_{15}$ the local mean,
-and $cv^\star(d) = 1/\sqrt{k(d)}$ is the coefficient of variation of fully developed speckle under a
-Gamma model with shape $k(d)$, taken piecewise in relative axial depth as $k = 2.5$ above $0.20$,
-$4.0$ to $0.50$, $10.0$ to $0.75$ and $1.5$ below, giving targets of $0.63$, $0.50$, $0.32$ and
-$0.82$.
+and $cv^\star(d) = 1/\sqrt{k(d)}$ with $k(d)$ taken piecewise in relative axial depth as $k = 2.5$
+above $0.20$, $4.0$ to $0.50$, $10.0$ to $0.75$ and $1.5$ below, giving targets of $0.63$, $0.50$,
+$0.32$ and $0.82$. We are careful about what this target is. $1/\sqrt{k}$ is the coefficient of
+variation of a Gamma variable of shape $k$, which is the standard model of fully developed speckle
+intensity, whereas $cv$ above is measured on $|z|$, the absolute log domain residual. A coefficient of
+variation does not survive that nonlinear transform, so $cv^\star$ is a speckle motivated target with
+the right depth ordering and not a quantity derived from the Gamma model. It sets where the property
+is satisfied, and the depth dependence is the part of it that carries the physics.
 $P_6$.
 $s_{\text{clr}}=\operatorname{mean}(\operatorname{clip}(\max |\nabla_z v(\mathbf{b})|/(10\,\operatorname{mean}|\nabla_z v(\mathbf{b})|),0,1))$,
 $s_{\text{dep}}=\operatorname{clip}(20\,\operatorname{Var}(v(\mathbf{b})),0,1)$,

@@ -7,12 +7,14 @@
 Let $\mathbf{x}$ be the clean reference, $\mathbf{b}$ the backbone output and $\hat{\mathbf{x}}$ the
 wrapper output. The objective of Equation~\eqref{eq:objective} has the following terms.
 
-\textbf{Fidelity.} Let $\Delta = \mathrm{PSNR}(\mathbf{b}) - \mathrm{PSNR}(\hat{\mathbf{x}})$ be the
-drop against the backbone in decibels and $\Delta_s$ the corresponding drop in the structural
-similarity index~\cite{wang2004image}. Neither is charged until it exceeds a dead zone,
+\textbf{Fidelity.} Let $D = \mathrm{PSNR}(\mathbf{b}) - \mathrm{PSNR}(\hat{\mathbf{x}})$ be the drop
+against the backbone in decibels and $D_s$ the corresponding drop in the structural similarity
+index~\cite{wang2004image}, both taken against the clean reference $\mathbf{x}$. The symbol is $D$, since
+Equation~\eqref{eq:alpha} already uses $\Delta$ for the gain map. Neither is charged until it exceeds
+a dead zone,
 \begin{equation}
-\mathcal{L}_{\mathrm{fid}} = 5\,[\Delta - d]_+ + 15\,[\Delta - d - 0.4]_+^2
- + 20\,[\Delta_s - 0.005]_+ ,
+\mathcal{L}_{\mathrm{fid}} = 5\,[D - d]_+ + 15\,[D - d - 0.4]_+^2
+ + 20\,[D_s - 0.005]_+ ,
 \label{eq:loss_fid}
 \end{equation}
 where $[\cdot]_+$ is the positive part. The term is flat while the drop stays below $d$ decibels,
@@ -21,10 +23,9 @@ one expensive. The dead zone $d$ is one of the two quantities selected per backb
 Section~\ref{sec:weight_selection}.
 
 \textbf{Clinical improvement.} This term charges the wrapper only when a measure falls short of a
-target taken from the backbone, so a gain in one measure cannot be bought by a collapse in another.
-Let $q_m$ be the value of quantity $m$ on the wrapper output and $t_m = \kappa_m q_m(\mathbf{b})$ the
-target, the backbone value of the same quantity scaled by a fixed factor. Writing
-$\varepsilon_m = t_m - q_m$,
+target, so a gain in one cannot be bought by a collapse in another. Let $q_m$ be quantity $m$ on the
+wrapper output and $t_m = \kappa_m q_m(\mathbf{b})$ its target, the backbone value scaled by a fixed
+factor. Writing $\varepsilon_m = t_m - q_m$,
 \begin{equation}
 \mathcal{L}_{\mathrm{clin}} = \frac{1}{\sum_m w_m} \sum_{m \in M} w_m
  \Big( 3[\varepsilon_m]_+ + [\varepsilon_m]_+^2 + \tfrac{1}{2} s_m \varepsilon_m^2 \Big).
@@ -32,15 +33,16 @@ $\varepsilon_m = t_m - q_m$,
 \end{equation}
 The set $M$ holds nine quantities, the three preservation scores of local contrast, boundary gradient
 and texture, then EPI, CNR, BS, ENL, SNR and the ratio of the backbone squared error to the wrapper
-squared error. Their weights $w_m$ are 1, 5, 1, 15, 40, 5, 8, 40 and 10 and their factors $\kappa_m$
-are 1.12, 1.12, 1.00, 1.05, 1.20, 1.12, 1.10, 1.15 and 0.87, the last allowing about six tenths of a
-decibel. The indicator $s_m$ is one for ENL, SNR and the squared error ratio, a symmetric pull that
-holds those three near target. None of the nine is used at test time.
+squared error, each defined in the supplementary file with its window, mask and reduction. Their
+weights $w_m$ are 1, 5, 1, 15, 40, 5, 8, 40 and 10 and their factors $\kappa_m$ are 1.12, 1.12, 1.00,
+1.05, 1.20, 1.12, 1.10, 1.15 and 0.87, the last allowing about six tenths of a decibel. The indicator
+$s_m$ is one for ENL, SNR and the squared error ratio, a symmetric pull holding those three near
+target. None of the nine is used at test time.
 
 \textbf{Preservation scores.} This term acts on four scores $g_j$ separate from the six properties of
-Table~\ref{tab:predicates}, comparing corrected against backbone on local contrast, the gradient
-across layer boundaries, the local variance carrying texture and the gradient magnitude at edges.
-With $\delta_j = g_j(\hat{\mathbf{x}}) - g_j(\mathbf{b})$, the backbone value fixed,
+Table~\ref{tab:predicates}, comparing corrected against backbone on local contrast, the boundary
+gradient, the local variance carrying texture and the edge magnitude. With
+$\delta_j = g_j(\hat{\mathbf{x}}) - g_j(\mathbf{b})$, the backbone value fixed,
 \begin{equation}
 \mathcal{L}_{\mathrm{pred}} = \sum_{j=1}^{4} v_j \Big( 3[-\delta_j]_+ - 2.5[\delta_j]_+
  + 2\big[\tfrac{1}{2} - g_j(\hat{\mathbf{x}})\big]_+ \Big) ,
@@ -48,9 +50,9 @@ With $\delta_j = g_j(\hat{\mathbf{x}}) - g_j(\mathbf{b})$, the backbone value fi
 \end{equation}
 where $v_j$ is 3, 2, 2 and 1 in that order. A drop costs more than a rise earns, and any score below
 one half is charged again. The thresholds $\tau_i$ play no part here. They enter
-Equation~\eqref{eq:soft_failure}, but that comparison is evaluated in a module whose output reaches
-the objective only through detached quantities, so no gradient path reaches $\tau_i$ and all six
-hold their Table~\ref{tab:predicates} values throughout training. This is not true of the rule layer
+Equation~\eqref{eq:soft_failure}, evaluated in a module whose output reaches the objective only
+through detached quantities, so no gradient path reaches $\tau_i$ and all six hold their
+Table~\ref{tab:predicates} values throughout training. This is not true of the rule layer
 as a whole. The base level $\beta$ and the rule weights $\theta_k$ of
 Equation~\eqref{eq:allocation} are differentiable and do receive gradients, which
 Section~\ref{sec:gradient_audit} measures parameter by parameter.
@@ -62,8 +64,10 @@ summed proposal strength the rule layer reads, and penalize disagreement,
 \mathcal{L}_{\mathrm{coop}} = \tfrac{1}{2}\,\mathrm{ReLU}\big(1 - \rho(\mathbf{u}, \boldsymbol{\pi})\big).
 \label{eq:loss_coop}
 \end{equation}
-The Pearson correlation is differentiable everywhere, invariant to an affine change of either map and
-free of any window size to tune.
+Each map is first rescaled to $[0,1]$ by its own minimum and maximum, so the term is invariant to a
+positive affine change of either but not to a negative one, which reverses the sign. The correlation
+is undefined for a constant map, where the implementation returns a zero loss, the one place this
+term is not differentiable.
 
 \textbf{Edge supervision.} The additive branch is trained to reproduce the gradient that the backbone
 lost, measured with the Sobel operator $\nabla$ and weighted toward the places where the clean
@@ -82,30 +86,35 @@ magnitude divided by its own maximum. With $\delta = [1.05\,\mathrm{EPI}(\mathbf
 \label{eq:loss_edge}
 \end{equation}
 The first part is the gradient the correction must restore, the second compares normalized edge
-magnitude, which is insensitive to overall brightness, and the third refuses an edge preservation
-index below five percent above the backbone.
+magnitude, and the third refuses an edge preservation index below five percent above the backbone.
 
-\textbf{Bounds and background protection.} The last term collects the constants that keep the change
-small, smooth and confined. Let $a$ be the mean absolute change over the upper half of the image, $e$
-the mean absolute output of the additive edge branch, $\sigma_B$ the standard deviation over the lower
-quarter, $\mu_T$ the mean over the upper half and $\mathbf{m}$ a soft mask on intensities below the
-fifteenth percentile of the backbone output,
+\textbf{Bounds and background protection.} The last term keeps the change small, smooth and
+confined. Let $g$ be the mean absolute change over the upper half of the
+image, named $g$ because Equation~\eqref{eq:allocation} already uses $a$, let $e$ be the mean
+absolute output of the edge branch, and $\mathbf{m}$ a soft mask below the fifteenth percentile of
+the backbone output. Here $\sigma_R$ and $\mu_U$ are taken over the lower quarter and the upper half
+of the frame, fixed bands and not the anatomical sets $\mathcal{T}$ and $\mathcal{B}$ of
+Theorem~\ref{thm:cnr},
 \begin{equation}
 \begin{split}
-\mathcal{L}_{\mathrm{reg}} = \;&40[0.002 - a]_+ + 200[a - 0.006]_+^2
- + 2\,\overline{\lVert \nabla \boldsymbol{\alpha} \rVert} \\
- &+ 30[e - 0.06]_+^2
- + 80\big[\sigma_B(\hat{\mathbf{x}}) - 0.75\,\sigma_B(\mathbf{b})\big]_+ \\
- &+ 100\Big[\tfrac{\sigma_B(\hat{\mathbf{x}})}{\sigma_B(\mathbf{b})} - 0.95\Big]_+
- + 150\Big[0.99 - \tfrac{\mu_T(\hat{\mathbf{x}})}{\mu_T(\mathbf{b})}\Big]_+ \\
- &+ 2\,\overline{\lvert \hat{\mathbf{x}} - \mathbf{b} \rvert \odot \mathbf{m}} ,
+\mathcal{L}_{\mathrm{reg}} = \;&\min\big(40[0.002 - g]_+,\, 5\big) \\
+ &+ \min\big(200[g - 0.006]_+^2,\, 5\big) \\
+ &+ 2\,\overline{\lVert \nabla \boldsymbol{\alpha} \rVert}
+ + 30[e - 0.06]_+^2 \\
+ &+ 80\big[\sigma_R(\hat{\mathbf{x}}) - 0.75\,\sigma_R(\mathbf{b})\big]_+ \\
+ &+ 100\Big[\tfrac{\sigma_R(\hat{\mathbf{x}})}{\sigma_R(\mathbf{b})} - 0.95\Big]_+ \\
+ &+ 150\Big[0.99 - \tfrac{\mu_U(\hat{\mathbf{x}})}{\mu_U(\mathbf{b})}\Big]_+
+ + 2\,\overline{\lvert \hat{\mathbf{x}} - \mathbf{b} \rvert \odot \mathbf{m}} ,
 \end{split}
 \label{eq:loss_reg}
 \end{equation}
-where a bar denotes the mean over pixels and the first two parts are clipped at five. The floor stops
-the wrapper learning to do nothing and the ceiling stops it overshooting fidelity, the third keeps the
-allocation map smooth so it leaves no Sobel trace of its own, the fourth bounds the edge branch, and
-the last three hold the background noise and the tissue brightness.
+where a bar denotes the mean over pixels. Every squared norm in Equations~\eqref{eq:loss_edge}
+and~\eqref{eq:loss_reg} is likewise a mean over pixels and over the batch, not a sum, so no term
+changes scale with the crop size. The floor stops the wrapper
+learning to do nothing and the ceiling stops it overshooting fidelity, the third keeps the admitted
+gain $\boldsymbol{\alpha}$ of Equation~\eqref{eq:alpha} smooth, not the allocation, so the correction
+leaves no Sobel trace of its own, the fourth bounds the edge branch, and the last three hold the
+background noise and the tissue brightness.
 
 \subsection{Schedule, selection and constants}
 \label{sec:paired_data}
@@ -221,7 +230,7 @@ twelve by as much as half a percent, and it is largest where the backbone leaves
 
 \begin{figure*}[!tb]
 \centering
-\includegraphics[width=0.66\textwidth]{figures/fig_subjective_pku37.pdf}
+\includegraphics[width=0.62\textwidth]{figures/fig_subjective_pku37.pdf}
 \caption{The band where the NAFNet correction is largest, 56 by 136 pixels, marked on the thumbnail,
 one row per backbone. The eight gray cells share one display range set to the values they contain, so
 nothing is clipped, and the signed change uses a fixed scale of plus or minus 0.06. The scatter
@@ -298,7 +307,7 @@ equalization also costs 4.4 dB.
 
 \begin{figure*}[!tb]
 \centering
-\includegraphics[width=0.70\textwidth]{figures/fig_subjective_all.pdf}
+\includegraphics[width=0.66\textwidth]{figures/fig_subjective_all.pdf}
 \caption{The same PKU37 test image at full resolution, a 120 by 300 pixel region spanning the retinal
 layers, one row per backbone. Columns are the noisy input, the frozen backbone output, the corrected
 output, the clean reference, and the signed change the wrapper made, blue where it raised the
@@ -338,18 +347,17 @@ Columns as in Table~\ref{tab:pku37} without the backbone column, which is the sa
 \subsection{Do the theory and the rule layer hold up on real data}
 \label{sec:theory_check}
 \label{sec:gradient_audit}
-\emph{Which parameters actually train.} A varying allocation map does not by itself show that the rule weights were learned, since fixed
-coefficients on varying inputs look the same. We therefore ran one training step on the selected
-model and read the gradient of every parameter of the rule layer. The base level $\beta$ and the
-weights of rules one to four carry a gradient, and their values in the four checkpoints differ from
-the ones they were initialized with, by as much as 1.49 in $\beta$. Rule five is the exception. Its
-weight has no gradient path and holds its initial value in all four, because the conflict it tests
-for arises only when more than one corrector proposes at a pixel, which does not happen in the
-configuration reported here. The six thresholds $\tau_i$ likewise have no gradient path, which is why
-they hold their literature values. Rule five therefore contributes nothing to the allocation, so the
+\emph{Which parameters actually train.} A varying allocation map does not by itself show the rule weights were learned, since fixed
+coefficients on varying inputs look the same. We ran one training step on the selected model and read
+the gradient of every rule layer parameter. The base level $\beta$ and the weights of rules one to
+four carry a gradient, and their values in the four checkpoints differ from what they were restored
+with, by as much as 1.49 in $\beta$. Rule five is the exception. Its weight has no gradient path and
+holds its initial value in all four, because the conflict it tests for needs more than one corrector
+proposing at a pixel, which does not arise here. The thresholds $\tau_i$ likewise have no gradient
+path, which is why they hold their literature values. Rule five therefore contributes nothing, so the
 exact constant over the truth values the method produces is the four rule sum, \LipTheory{}, while
 the five rule sum of Theorem~\ref{thm:stability} over all of $[0,1]^5$ gives 0.6014. We report the
-first, because it describes the model that produced every number here.
+first, since it describes the model that produced every number here.
 
 \emph{Whether the conditions hold.} We perturb the rule truth values and compare the ratio of
 Equation~\eqref{eq:stability_def} with the constant of Equation~\eqref{eq:lipschitz}, and measure the
@@ -362,14 +370,13 @@ does work after the repair of Section~\ref{sec:allocation_defect}.
 
 The margin condition holds on \CondMargin{} of \NImages{} images and the ratio condition on
 \CondSigma{}, and both together on \CondBoth{}. Those \CondBoth{} are the images on which the two
-conditions we measure per image hold jointly, not a count of images on which the whole theorem
-applies, since the fixed set assumption and the non negative numerator are properties of the
-decomposition rather than quantities we evaluate image by image. Where a hypothesis fails the
-theorem predicts nothing, and the measured contrast change there does not differ systematically in
-sign, so the conditions are sufficient and not necessary. Both leakage terms sit
+conditions we measure hold jointly, not a count on which the whole theorem applies, since its other
+hypotheses are properties of the decomposition and not quantities we evaluate per image. Where a
+hypothesis fails the theorem predicts nothing, and the contrast change there does not differ
+systematically in sign, so the conditions are sufficient and not necessary. Both leakage terms sit
 far below the mean absolute change over the image, \GlobalChange{}, at \EtaT{} in tissue and \EtaB{}
-in background, and the per image sign is the direction the decomposition assumes on \EtaTPos{} and
-\EtaBNeg{} of \NImages{} images.
+in background, with the per image sign the direction the decomposition assumes on \EtaTPos{} and
+\EtaBNeg{} of \NImages{}.
 
 \subsection{Safety, and whether the correction invents structure}
 \label{sec:safety_check}

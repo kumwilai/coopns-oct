@@ -84,6 +84,35 @@ describe, the per cell seed spreads of Tables 3 and 4, and a restatement of the 
 - The 173 test pairs come from five clean image identities, which the measures paragraph now says.
 - The loss weights are now given numerically, and the inactive learned weight path is disclosed.
 
+## Round three, second pass, the predicates and the objective read against the code
+
+- The $P_1$ continuity subterm carries no information. Erosion after dilation by the same element is
+  a closing, which contains the set it closes, so the inner product equals the edge count and the
+  ratio is one. Measured on 256 by 256 fields it reads 0.952 and every pixel of the shortfall is on
+  the zero padded border. In the interior it is exactly 1. The supplement now says so, and says the
+  score varies only through the other two subterms while the failure map does not read it at all.
+- $P_3$ and $P_4$ do not reach the unit interval by construction. The variance ratio of $P_3$ may
+  exceed one and the correlation in $P_4$ may be negative. Both are clipped in the code and the
+  clips are now printed.
+- The $P_5$ target is measured on the absolute log residual while $1/\sqrt{k}$ is the coefficient of
+  variation of a Gamma variable. A coefficient of variation does not survive that transform, so the
+  target is now called speckle motivated with the right depth ordering rather than derived.
+- The objective is optimized at the candidate and not at the output. The acceptance rule is skipped
+  whenever the model is in training mode.
+- The constraints do not enter training at all. The paper said they enter as penalties. No term of
+  the loss stands in for them, and the verifier that evaluates them is called from one place, inside
+  the branch that training skips.
+- Symbols that collided are separated. The scalar fidelity drop is $D$ rather than $\Delta$, which
+  is the gain map, the mean absolute change in Equation 19 is $g$ rather than $a$, which is the
+  allocation, and the fixed image bands are $\sigma_R$ and $\mu_U$ rather than the anatomical sets of
+  Theorem 2. The smoothness penalty acts on the admitted gain, not the allocation.
+- Every squared norm in the loss is a mean over pixels and the batch, now stated, and the clipping of
+  the first two penalties is printed in the equation rather than described after it.
+- The Pearson term is not differentiable everywhere. It is undefined for a constant map, where the
+  code returns zero, and its invariance is to positive rescaling only.
+- The nine quantities of the clinical term and the exact selection rule are now written out in the
+  supplement, since the main paper points at both.
+
 ## Third party review, round three, settled against the code
 
 - The manuscript explained the fixed thresholds by saying the rule layer runs without gradient

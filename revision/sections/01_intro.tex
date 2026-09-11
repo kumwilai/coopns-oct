@@ -29,8 +29,8 @@ The new ideas are four. Edge filters, gating maps and fuzzy operators are not am
 \begin{enumerate}
 \item \textbf{Six clinical properties that need no clean image.}
 Section~\ref{sec:predicates} defines six properties computed from the noisy input and the denoiser
-output alone, so they are available on any scanner at test time. Each returns a score for the whole
-image and a map of where it fails, both as formulas.
+output alone, so they run on any scanner at test time. Each returns a score for the image and a map
+of where it fails, both as formulas.
 
 \item \textbf{A rule layer whose decision cannot jump.}
 Section~\ref{sec:negotiator} builds the allocation from five rules joined by a conjunction with
@@ -39,16 +39,14 @@ rule layer itself fixes, and Section~\ref{sec:theory_check} measures the respons
 actually produce against it.
 
 \item \textbf{A safety layer that decides how much of a proposal to keep.}
-Section~\ref{sec:safety} states three constraints at three scales, and how many of them hold sets the
-fraction of the proposed change that is applied. Section~\ref{sec:cnr_guarantee} proves a margin
-condition under which the correction cannot lower the contrast to noise ratio, and
-Section~\ref{sec:theory_check} tests it on every test image.
+Section~\ref{sec:safety} states three constraints at three scales, and how many hold sets the
+fraction of the change applied. Section~\ref{sec:cnr_guarantee} proves a margin condition under which
+contrast cannot fall, tested on every test image.
 
 \item \textbf{One design for four denoisers.}
-Only the head that reads backbone features changes with the backbone. The rules, the budgets, the
-thresholds and the loss weights do not, the shared wrapper is a small fraction of the denoiser it is
-attached to, and Section~\ref{sec:results_ood} carries it to two other datasets with no adaptation at
-all.
+Only the head that reads backbone features changes with the backbone, while the rules, budgets,
+thresholds and loss weights do not, and Section~\ref{sec:results_ood} carries the fitted wrapper to
+two other datasets with nothing refitted.
 \end{enumerate}
 
 \subsection{Related work}
@@ -65,10 +63,10 @@ quality but does not act on it. This paper closes that loop.
 
 \emph{Confidence and uncertainty.} Deep ensembles and their
 relatives~\cite{lakshminarayanan2017simple} are the standard way to attach a confidence to a
-prediction. In OCT the networks that segment layers~\cite{devalla2018drunet} report an accuracy
+prediction, while in OCT the networks that segment layers~\cite{devalla2018drunet} report an accuracy
 rather than an uncertainty, so a reader learns how often the model is right and never where it is
-unsure. We feed such a map into the correction decision instead, and
-Section~\ref{sec:confidence_check} reports that the map we built is not a confidence in this sense.
+unsure. We feed such a map into the correction decision, and Section~\ref{sec:confidence_check}
+reports that the map we built is not a confidence in this sense.
 
 \emph{Symbolic reasoning and expert networks.} Neuro symbolic computing~\cite{garcez2023neurosymbolic} couples a learned model with explicit rules,
 and differentiable fuzzy logic makes the coupling trainable because the connectives become smooth

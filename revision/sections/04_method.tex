@@ -66,7 +66,7 @@ method has never seen.
 
 \begin{figure*}[!tb]
 \centering
-\includegraphics[width=0.62\textwidth]{figures/fig_predicate_maps.pdf}
+\includegraphics[width=0.56\textwidth]{figures/fig_predicate_maps.pdf}
 \caption{The six failure maps on one backbone output, with the score each property returns for the
 whole image. Dark means strong local evidence that the property is unsatisfied. The maps disagree
 with each other, which is the point of keeping six of them. Edge continuity and local contrast fire
@@ -156,9 +156,8 @@ L \;=\; C_1 w_1 + C_2 w_2 + C_3 w_3 + C_4 w_4 + C_5 w_5 ,
 \end{equation}
 where $w_k = \sigma(\theta_k)$. The constant is attained, so it is the exact Lipschitz constant and
 not merely an upper bound. Moreover $L < C_1 + C_2 + C_3 + C_4 + C_5 = 0.75$ for every possible
-setting of the parameters. If a rule never fires its term drops out, and the same argument gives the
-exact constant of the remaining sum over the truth values the method actually produces, which
-Section~\ref{sec:gradient_audit} reports is the case for rule five here.
+setting of the parameters. If a rule never fires its term drops out and the same argument gives the exact
+constant of the remaining sum, which Section~\ref{sec:gradient_audit} reports for rule five here.
 \end{theorem}
 
 \begin{proof}

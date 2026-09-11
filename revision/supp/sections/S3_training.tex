@@ -3,7 +3,9 @@
 
 \subsection{Algorithm}
 Algorithm~\ref{alg:supp_training} states the procedure. The backbone is frozen throughout and
-receives no gradient. The first stage activates only the clinical terms, so the correctors learn a
+receives no gradient. The objective is evaluated on the candidate, because the acceptance rule is
+skipped while the model is in training mode, so Equation~(\EqObjective) of the main paper is
+optimized at $\mathbf{q}$ and not at $\hat{\mathbf{x}}$. The first stage activates only the clinical terms, so the correctors learn a
 useful direction. The second stage activates the fidelity term, so they learn how far to go.
 
 \subsection{Schedule and optimizer settings}
@@ -29,13 +31,41 @@ Algorithm~\ref{alg:supp_training}.
     \State compute the gain, edge and strength proposals
     \State compute the five rule truth values
     \State compute the allocation
-    \State compose the candidate, then evaluate the objective on it
+    \State compose the candidate $\mathbf{q}$, then evaluate the objective on it
+    \State \Comment{the acceptance rule of the main paper does not run here}
     \State update the wrapper parameters with AdamW
   \EndFor
   \If{$e$ reaches the midpoint} activate the fidelity term \EndIf
 \EndFor
 \end{algorithmic}
 \end{algorithm}
+
+\subsection{The nine quantities of the clinical term}
+\label{sec:supp_clinical_terms}
+Equation~(\EqLossClin) of the main paper names nine quantities and their weights. Their definitions
+are here, so the term can be rebuilt. Write $\sigma_7$ for the local standard deviation over a
+$7 \times 7$ window, $\nabla_z$ and $\nabla_x$ for the vertical and horizontal Sobel responses,
+$\nabla^2$ for the Laplacian, $e = \sqrt{\nabla_x^2 + \nabla_z^2 + \varepsilon}$ for the edge
+magnitude, and $\langle \cdot \rangle$ for the mean over every pixel of the batch. All nine are
+scalars per batch, and the first six are measured against the clean reference $\mathbf{x}$.
+\begin{itemize}\itemsep1pt
+\item Local contrast, $\langle \sigma_7(\hat{\mathbf{x}}) \rangle / \langle \sigma_7(\mathbf{x}) \rangle$.
+\item Boundary gradient, $\langle |\nabla_z \hat{\mathbf{x}}| \rangle / \langle |\nabla_z \mathbf{x}| \rangle$.
+\item Texture, $\langle |\nabla^2 \hat{\mathbf{x}}| \rangle / \langle |\nabla^2 \mathbf{x}| \rangle$.
+\item EPI, the Pearson correlation between $e(\hat{\mathbf{x}})$ and $e(\mathbf{x})$, taken per image
+over all pixels and then averaged over the batch.
+\item CNR, $(\mu_U - \mu_R) / \sigma_R$ on the corrected image, with $U$ the upper half and $R$ the
+lower quarter of the frame.
+\item BS, $\max |\nabla_z \hat{\mathbf{x}}| / \max |\nabla_z \mathbf{x}|$, clipped to $[0,10]$, then
+divided by the same ratio for the backbone.
+\item ENL, $(\mu_R / \sigma_R)^2$, and SNR, $\mu_U / \sigma_R$, each as the exponential of the mean
+log ratio to the backbone value over the batch.
+\item The squared error ratio, $\lVert \mathbf{b} - \mathbf{x} \rVert_2^2 / \lVert \hat{\mathbf{x}} - \mathbf{x} \rVert_2^2$.
+\end{itemize}
+Every denominator is clamped away from zero at $10^{-6}$. The target $t_m$ of each is the same
+quantity on the backbone output, held with no gradient and scaled by the factor $\kappa_m$ the main
+paper lists, except ENL, SNR and the squared error ratio, whose targets are the fixed values 1.10,
+1.15 and 0.87 rather than backbone multiples.
 
 \subsection{The selection rule in full}
 \label{sec:supp_selection}
