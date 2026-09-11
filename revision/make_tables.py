@@ -244,12 +244,11 @@ def table_in_distribution():
             lines.append(r"\midrule")
             lines.append(r"\multicolumn{9}{l}{\textit{%s}} \\" % title)
             lines.extend(block)
-    ad = adapted_block()
-    if ad:
-        lines.append(r"\midrule")
-        lines.append(r"\multicolumn{9}{l}{\textit{Adapted on the target set, leave one subject "
-                     r"out, NAFNet only}} \\")
-        lines.extend(ad)
+    # The adapted protocol rows are deliberately absent from this table. Each of
+    # its folds keeps the epoch that scores best on the subject it then reports,
+    # so those numbers are selected on the data they describe. They belong with
+    # the historical account in the supplementary file, not beside results that
+    # were selected on validation and scored once on test.
     header = [r"\begin{tabular}{lcccccccc}", r"\toprule",
               r"Backbone & Backbone PSNR (dB) & $\Delta$PSNR (dB) & $\Delta$CNR & $\Delta$TCI & "
               r"$\Delta$EPI & $\Delta$BS & $\Delta$ENL & $\Delta$SNR \\", r"\midrule"]

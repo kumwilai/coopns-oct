@@ -15,7 +15,7 @@ Response letter has no unresolved bracket and every section, table and figure re
 | R1-4 | fuzzy rule weights look heuristic | IX E, fourteen variations, none turns a measure negative | CLOSED |
 | R1-5 | missing expert network and neuro symbolic literature | II C, 34 references all resolved | CLOSED |
 | R1-6 | typos and grammar | style script clean, mechanical checks clean | CLOSED |
-| R2-1 | LOO protocol contradiction | Table 3 carries both protocols, S7 documents the adapted one | CLOSED |
+| R2-1 | LOO protocol contradiction | Table 3 carries the no adaptation protocol only, Table S7 reports the adapted one as a test selected historical diagnostic | CLOSED |
 | R2-2 | explain the PSNR drop, SwinIR minus 1.69 dB | X A, cache defect fixed, SwinIR now minus 0.17 dB | CLOSED |
 | R3-1 | highlight the new ideas | I B | CLOSED |
 | R3-2 | motivation not clear | I A | CLOSED |
@@ -41,8 +41,9 @@ Response letter has no unresolved bracket and every section, table and figure re
 
 The main paper carries every closed form, both proofs, every constant with its origin, the training
 schedule and the selection grid. Four pointers into the supplement remain and none is load bearing,
-namely the per subject spreads of the adapted protocol, the per cell seed spreads of Table 3, the
-full resolution visual comparison, and a restatement of the learning rates.
+namely the adapted protocol of the original submission, which is reported there because its numbers
+are selected on the data they describe, the per cell seed spreads of Table 3, the full resolution
+visual comparison, and a restatement of the learning rates.
 
 ## Not a reviewer concern, still open
 
@@ -76,7 +77,10 @@ full resolution visual comparison, and a restatement of the learning rates.
   constant is attained. It now says the perturbations never reach the worst case.
 - The cooperation map diagnostic did not say which map was correlated with the backbone error. It is
   the demand map, and a well ordered demand map would give a positive correlation.
-- The adapted rows are now labelled in the main paper as selected on the subject they report.
+- The adapted rows have left the main paper. Each of their folds keeps the epoch that scores best on
+  the subject it then reports, so they are selected on the data they describe. Table S7 of the
+  supplementary file carries them, labelled a historical diagnostic, and no claim of the paper rests
+  on them.
 - The 173 test pairs come from five clean image identities, which the measures paragraph now says.
 - The loss weights are now given numerically, and the inactive learned weight path is disclosed.
 

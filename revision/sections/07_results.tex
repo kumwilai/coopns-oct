@@ -16,9 +16,9 @@ rather than two independent scanners.
 with nothing fitted, recalibrated or selected on Duke data beyond the per image quantity the gate of
 Equation~\eqref{eq:gate} computes by the same rule as on PKU37. The original submission instead
 adapted the wrapper for fifteen further epochs on the other subjects of the target set, leave one
-subject out, backbone frozen, with an L2 penalty holding every trainable weight near its PKU37 value,
-and we rerun that for NAFNet in the adapted block of Table~\ref{tab:pku37}, with per subject spreads
-in the supplementary file.
+subject out, backbone frozen, with an L2 penalty holding every trainable weight near its PKU37 value.
+We rerun that protocol for NAFNet and report it only in the supplementary file, for the reason given
+in Section~\ref{sec:results_ood}.
 
 \emph{Measures.} Peak signal to noise ratio against the clean reference measures fidelity. Six
 clinical measures, given as percentage change from backbone to corrected output, are contrast to
@@ -31,13 +31,12 @@ below describes behaviour across repeated acquisitions of five anatomies and not
 
 \begin{table*}[!tb]
 \centering
-\caption{PKU37 test set of 173 images, then Duke17 and Duke2013 with no adaptation, then the adapted
-protocol of the original submission for NAFNet described in Section~\ref{sec:setup}. Columns give the
-backbone peak signal to noise ratio in decibels, its change after correction with the spread across
-three seeds, and the six clinical measures as percentage change from backbone output to corrected
-output, bold where the mean exceeds the seed spread. The adapted rows come from one seed and one fold
-per subject, so they carry no spread and no bold. The two lowest blocks use the selected NAFNet checkpoint on the
-same 173 test images with one component removed or an alternative operator substituted. Full spreads
+\caption{PKU37 test set of 173 images, then Duke17 and Duke2013 with no adaptation of any kind.
+Columns give the backbone peak signal to noise ratio in decibels, its change after correction with
+the spread across three seeds, and the six clinical measures as percentage change from backbone
+output to corrected output, bold where the mean exceeds the seed spread. The component removal block
+and the alternative operator block below use the selected NAFNet checkpoint on the same 173 test
+images, with one component removed or one operator substituted. Full spreads
 are in the supplementary file.}
 \label{tab:pku37}
 \setlength{\tabcolsep}{4pt}
@@ -80,12 +79,11 @@ measures are positive on both target sets for NAFNet and SwinIR, the fidelity co
 exceptions being the tissue contrast index and the boundary sharpness of DnCNN and the edge
 preservation and the signal to noise ratio of KBNet. Contrast rises on every backbone and both sets.
 
-Adaptation, the last block, raises contrast from $+7.5$ to $+10.7$ percent on Duke17 and from $+7.4$
-to $+15.4$ on Duke2013, and pays on both, a further 0.06 and 0.10 dB and a signal to noise ratio
-falling from $+5.4$ to $+2.9$ percent and from $+9.3$ to $-5.3$, down on 15 of 18 subjects. The only measure it reliably improves is one the frozen model already improves. Those
-rows also carry a defect inherited from the original submission, since each fold keeps the epoch
-scoring best on its own held-out subject, so they are selected on the subject they report. We give
-them to show the gap and recommend the frozen model.
+The adapted protocol of the original submission is not reported here. Each of its folds keeps the
+epoch that scores best on the subject it then reports, so the numbers are selected on the data they
+describe and are not an estimate of what adaptation achieves. We rerun it for the record and give it
+in the supplementary file as a historical diagnostic, clearly labelled. The frozen model is the one
+this paper reports throughout.
 
 \subsection{Which properties and which constants matter}
 \label{sec:predicate_ablation}

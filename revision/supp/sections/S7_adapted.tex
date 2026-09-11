@@ -1,5 +1,10 @@
-\section{The adapted transfer protocol of the original submission}
+\section{The adapted transfer protocol of the original submission, a test selected diagnostic}
 \label{sec:supp_adapted}
+
+\noindent\textbf{These numbers are not an estimate of generalisation.} Each fold keeps the epoch that
+scores best on the subject it then reports, so they are selected on the data they describe. They are
+here as a record of what the original submission did and of the gap between the two protocols, and
+the main paper reports the frozen protocol throughout.
 
 The cross dataset numbers of the original submission were not produced by the no adaptation
 protocol the text described. The script that produced them resumed the corrector trained on PKU37
@@ -19,17 +24,20 @@ and an L2 penalty of weight 0.1 holds every trainable weight near its PKU37 valu
 weight consolidation without the Fisher weighting. A background correction variance penalty of
 weight 10 is also active. The checkpoint kept for each fold is the epoch with the highest validation
 score, and the validation image of a fold is its held-out subject. The adapted numbers are therefore
-selected on the subject they are evaluated on and should be read as an upper bound for this
-protocol. The same was true of the original submission.
+selected on the subject they are evaluated on. That makes them optimistic rather than an upper bound
+in any proved sense, and they should be read as a diagnostic of what the original submission did. The same was true of the original submission. We did not repair this by reselecting, since
+no unbiased checkpoint rule can be recovered from folds that were already trained this way.
 
 \subsection{Result}
-Table~\ref{tab:supp_adapted} gives both target sets, next to the no adaptation result of the same
-checkpoint from the main paper.
+Table~\ref{tab:supp_adapted} gives both target sets. The no adaptation column is the mean over the
+three seeds reported in the main paper, while the adapted column is one seed per fold, so the two are
+not seed matched and the comparison is indicative.
 
 \begin{table*}[!tb]
 \centering
 \caption{NAFNet, adapted protocol over one leave-one-subject-out fold per subject, against the no
-adaptation protocol of Table 3 of the main paper on the same checkpoint. Clinical rows are percentage
+adaptation protocol of Table 3 of the main paper, whose column is the mean over three seeds, so the
+two columns are not seed matched. Clinical rows are percentage
 change from backbone output to corrected output. The spread is the standard deviation across
 subjects, the count is the number of subjects on which the measure improved, and $p$ is a two sided
 Wilcoxon signed rank test on the paired per subject values.}
