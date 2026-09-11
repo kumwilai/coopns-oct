@@ -11,7 +11,7 @@
     "Added a numerical check of both theorems and of how often each safety constraint binds.",
     "Added a new section that states the optimization problem, its variables, its constraints and its solver, and a notation table that defines every symbol before first use.",
     "Rewrote the paper from the top down, renamed all uses of the word experiment to test or result, and expanded the literature on neuro symbolic and expert network imaging.",
-    "Prepared the release, the code, the trained weights, the result file of every scored run and one driver per table and per figure, with a manifest that maps every quoted number to the script that produced it. We cannot give access during review without identifying ourselves, so it goes public under a permanent citable identifier on acceptance. The manuscript is written to be checkable without it, with every formula given in closed form and every defect we found described with what it affected.",
+    "Prepared the release, the code, the trained weights, the result file of every scored run and one driver per table and per figure, with a manifest that maps every quoted number to the script that produced it. We will release it after the paper is accepted, under a permanent citable identifier.",
     "Read the objective line by line against the training code and corrected three statements it did not support. The clinical term runs over nine quantities as a weighted one sided penalty against a target taken from the backbone, the edge term is weighted toward the clean edges and carries three parts, and a sixth term of bounds and background protection that was active in training is now printed. Ten weight flags are parsed and never used, not three."
   ]
 }

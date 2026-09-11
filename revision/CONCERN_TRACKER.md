@@ -29,7 +29,7 @@ Response letter has no unresolved bracket and every section, table and figure re
 | R3-10 | training algorithm unclear | V, six loss terms with every weight, the schedule, the selection rule, the constants, Algorithm 1 of the supplement | CLOSED |
 | R3-11 | safety validation on lesions, fluid, thin layers | V J, expert reading stated as a limitation | CLOSED |
 | R3-12 | link theory to the results section | V I for the theorems, V J for the three constraints | CLOSED |
-| R3-13 | public code and data link without password | declined for review, by the author's decision. No link and no archive during review, public under a permanent identifier on acceptance | ANSWERED BY DECISION |
+| R3-13 | public code and data link without password | the release is built and goes public after acceptance, under a permanent identifier | ANSWERED BY DECISION |
 | R3-14 | follows from 13 | release documents the six defects and the checks | CLOSED |
 | R3-15 | do not call them experiments | zero occurrences in the source | CLOSED |
 | R3-16 | fair comparison at similar complexity | Table 5, lower block, text narrowed to match the code | CLOSED |
