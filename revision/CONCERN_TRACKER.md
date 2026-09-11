@@ -9,10 +9,10 @@ Response letter has no unresolved bracket and every section, table and figure re
 
 | ID | Concern | Where it is answered | Status |
 |---|---|---|---|
-| R1-1 | cooperation map has no loss enforcing an uncertainty meaning | IX H measures it, rank correlation minus 0.258, renamed, calibrated removed | CLOSED |
+| R1-1 | cooperation map has no loss enforcing an uncertainty meaning | IX F measures it, rank correlation minus 0.258, renamed, calibrated removed | CLOSED |
 | R1-2 | no predicate level ablation | IX D, all six removals on the reported checkpoint | CLOSED |
-| R1-3 | risk of artificial sharpening and hallucinated boundaries | IX J, four measures, two reported as costs, named in Limitations | CLOSED |
-| R1-4 | fuzzy rule weights look heuristic | IX E, fourteen variations, none turns a measure negative | CLOSED |
+| R1-3 | risk of artificial sharpening and hallucinated boundaries | IX H, four measures, two reported as costs, named in Limitations | CLOSED |
+| R1-4 | fuzzy rule weights look heuristic | IX D, fourteen variations, none turns a measure negative | CLOSED |
 | R1-5 | missing expert network and neuro symbolic literature | II C, 34 references all resolved | CLOSED |
 | R1-6 | typos and grammar | style script clean, mechanical checks clean | CLOSED |
 | R2-1 | LOO protocol contradiction | Table 3 carries the no adaptation protocol only, Table S7 reports the adapted one as a test selected historical diagnostic | CLOSED |
@@ -24,18 +24,18 @@ Response letter has no unresolved bracket and every section, table and figure re
 | R3-5 | state the optimization problem and how it is solved | III B | CLOSED |
 | R3-6 | embedded notation is hard to read | Table 1 defines every symbol before first use | CLOSED |
 | R3-7 | define the operator in equation 6 | III A, Hadamard product defined in words and symbols | CLOSED |
-| R3-8 | drop the multiplication dot | removed throughout, none in source | CLOSED |
-| R3-9 | justify the six predicates and give sensitivity | Table 2 and IX D and IX E | CLOSED |
-| R3-10 | training algorithm unclear | VIII, five parts, Algorithm 1 of the supplement | CLOSED |
-| R3-11 | safety validation on lesions, fluid, thin layers | IX J, expert reading stated as a limitation | CLOSED |
-| R3-12 | link theory to the results section | IX I, per constraint failure counts added | CLOSED |
+| R3-8 | drop the multiplication dot | removed throughout, the remaining \cdot are argument placeholders | CLOSED |
+| R3-9 | justify the six predicates and give sensitivity | Table 2 and IX D | CLOSED |
+| R3-10 | training algorithm unclear | VIII, six loss terms with every weight, the schedule, the selection rule, the constants, Algorithm 1 of the supplement | CLOSED |
+| R3-11 | safety validation on lesions, fluid, thin layers | IX H, expert reading stated as a limitation | CLOSED |
+| R3-12 | link theory to the results section | IX G for the theorems, IX H for the three constraints | CLOSED |
 | R3-13 | public code and data link without password | answered with a reason, double blind, archive on acceptance | ANSWERED BY DECISION |
-| R3-14 | follows from 13 | release documents the five defects and the checks | CLOSED |
+| R3-14 | follows from 13 | release documents the six defects and the checks | CLOSED |
 | R3-15 | do not call them experiments | zero occurrences in the source | CLOSED |
 | R3-16 | fair comparison at similar complexity | Table 3 lower blocks, text narrowed to match the code | CLOSED |
-| R3-17 | how were the fuzzy parameters computed | V B and IX E and the constants table of the supplement | CLOSED |
-| R3-18 | transferability needs cost and variability numbers | IX K, wall clock and seed spread per backbone | CLOSED |
-| R3-19 | verify the assumed constants and bounds hold | IX I, honest majority statement, failures reported | CLOSED |
+| R3-17 | how were the fuzzy parameters computed | V B and IX D and the constants table of the supplement | CLOSED |
+| R3-18 | transferability needs cost and variability numbers | IX I, wall clock and seed spread per backbone | CLOSED |
+| R3-19 | verify the assumed constants and bounds hold | IX G and IX H, honest majority statement, failures reported | CLOSED |
 
 ## Self containment
 
@@ -83,6 +83,27 @@ visual comparison, and a restatement of the learning rates.
   on them.
 - The 173 test pairs come from five clean image identities, which the measures paragraph now says.
 - The loss weights are now given numerically, and the inactive learned weight path is disclosed.
+
+## Settled in the third audit, the objective read line by line against the code
+
+- Equation 15 printed the clinical term as a sum of negative log ratios over the contrast to noise
+  ratio and the tissue contrast index. The code uses a weighted one sided penalty against a target
+  taken from the backbone, over nine quantities with weights 1, 5, 1, 15, 40, 5, 8, 40 and 10 and
+  factors 1.12, 1.12, 1.00, 1.05, 1.20, 1.12, 1.10, 1.15 and 0.87, with a symmetric pull on three of
+  them. The tissue contrast index is not among the nine. The equation now matches the code.
+- Equation 18 printed unweighted gradient matching. The code weights it by the clean edge map and
+  adds two parts, a normalised edge magnitude error and a hinge that refuses an edge preservation
+  index below five percent above the backbone. The equation now shows all three.
+- The objective of Equation 13 listed five terms. Eight more were active, a floor and a ceiling on
+  the size of the change, a smoothness penalty on the allocation map, a ceiling on the edge branch
+  and four terms protecting the background and the tissue brightness. They are now a sixth term,
+  Equation 19, with every constant printed.
+- The flag for the edge weight never reaches the loss. It is now named with the other inert flags.
+- The section pointers of this tracker still named the eleven subsection layout of Section IX. The
+  merge to nine had moved eight of them. All are checked against the compiled document.
+- The one line gloss of the property term in Section III B still said it calibrates the scores
+  against their thresholds, which the corrected Equation 16 contradicts. It now says what the code
+  does.
 
 ## Settled since the last audit
 

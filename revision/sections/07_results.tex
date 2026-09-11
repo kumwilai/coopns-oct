@@ -40,9 +40,26 @@ images, with one component removed or one operator substituted. Full spreads
 are in the supplementary file.}
 \label{tab:pku37}
 \setlength{\tabcolsep}{4pt}
-\footnotesize
+\scriptsize
+\setlength{\aboverulesep}{0pt}
+\setlength{\belowrulesep}{0pt}
+\renewcommand{\arraystretch}{0.95}
 \input{../sections/generated/tab_in_distribution}
 \end{table*}
+
+\begin{figure*}[!b]
+\centering
+\includegraphics[width=0.86\textwidth]{figures/fig_subjective_pku37.pdf}
+\caption{Visual comparison on the PKU37 test image of median backbone fidelity, one row per backbone,
+in the 56 by 136 pixel band marked on the thumbnail where the NAFNet correction was largest. The
+eight gray cells share one display range, set to the values they contain so that nothing is clipped,
+and the signed difference uses a fixed scale of plus or minus 0.06. The mean absolute change is about
+one percent of the intensity range, most for SwinIR and least for KBNet, from the seed 0 checkpoints
+of Table~\ref{tab:pku37}. The scatter places this image, ringed, among all 173 test images at three
+seeds for four backbones, with the twelve NAFNet points below zero marked. Full resolution pairs for
+every backbone are in the supplementary file.}
+\label{fig:subjective_pku37}
+\end{figure*}
 
 \subsection{In distribution results}
 \label{sec:results_id}
@@ -57,19 +74,6 @@ unchanged at 0.00 percent, the edge preservation of KBNet, and one falls, the bo
 DnCNN at minus 1.44 percent. The fidelity cost ranges from 0.17 dB on SwinIR to 0.98 dB on DnCNN, and
 the two backbones that pay least are the two whose six measures all rise.
 
-\begin{figure*}[!tb]
-\centering
-\includegraphics[width=0.9\textwidth]{figures/fig_subjective_pku37.pdf}
-\caption{Visual comparison on the PKU37 test image of median backbone fidelity, one row per backbone,
-in the 56 by 136 pixel band marked on the thumbnail where the NAFNet correction was largest. The
-eight gray cells share one display range, set to the values they contain so that nothing is clipped,
-and the signed difference uses a fixed scale of plus or minus 0.06. The mean absolute change is about
-one percent of the intensity range, most for SwinIR and least for KBNet, from the seed 0 checkpoints
-of Table~\ref{tab:pku37}. The scatter places this image, ringed, among all 173 test images at three
-seeds for four backbones, with the twelve NAFNet points below zero marked. Full resolution pairs for
-every backbone are in the supplementary file.}
-\label{fig:subjective_pku37}
-\end{figure*}
 
 \subsection{Transfer to other datasets}
 \label{sec:results_ood}

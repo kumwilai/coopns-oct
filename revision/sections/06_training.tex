@@ -1,7 +1,7 @@
 \section{Training}
 \label{sec:training}
 
-\subsection{The five loss terms}
+\subsection{The six loss terms}
 \label{sec:loss_terms}
 Let $\mathbf{x}$ be the clean reference, $\mathbf{b}$ the backbone output and $\hat{\mathbf{x}}$ the
 wrapper output. The objective of Equation~\eqref{eq:objective} has the following terms.
@@ -19,17 +19,22 @@ linear for the next four tenths of a decibel and quadratic beyond that, so a sma
 is free and a large one is expensive. The dead zone $d$ is one of the two quantities selected per
 backbone in Section~\ref{sec:weight_selection}.
 
-\textbf{Clinical improvement.} This term rewards a rise in the clinical measures relative to the
-backbone, beginning with the contrast to noise ratio and the tissue contrast index, TCI. The logarithm
-of a ratio makes the term scale free,
+\textbf{Clinical improvement.} This term charges the wrapper only when a measure falls short of a
+target taken from the backbone, so a gain in one measure cannot be bought by a collapse in another.
+Let $q_m$ be the value of quantity $m$ on the wrapper output and $t_m = \kappa_m q_m(\mathbf{b})$ the
+target, the backbone value of the same quantity scaled by a fixed factor. Writing
+$\varepsilon_m = t_m - q_m$,
 \begin{equation}
-\mathcal{L}_{\mathrm{clin}} = -\log\frac{\mathrm{CNR}(\hat{\mathbf{x}})}{\mathrm{CNR}(\mathbf{b})}
- - \log\frac{\mathrm{TCI}(\hat{\mathbf{x}})}{\mathrm{TCI}(\mathbf{b})}.
+\mathcal{L}_{\mathrm{clin}} = \frac{1}{\sum_m w_m} \sum_{m \in M} w_m
+ \Big( 3[\varepsilon_m]_+ + [\varepsilon_m]_+^2 + \tfrac{1}{2} s_m \varepsilon_m^2 \Big).
 \label{eq:loss_clin}
 \end{equation}
-The same construction is added for the edge preservation index, the equivalent number of looks and
-the signal to noise ratio, each with its own weight, so a gain in one measure cannot be bought by a
-collapse in another.
+The set $M$ holds nine quantities, the three preservation scores of local contrast, boundary gradient
+and texture, then EPI, CNR, BS, ENL, SNR and the ratio of the backbone squared error to the wrapper
+squared error. Their weights $w_m$ are 1, 5, 1, 15, 40, 5, 8, 40 and 10 and their factors $\kappa_m$
+are 1.12, 1.12, 1.00, 1.05, 1.20, 1.12, 1.10, 1.15 and 0.87, the last permitting about six tenths of a
+decibel. The indicator $s_m$ is one for ENL, SNR and the squared error ratio, a symmetric pull that
+holds those three near target instead of letting them run. None of the nine is used at test time.
 
 \textbf{Preservation scores.} This term acts on four scores $g_j$ separate from the six properties of
 Table~\ref{tab:predicates}, comparing the corrected output with the backbone output on local
@@ -57,11 +62,47 @@ The Pearson correlation is differentiable everywhere, invariant to an affine cha
 introduces no window size to tune.
 
 \textbf{Edge supervision.} The additive branch is trained to reproduce the gradient that the backbone
-lost, measured with the Sobel operator $\nabla$,
+lost, measured with the Sobel operator $\nabla$ and weighted toward the places where the clean
+reference has an edge. Let $\mathbf{w}$ be the clean Sobel magnitude divided by its mean and clipped
+at ten, $\tilde{\mathbf{w}}$ its square normalised again to unit mean, and $\bar{\mathbf{g}}$ a Sobel
+magnitude divided by its own maximum. With $\delta = [1.05\,\mathrm{EPI}(\mathbf{b}) -
+\mathrm{EPI}(\hat{\mathbf{x}})]_+$,
 \begin{equation}
-\mathcal{L}_{\mathrm{edge}} = \big\lVert \nabla\hat{\mathbf{x}} - \nabla\mathbf{x} \big\rVert_2^2 .
+\begin{split}
+\mathcal{L}_{\mathrm{edge}} = \;&10\,\big\lVert \sqrt{\mathbf{w}} \odot
+  (\nabla\hat{\mathbf{x}} - \nabla\mathbf{x}) \big\rVert_2^2 \\
+ &+ 10\,\big\lVert \sqrt{\tilde{\mathbf{w}}} \odot
+  (\bar{\mathbf{g}}(\hat{\mathbf{x}}) - \bar{\mathbf{g}}(\mathbf{x})) \big\rVert_2^2
+ + 45\,(3\delta + \delta^2).
+\end{split}
 \label{eq:loss_edge}
 \end{equation}
+The first part is the gradient the correction must restore. The second compares normalised edge
+magnitude, which is insensitive to overall brightness. The third refuses an edge preservation index
+below five percent above the backbone.
+
+\textbf{Bounds and background protection.} The last term collects the constants that keep the change
+small, smooth and confined. Let $a$ be the mean absolute change over the upper half of the image, $e$
+the mean absolute output of the additive edge branch, $\sigma_B$ the standard deviation over the lower
+quarter, $\mu_T$ the mean over the upper half and $\mathbf{m}$ a soft mask on intensities below the
+fifteenth percentile of the backbone output,
+\begin{equation}
+\begin{split}
+\mathcal{L}_{\mathrm{reg}} = \;&40[0.002 - a]_+ + 200[a - 0.006]_+^2
+ + 2\,\overline{\lVert \nabla \boldsymbol{\alpha} \rVert} \\
+ &+ 30[e - 0.06]_+^2
+ + 80\big[\sigma_B(\hat{\mathbf{x}}) - 0.75\,\sigma_B(\mathbf{b})\big]_+ \\
+ &+ 100\Big[\tfrac{\sigma_B(\hat{\mathbf{x}})}{\sigma_B(\mathbf{b})} - 0.95\Big]_+
+ + 150\Big[0.99 - \tfrac{\mu_T(\hat{\mathbf{x}})}{\mu_T(\mathbf{b})}\Big]_+ \\
+ &+ 2\,\overline{\lvert \hat{\mathbf{x}} - \mathbf{b} \rvert \odot \mathbf{m}} ,
+\end{split}
+\label{eq:loss_reg}
+\end{equation}
+where a bar denotes the mean over pixels and the first two parts are clipped at five. The floor stops
+the wrapper from learning to do nothing and the ceiling from overshooting fidelity, the third keeps the
+allocation map smooth so that it leaves no Sobel trace of its own, the fourth bounds the edge branch,
+and the last three hold the background noise and the tissue brightness, the denominator and the
+numerator of the signal to noise ratio.
 
 \subsection{Data and optimisation schedule}
 \label{sec:paired_data}
@@ -88,9 +129,11 @@ fixed against 31.21 dB and 0.948 when they are not.
 The terms of Equation~\eqref{eq:objective} carry fixed relative weights, the same for every backbone
 and seed. The clinical term dominates at 6, the property term is 1, the cooperation term is 0.2, and
 the fidelity term is 0 in the first stage and 1 in the second, which is what the two stage schedule
-means here. The parser also accepts flags for a peak signal to noise
-weight, a structural similarity weight and per measure weights, none of which reaches the loss. They
-are inert like the three already named in the release notes, which lists all of them. Two quantities
+means here, and the edge and regulariser terms are 1, since their internal coefficients
+already carry their scale. The parser also accepts ten weight flags, for the clinical
+term, the two contrast measures, fidelity in two forms, the edge term, three per measure
+preservations and efficiency. Not one of them reaches the loss. Two are printed at start up, which is
+the only thing that made any of them look active, and the release notes list all ten. Two quantities
 are selected per backbone on validation, the dead zone $d$ of Equation~\eqref{eq:loss_fid} and the
 gate of Equation~\eqref{eq:gate}. The grid crosses the two gate rules with dead zones of 0.3, 0.6 and
 0.9 dB and the tissue-bounded gate with radii of 41 and 61 pixels. It chose the tissue-bounded gate

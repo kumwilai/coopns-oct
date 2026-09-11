@@ -28,6 +28,22 @@
 % IEEE uses in running text.
 \renewcommand{\thesubsection}{\thesection\text{-}\Alph{subsection}}
 
+% Two full width floats landed together on a page of their own, which cost a
+% whole page of text. These are the standard float parameters, loosened so a
+% page carrying a wide float still carries body text.
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\topfraction}{0.92}
+\renewcommand{\bottomfraction}{0.92}
+\renewcommand{\dbltopfraction}{0.92}
+\renewcommand{\floatpagefraction}{0.80}
+\renewcommand{\dblfloatpagefraction}{0.80}
+\setcounter{topnumber}{3}
+\setcounter{dbltopnumber}{2}
+\setcounter{totalnumber}{4}
+% allow a full width float at the foot of a page, so the wide table and the
+% wide figure can share one page instead of taking one each
+\usepackage{stfloats}
+
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \def\OJlogo{}
