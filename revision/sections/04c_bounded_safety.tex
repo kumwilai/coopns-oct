@@ -1,4 +1,4 @@
-\section{Bounded Change and a Guaranteed Safety Decision}
+\section{Bounded Correction and Majority Based Acceptance}
 \label{sec:bounded_safety}
 
 \subsection{Stage five, applying the change}
@@ -13,11 +13,11 @@ A gate suppresses any change in the dark background,
 \mathbf{g} = \sigma\big(20\,(\mathbf{b} - q_{0.15})\big),
 \label{eq:gate}
 \end{equation}
-where $q_{0.15}$ is the fifteenth percentile of the backbone output of that image. A percentile
-rather than a fixed level makes the gate work across scanners of different brightness. The second
-form, used where the selection of Section~\ref{sec:weight_selection} chose it, is a soft step at the
-per image Otsu threshold followed by a maximum filter of fixed radius, so the gate is identically
-zero beyond that radius from tissue.
+where $q_{0.15}$ is the fifteenth percentile of the backbone output of that image, a percentile
+rather than a fixed level so the gate works across scanners of different brightness. The second form,
+used where the selection of Section~\ref{sec:weight_selection} chose it, is a soft step at the per
+image Otsu threshold followed by a maximum filter of fixed radius, so the gate is identically zero
+beyond that radius from tissue.
 
 The gated gain is applied multiplicatively to give the change $\mathbf{v}$, with the brightening part
 smoothed before it is added so that it cannot create a new high frequency edge,
@@ -68,9 +68,9 @@ w = \begin{cases}
 \end{equation}
 The candidate is accepted in full whenever any two constraints hold, so one violation does not by
 itself withhold the change. Below two the output falls back to the backbone while keeping five
-percent of the change when none holds and about eight when one does, so the decision stays visible
-rather than being silently discarded. This is a majority test on three measured conditions and not an
-enforcement of three bounds, and Section~\ref{sec:safety_check} reports how often each holds.
+percent of the change when none holds and about eight when one does. This is a majority test on three
+measured conditions and not an enforcement of three bounds, and Section~\ref{sec:safety_check}
+reports how often each holds.
 
 
 
@@ -133,7 +133,8 @@ Let $\eta_\mathcal{T} = \mu_\mathcal{T}(\mathbf{q}) - \mu_\mathcal{T}(\mathbf{b}
 tissue mean and let $\eta_\mathcal{B} \ge \mu_\mathcal{B}(\mathbf{q}) - \mu_\mathcal{B}(\mathbf{b})$
 bound the leakage into the background. Suppose the tissue and background sets are the same for
 $\mathbf{b}$, $\mathbf{q}$ and $\hat{\mathbf{x}}$, that
-$\sigma_\mathcal{B}(\mathbf{b}) > 0$ and the correction does not raise the background variability, so
+$\sigma_\mathcal{B}(\hat{\mathbf{x}}) > 0$ and $\sigma_\mathcal{B}(\mathbf{b}) > 0$, so both
+ratios are defined, that the correction does not raise the background variability, so
 $\sigma_\mathcal{B}(\mathbf{q}) \le \sigma_\mathcal{B}(\mathbf{b})$, and that the bounded numerator
 $\big(\mu_\mathcal{T}(\mathbf{b}) - \mu_\mathcal{B}(\mathbf{b})\big) + w\,(\eta_\mathcal{T} -
 \eta_\mathcal{B})$ is non negative, which holds whenever the backbone already separates tissue from
@@ -161,10 +162,12 @@ Dividing the two bounds gives the claim, and $w > 0$ in every branch of Equation
 \end{proof}
 
 
-Three parts of the design make these hypotheses hold in practice. The gate of
+Three parts of the design encourage these hypotheses rather than enforce them. The gate of
 Equation~\eqref{eq:gate} keeps $\eta_\mathcal{B}$ small by suppressing change in the dark region, the
-brightness branch cannot be negative, which keeps $\eta_\mathcal{T}$ non negative, and the background
-smoothing lowers $\sigma_\mathcal{B}(\mathbf{q})$ rather than raising it.
+brightness branch cannot be negative, and the background smoothing lowers
+$\sigma_\mathcal{B}(\mathbf{q})$ rather than raising it. None settles the matter, since the net tissue change also passes
+through the contrast branch, the edge branch and a final clipping, any of which can turn it negative.
+Section~\ref{sec:theory_check} therefore measures each hypothesis rather than assuming it.
 
 Both guarantees are deliberately narrow. Theorem~\ref{thm:stability} bounds how far the routing
 decision can move, not whether it is correct. Theorem~\ref{thm:cnr} concerns contrast alone. Neither

@@ -214,19 +214,35 @@ def _backbone_rows(prefix):
     return lines, seed_counts
 
 
+# The in distribution table is set in one column, so its header has to be short.
+# The transfer table keeps the wide header, since it spans both columns.
 HEAD9 = [r"\begin{tabular}{lcccccccc}", r"\toprule",
-         r"Backbone & Backbone PSNR (dB) & $\Delta$PSNR (dB) & $\Delta$CNR & $\Delta$TCI & "
+         r"Backbone & PSNR & $\Delta$PSNR & $\Delta$CNR & $\Delta$TCI & "
          r"$\Delta$EPI & $\Delta$BS & $\Delta$ENL & $\Delta$SNR \\", r"\midrule"]
+HEAD9W = [r"\begin{tabular}{lcccccccc}", r"\toprule",
+          r"Backbone & Backbone PSNR (dB) & $\Delta$PSNR (dB) & $\Delta$CNR & $\Delta$TCI & "
+          r"$\Delta$EPI & $\Delta$BS & $\Delta$ENL & $\Delta$SNR \\", r"\midrule"]
 FOOT = [r"\bottomrule", r"\end{tabular}"]
 
 
 def table_in_distribution():
-    """The four backbones on the PKU37 test set, and nothing else. The four blocks
-    that used to share this table are now four tables, because a reader asked to
-    compare a backbone against another backbone had to first work out which block a
-    row belonged to."""
+    """The four backbones on the PKU37 test set, and nothing else.
+
+    Set in one column, so the backbone PSNR moves to the caption and the seed
+    spread of the fidelity column to the supplement, where every clinical cell
+    already carries its own. Bold still marks a mean that exceeds its spread, so
+    nothing about significance is lost."""
     lines, seeds = _backbone_rows("test")
-    return "\n".join(HEAD9 + lines + FOOT), (max(seeds) if seeds else 0)
+    narrow = []
+    for row in lines:
+        cells = row.rstrip(" \\\\").split(" & ")
+        # drop the absolute backbone PSNR, and the plus or minus from the delta
+        cells = [cells[0]] + [cells[2].split(" $\\pm$ ")[0]] + cells[3:]
+        narrow.append(" & ".join(cells) + r" \\")
+    header = [r"\begin{tabular}{lccccccc}", r"\toprule",
+              r"Backbone & $\Delta$PSNR & $\Delta$CNR & $\Delta$TCI & $\Delta$EPI & "
+              r"$\Delta$BS & $\Delta$ENL & $\Delta$SNR \\", r"\midrule"]
+    return "\n".join(header + narrow + FOOT), (max(seeds) if seeds else 0)
 
 
 def table_zeroshot():
@@ -240,7 +256,7 @@ def table_zeroshot():
         lines.extend(block_lines)
         if block_seeds:
             seed_counts.append(block_seeds)
-    return "\n".join(HEAD9 + lines + FOOT), (max(seed_counts) if seed_counts else 0)
+    return "\n".join(HEAD9W + lines + FOOT), (max(seed_counts) if seed_counts else 0)
 
 
 def table_components():

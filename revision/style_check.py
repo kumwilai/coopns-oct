@@ -16,9 +16,12 @@ import sys
 
 # American spelling throughout the body. The bibliography is exempt, since a title
 # has to match what was published, and body_lines() already skips it.
-BRITISH = (r"\b(?:optimis|minimis|maximis|normalis|generalis|penalis|initialis|equalis"
-           r"|discretis|organis|realis|anonymis|summaris|characteris|recognis|utilis"
-           r"|regularis|visualis|standardis|parameteris)\w*\b"
+# The stem alone is too loose, since optimistic is correct everywhere. Require an
+# ending that is actually the British form.
+_ISE = (r"optimis|minimis|maximis|normalis|generalis|penalis|initialis|equalis"
+        r"|discretis|organis|realis|anonymis|summaris|characteris|recognis|utilis"
+        r"|regularis|visualis|standardis|parameteris")
+BRITISH = (r"\b(?:" + _ISE + r")(?:e|es|ed|ing|er|ers|ation|ations)\b"
            r"|\b(?:behaviour|colour|favour|neighbour)\w*\b"
            r"|\b(?:centred|centre|labelled|labelling|modelled|modelling|artefact|artefacts"
            r"|whilst|amongst|defence|licence|practise|judgement|acknowledgement|learnt|grey)\b")

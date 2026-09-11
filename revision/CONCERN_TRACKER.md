@@ -84,6 +84,43 @@ describe, the per cell seed spreads of Tables 3 and 4, and a restatement of the 
 - The 173 test pairs come from five clean image identities, which the measures paragraph now says.
 - The loss weights are now given numerically, and the inactive learned weight path is disclosed.
 
+## Third party review, round three, settled against the code
+
+- The manuscript explained the fixed thresholds by saying the rule layer runs without gradient
+  tracking. That is wrong. A training step on the selected model shows the base level and the weights
+  of rules one to four carry gradients, and their values differ from what they were restored with.
+  The thresholds are fixed because they have no gradient path, which is a different statement.
+  Section V-I now reports the audit parameter by parameter.
+- Rule five is inert. Its weight has no gradient path and is identical to its initial value in all
+  four checkpoints, because the conflict it tests for needs more than one corrector proposing at a
+  pixel. The reported Lipschitz constant 0.5489 was already the four rule sum, while printed
+  Equation 6 sums five, so the theorem now says a rule that never fires drops out and the paper gives
+  both constants with their domains.
+- Two of the four backbones cleared no admissibility level at all. NAFNet and SwinIR were admitted at
+  the strictest, and for DnCNN and KBNet the script reported the least bad setting of the grid. Those
+  are the two backbones with a falling measure. This was visible in the recorded selection and was
+  not stated. It is now, in the main paper and in the supplement, along with the exact bound.
+- The abstract said only a small head is refitted while Section V-K says the whole wrapper is. The
+  abstract now separates a common architecture from separately fitted weights.
+- The discussion said fidelity falls whenever the wrapper acts, which the paper's own Figure 3
+  disproves at plus 0.02 dB on NAFNet. It now reports a mean and names the exception. The comparison
+  with the variation between two acquisitions of the same eye is withdrawn, since we never measured it.
+- Section IV was titled a guaranteed safety decision while its rule is a majority vote that never
+  intervened on the test set. It is now Bounded Correction and Majority Based Acceptance.
+- Theorem 2 needed a positive output background variance to be defined, the design was said to make
+  its hypotheses hold rather than encourage them, and the 60 image count covers the two conditions we
+  measure and not the whole theorem. All three corrected.
+- Theorem 1 tightness was attributed to the Lukasiewicz conjunction. It follows from the allocation
+  being affine in the truth values. The budget identities are sufficient conditions, not a derivation.
+- The paper listed the initialization as default while every run restores the submitted checkpoint.
+  Both stages are now distinguished.
+- The supplement concluded that adaptation reliably improves contrast, from folds that select on the
+  subject they report. That conclusion is withdrawn.
+- Equation numbers printed in the supplement are now generated from the compiled main paper by
+  gen_eqnums.py, so a section merge can never leave them stale again.
+- Twelve response letter defects corrected, including the parameter totals, which are 173289 for
+  KBNet and 402903 for DnCNN, below NAFNet and above SwinIR rather than between them.
+
 ## Restructured for readability, 12 pages held
 
 - Table 3 of the previous version merged four studies into one float, so a reader comparing two

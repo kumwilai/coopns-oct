@@ -9,8 +9,8 @@ automatic layer segmentation less reliable~\cite{devalla2018drunet}.
 Deep denoisers remove much of that disturbance, but they are almost always trained to minimize the
 squared error against a clean reference, so a denoiser can raise the peak signal to noise ratio (PSNR)
 of a scan while making it less useful to a clinician. Layer boundaries lose definition, the contrast
-between tissue and the dark vitreous falls, and thin structures fade into the background. None of
-these losses is visible in a PSNR number.
+between tissue and the dark vitreous falls, and thin structures fade into the background, none of
+which a PSNR number shows.
 
 \subsection{Motivation}
 The gap we address is not a missing denoiser. It is that nothing sits between the denoiser and the
@@ -53,45 +53,39 @@ all.
 
 \subsection{Related work}
 \label{sec:related}
-\emph{Denoising of OCT images.} Learned denoisers for OCT fall into three families. Convolutional networks such as
-DnCNN~\cite{zhang2017beyond} learn the noise as a residual and subtract it. Designs that gate or
-reweight channels rather than pass them through a nonlinearity, such as NAFNet~\cite{chen2022simple}
-and KBNet~\cite{zhang2023kbnet}, control what each contributes. Transformers such as
-SwinIR~\cite{liang2021swinir} use windowed self attention. Methods built for OCT address the scarcity of paired data directly, through triplet cross
-fusion~\cite{geng2022triplet} and sparse representation~\cite{fang2013fast}, although the earlier of
-those still needs one high quality scan of the same eye~\cite{fang2012sparsity}.
+\emph{Denoising of OCT images.} Learned denoisers fall into three families, residual convolutional
+networks such as DnCNN~\cite{zhang2017beyond}, designs that gate or reweight channels such as
+NAFNet~\cite{chen2022simple} and KBNet~\cite{zhang2023kbnet}, and transformers such as
+SwinIR~\cite{liang2021swinir}. Methods built for OCT address the scarcity of paired data directly,
+through triplet cross fusion~\cite{geng2022triplet} and sparse representation~\cite{fang2013fast},
+although the earlier of those still needs one high quality scan of the same eye~\cite{fang2012sparsity}.
+All are trained to reduce a pixel error, so the quantity they optimize is not the quantity a
+clinician reads, and work on quality assessment for OCT~\cite{wang2019quality} measures clinical
+quality but does not act on it. This paper closes that loop.
 
-All of these are trained to reduce a pixel error, so the quantity they optimize is not the quantity a
-clinician reads. Work on quality assessment for OCT~\cite{wang2019quality} measures clinical quality
-but does not act on it. This paper closes that loop, turning measured quality into a correction
-applied under stated limits.
-
-\emph{Confidence and uncertainty.} Deep ensembles and their relatives~\cite{lakshminarayanan2017simple} are the standard way to attach
-a confidence to a prediction. In OCT the networks that segment layers~\cite{devalla2018drunet} or
-judge scan quality~\cite{wang2019quality} report an accuracy rather than an uncertainty, so a reader
-learns how often the model is right and never where it is unsure, and the value is reported and then
-left alone. We feed such a map into the correction decision instead, and
+\emph{Confidence and uncertainty.} Deep ensembles and their
+relatives~\cite{lakshminarayanan2017simple} are the standard way to attach a confidence to a
+prediction. In OCT the networks that segment layers~\cite{devalla2018drunet} report an accuracy
+rather than an uncertainty, so a reader learns how often the model is right and never where it is
+unsure. We feed such a map into the correction decision instead, and
 Section~\ref{sec:confidence_check} reports that the map we built is not a confidence in this sense.
 
 \emph{Symbolic reasoning and expert networks.} Neuro symbolic computing~\cite{garcez2023neurosymbolic} couples a learned model with explicit rules,
 and differentiable fuzzy logic makes the coupling trainable because the connectives become smooth
-functions of continuous truth values~\cite{vankrieken2022analyzing}. In medical imaging the pattern
-has generated spinal reports by pairing a generative network with a symbolic graph of domain
-knowledge~\cite{han2021unifying} and predicted patient deterioration with a probabilistic logic
-program over convolutional features~\cite{fadja2022neural}. Fuzzy membership
-functions have been embedded in networks that process OCT directly, where a rough fuzzy
-discretization guides the segmentation of fluid lesions~\cite{chen2023deep}, and pixel level fuzzy
-rules have replaced learned feature extraction, so what the model attends to reads as a logical
-statement~\cite{kim2025pixel}.
+functions of continuous truth values~\cite{vankrieken2022analyzing}. In medical imaging it has generated spinal reports from a symbolic graph of
+domain knowledge~\cite{han2021unifying} and predicted patient deterioration with a probabilistic
+logic program over convolutional features~\cite{fadja2022neural}. Fuzzy membership functions have
+been embedded in networks that process OCT directly, guiding the segmentation of fluid
+lesions~\cite{chen2023deep} and replacing learned feature extraction so that what the model attends
+to reads as a logical statement~\cite{kim2025pixel}.
 
 A parallel line builds an image model from cooperating experts. Steered mixtures of experts combine
-constant experts through soft gating kernels with an explicit steering term~\cite{ozkan2023steered}, also for OCT speckle
-removal~\cite{ozkan2024denoising}, and recent restoration networks route an input through experts of
-different capacity according to its difficulty~\cite{zamfir2025complexity}. Outside imaging, evolving
-fuzzy models identify actuator dynamics~\cite{precup2021evolving}, learned models are joined to a
+constant experts through soft gating kernels with an explicit steering term~\cite{ozkan2023steered},
+also for OCT speckle removal~\cite{ozkan2024denoising}, and restoration networks route an input
+through experts of different capacity by its difficulty~\cite{zamfir2025complexity}. Outside imaging,
+evolving fuzzy models identify actuator dynamics~\cite{precup2021evolving}, learned models join a
 physical forward operator in ultrasound tomography~\cite{fan2022model}, and sensitivity to initial
 conditions is treated as a source of uncertainty in simulation~\cite{casquilho2025effect}. All rest
 on the principle we rely on, that a learned component is easier to trust when part of the decision is
-written in a language a person can read. What is missing is a rule layer that acts on the output of a strong denoiser,
-names the clinical properties it protects, and limits how far it may move the image, which is the
-object studied here.
+written in a language a person can read. What is missing is a rule layer that acts on the output of a
+strong denoiser, names the properties it protects and limits how far it may move the image.

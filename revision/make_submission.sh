@@ -11,6 +11,9 @@ echo "== สร้างตารางและค่าคงที่จา�
 
 echo "== คอมไพล์บทความหลัก =="
 ( cd paper && $TEC -X compile main.tex --outdir . --keep-intermediates --keep-logs >/dev/null 2>&1 )
+# The supplement prints the main paper's equation numbers, so they are read from
+# the aux that the compile above just produced rather than typed in by hand.
+/home/kumwilai/osmnx-env/bin/python gen_eqnums.py
 echo "== คอมไพล์ภาคผนวก =="
 ( cd supp && $TEC -X compile main.tex --outdir . --keep-intermediates --keep-logs >/dev/null 2>&1 )
 echo "== สร้างจดหมายตอบ =="

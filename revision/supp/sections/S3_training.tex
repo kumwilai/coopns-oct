@@ -37,6 +37,35 @@ Algorithm~\ref{alg:supp_training}.
 \end{algorithmic}
 \end{algorithm}
 
+\subsection{The selection rule in full}
+\label{sec:supp_selection}
+The main paper says a setting is admissible only at its worst seed and that the winner has the
+largest lower confidence bound on its weakest clinical measure. Both are stated here exactly, since
+they decide the reported operating point.
+
+For a setting with $n$ seeds, let $m_s = \min_i \Delta_i^{(s)}$ be the weakest of the six clinical
+changes at seed $s$. The lower confidence bound is the one sided quantity
+\begin{equation}
+\mathrm{LCB} = \frac{1}{n}\sum_s m_s \;-\; \frac{1}{\sqrt{n}}\,\mathrm{sd}(m_1,\ldots,m_n),
+\end{equation}
+which is the mean of the worst measure less one standard error of that mean, and is the mean itself
+when $n = 1$. A setting is admissible at a level $(c, f)$ when its fidelity loss at its worst seed is
+at most $c$ decibels and its weakest clinical change at its worst seed exceeds $f$ percent. The four
+levels are applied in order, strict $(0.8, 0.5)$, standard $(1.0, 0.2)$, positive $(1.0, 0.0)$ and
+unbounded $(\infty, 0.0)$. The first level that admits any setting decides the choice, and the level
+used is recorded, so a backbone that needed a looser condition is visible rather than hidden. Among
+the admissible settings the winner is the largest LCB, with the mean fidelity and then the mean over
+the six measures breaking ties. If no level admits any setting the script reports the setting failing
+on the fewest measures and labels the outcome as no selection.
+
+That last branch is the one two backbones took. NAFNet and SwinIR were admitted at the strict level,
+with lower bounds of $+1.15$ and $+1.77$. No setting in the grid cleared any of the four levels for
+DnCNN or KBNet, whose best lower bounds were $-1.95$ and $-0.05$, so for those two the reported
+setting is the least bad of the grid and not a setting that met a stated bound. They are also the two
+backbones with a clinical measure that falls on test, which is consistent with a grid that had
+nothing admissible to offer. Seeds 0, 1 and 2 are used throughout, and the seed 0 checkpoint of the
+selected setting is the one every figure draws.
+
 \subsection{Constants that carry a design decision}
 \label{sec:supp_constants_design}
 Table~\ref{tab:constants} lists the constants that carry a design decision, where each acts, and how
@@ -68,20 +97,20 @@ the test split.}
 Constant & Value & Acts on & Origin \\
 \midrule
 $\alpha_{\max}$ & 0.15 & scale of the raw gain & set in development \\
-gain bound & $\pm 0.20$ & Eq.~(5) of the main paper & set in development \\
-gate percentile & 0.15 & Eq.~(6) of the main paper & set in development \\
-$\kappa$ & 10 & Eq.~(3) of the main paper & fixed \\
-$B_{\min}, B_{\max}$ & 0.25, 0.50 & base of Eq.~(4) of the main paper & fixed by budget \\
+gain bound & $\pm 0.20$ & Eq.~(\EqAlpha) of the main paper & set in development \\
+gate percentile & 0.15 & Eq.~(\EqGate) of the main paper & set in development \\
+$\kappa$ & 10 & Eq.~(\EqFailure) of the main paper & fixed \\
+$B_{\min}, B_{\max}$ & 0.25, 0.50 & base of Eq.~(\EqAllocation) of the main paper & fixed by budget \\
 $C_1 \ldots C_5$ & 0.15, 0.25, 0.15, 0.10, 0.10 & rule votes & fixed by budget \\
-$\tau_1 \ldots \tau_6$ & 0.6, 0.5, 0.75, 0.5, 0.3, 0.7 & Eq.~(3) of the main paper & fixed \\
-$\beta, \theta_1 \ldots \theta_5$ & learned & Eq.~(4) of the main paper & learned \\
+$\tau_1 \ldots \tau_6$ & 0.6, 0.5, 0.75, 0.5, 0.3, 0.7 & Eq.~(\EqFailure) of the main paper & fixed \\
+$\beta, \theta_1 \ldots \theta_5$ & learned & Eq.~(\EqAllocation) of the main paper & learned \\
 energy tolerance & 0.10 & constraint one & set in development \\
 Pareto tolerance & 0.10 & constraint two & set in development \\
 change bound & 0.2 & constraint three & set in development \\
 background blend & 0.5 & background smoothing & set in development \\
 learning rates & $2{\times}10^{-4}$, $5{\times}10^{-4}$, $3{\times}10^{-4}$ & training & set in development \\
-fidelity dead zone $d$ & 0.6 or 0.9 dB & Eq.~(14) of the main paper & selected in the revision \\
-gate rule & percentile or tissue bounded & Eq.~(6) of the main paper & selected in the revision \\
+fidelity dead zone $d$ & 0.6 or 0.9 dB & Eq.~(\EqLossFid) of the main paper & selected in the revision \\
+gate rule & percentile or tissue bounded & Eq.~(\EqGate) of the main paper & selected in the revision \\
 \bottomrule
 \end{tabular}
 \end{table*}

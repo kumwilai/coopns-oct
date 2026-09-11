@@ -14,7 +14,8 @@ read directly, and we describe it exactly.
 
 \subsection{Protocol}
 Each fold holds out one subject, seventeen of Duke2013 or fifteen of Duke17 subjects form the
-training set, and the held-out subject is evaluated once. Training resumes from the PKU37 checkpoint
+training set, and the held-out subject serves as both the validation subject and the reported one. Training resumes
+from the PKU37 checkpoint
 of the tissue-bounded gate setting at seed 0 and runs for fifteen epochs with batch size two. The
 backbone weights and its normalization statistics are frozen. The wrapper and the cooperation head
 that reads the backbone features are trainable. The learning rates are $2{\times}10^{-5}$,
@@ -24,7 +25,7 @@ and an L2 penalty of weight 0.1 holds every trainable weight near its PKU37 valu
 weight consolidation without the Fisher weighting. A background correction variance penalty of
 weight 10 is also active. The checkpoint kept for each fold is the epoch with the highest validation
 score, and the validation image of a fold is its held-out subject. The adapted numbers are therefore
-selected on the subject they are evaluated on. That makes them optimiztic rather than an upper bound
+selected on the subject they are evaluated on. That makes them optimistic rather than an upper bound
 in any proved sense, and they should be read as a diagnostic of what the original submission did. The same was true of the original submission. We did not repair this by reselecting, since
 no unbiased checkpoint rule can be recovered from folds that were already trained this way.
 
@@ -36,7 +37,7 @@ not seed matched and the comparison is indicative.
 \begin{table*}[!tb]
 \centering
 \caption{NAFNet, adapted protocol over one leave-one-subject-out fold per subject, against the no
-adaptation protocol of Table 3 of the main paper, whose column is the mean over three seeds, so the
+adaptation protocol of Table 4 of the main paper, whose column is the mean over three seeds, so the
 two columns are not seed matched. Clinical rows are percentage
 change from backbone output to corrected output. The spread is the standard deviation across
 subjects, the count is the number of subjects on which the measure improved, and $p$ is a two sided
@@ -68,10 +69,11 @@ $\Delta$SNR & $+9.29$ & $-5.29 \pm 13.97$ & 3 of 18 & 0.010 \\
 \end{tabular}
 \end{table*}
 
-Two things hold on both scanners. Adaptation raises contrast, by 3.2 points on Duke17 and 8.1 on
-Duke2013, and every subject improves. Adaptation also costs fidelity and signal to noise ratio
-relative to the frozen model, a further 0.06 and 0.10 dB, with one and two subjects losing more than
-1 dB, and a signal to noise ratio 2.5 and 14.6 points lower. The mean absolute correction rises from
+Two patterns appear on both scanners, and neither can be read as an effect of adaptation for the
+reason given above. Contrast is higher, by 3.2 points on Duke17 and 8.1 on Duke2013, on every
+subject. Fidelity and signal to noise ratio
+and signal to noise ratio are lower than the frozen model by a further 0.06 and 0.10 dB, with one and
+two subjects losing more than 1 dB, and a signal to noise ratio 2.5 and 14.6 points lower. The mean absolute correction rises from
 0.0104 to 0.0121 on Duke17 and from 0.0118 to 0.0164 on Duke2013. The other measures do not agree
 between the two sets. On Duke17 the tissue contrast index falls from $+4.0$ to $+2.7$ percent while
 the speckle measure rises, and no measure falls below zero, although the signal to noise ratio is no
@@ -80,9 +82,10 @@ all rise, the speckle measure changes on eight subjects one way and ten the othe
 significant, and the signal to noise ratio falls by 5.3 percent, a decrease on fifteen of eighteen
 subjects that is significant at the one percent level.
 
-We draw one conclusion. Adaptation on fifteen to seventeen images of the target scanner reliably
-improves one measure, contrast, which the frozen model already improves on both sets. It pays for
-that in fidelity and signal to noise ratio on both sets, its effect on the remaining measures
-changes direction between two scanners, and it does so from a checkpoint selected on the held-out
-subject. The frozen model gives six positive measures on both sets with no fitting on the target
-data, and it is the protocol the main paper reports and the one we recommend.
+We draw no conclusion about what adaptation achieves. These numbers are kept only to document the
+procedure the original submission used. Every checkpoint was chosen on the subject it is then scored
+on, and the comparison is not seed matched, so neither the differences above nor the $p$ values are
+unbiased evidence that adaptation helps or hurts any measure. They cannot support a confirmatory
+claim in either direction. The main conclusions of this paper rest on the frozen transfer of Table 4
+of the main paper, which gives six positive measures on both sets with nothing fitted on the target
+data.

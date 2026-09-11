@@ -3,20 +3,18 @@
 
 \begin{figure*}[!tb]
 \centering
-\includegraphics[width=0.825\textwidth]{figures/architecture.pdf}
+\includegraphics[width=0.78\textwidth]{figures/architecture.pdf}
 \caption{The six stages. A frozen backbone and a small head produce the image and the cooperation
 map. Two networks propose changes. Six properties are measured. Five rules allocate. The change is
 bounded and gated. Three constraints decide how much is kept.}
 \label{fig:architecture}
 \end{figure*}
 
-Fig.~\ref{fig:architecture} shows the method as six stages, taken in order here and in
-Section~\ref{sec:bounded_safety}. Stage one asks where the backbone output can be left alone, two
-what change is available, three what is wrong and where, four where it should be applied, five how,
-and six whether it is allowed at all. This section carries the first four, which name what is wrong
-and decide where to act, and proves that the decision cannot jump.
-Section~\ref{sec:bounded_safety} carries the last two, which bound the change and decide how much of
-it to keep, and proves when contrast cannot fall.
+Fig.~\ref{fig:architecture} shows the method as six stages. Stage one asks where the backbone output
+can be left alone, two what change is available, three what is wrong and where, four where it should
+be applied, five how, and six whether it is allowed at all. This section carries the first four and
+proves that the decision cannot jump. Section~\ref{sec:bounded_safety} carries the last two and
+proves when contrast cannot fall.
 
 \subsection{Stages one and two, the cooperation map and two bounded proposals}
 \label{sec:confidence}
@@ -68,7 +66,7 @@ method has never seen.
 
 \begin{figure*}[!tb]
 \centering
-\includegraphics[width=0.76\textwidth]{figures/fig_predicate_maps.pdf}
+\includegraphics[width=0.62\textwidth]{figures/fig_predicate_maps.pdf}
 \caption{The six failure maps on one backbone output, with the score each property returns for the
 whole image. Dark means strong local evidence that the property is unsatisfied. The maps disagree
 with each other, which is the point of keeping six of them. Edge continuity and local contrast fire
@@ -94,8 +92,10 @@ and the strength of a proposal against their own thresholds. Each corrector prod
 a per-pixel map from the backbone output and the failure maps it serves, large where its property is
 far below threshold, and it is multiplied by one half plus the demand map before the rules fire, so
 the same proposal looks stronger where the head reports low cooperation. Conjunction uses the
-Lukasiewicz form $\mathrm{AND}(a,b) = \max(0, a + b - 1)$, piecewise linear with a bounded slope,
-which is what makes the bound of Theorem~\ref{thm:stability} tight.
+Lukasiewicz form $\mathrm{AND}(a,b) = \max(0, a + b - 1)$, piecewise linear with a bounded slope, so
+each truth value is a Lipschitz function of the evidence beneath it. The constant of
+Theorem~\ref{thm:stability} follows from the allocation being affine in those truth values and does
+not depend on this particular conjunction.
 
 The five rules follow. Rule one fires when the cooperation map is high and the proposal weak, and
 votes against changing the image. Rule two fires when the map is low and the proposal strong, and
@@ -116,17 +116,19 @@ and the budgets are $B_{\min} = 0.25$, $B_{\max} = 0.50$, $C_1 = 0.15$, $C_2 = 0
 $C_4 = 0.10$ and $C_5 = 0.10$.
 
 The budgets satisfy $B_{\max} + C_2 + C_3 + C_4 = 1$ and $B_{\min} - C_1 - C_5 = 0$. Since every
-truth value lies in $[0,1]$ and every weight in $(0,1)$, Equation~\eqref{eq:allocation} lies in
-$[0,1]$ for every input and every parameter value, and no clipping is ever needed. Without the
-identity a clamp is needed, the allocation saturates at one end of it, as it did on every pixel of
-the submitted version of this work, the rule weights receive no gradient, and the stability result of
-Theorem~\ref{thm:stability} is vacuous.
+truth value lies in $[0,1]$ and every weight in $(0,1)$, these two identities are enough for
+Equation~\eqref{eq:allocation} to lie in $[0,1]$ for every input and every parameter value, so no
+clipping is ever needed. They are sufficient conditions and not a derivation of these particular
+values, whose relative sizes remain a design choice. Without them a clamp is needed, the allocation
+saturates at one end of it, as it did on every pixel of the submitted version of this work, the rule
+weights receive no gradient, and Theorem~\ref{thm:stability} is vacuous.
 \label{sec:allocation_defect}
 
 \label{sec:stability}
-\emph{What stability means here.} This is not stability in the sense of Lyapunov and we claim no fixed point. The quantity that must
-not behave erratically is the decision of the rule layer, a function of the five rule truth values,
-which are exactly what shift when the backbone or the scanner changes.
+\emph{What stability means here.} This is not stability in the sense of Lyapunov and we claim no
+fixed point. The quantity that must not behave erratically is the decision of the rule layer, a
+function of the five rule truth values, which are what shift when the backbone or the scanner
+changes.
 
 \begin{definition}[Stability of the allocation]
 \label{def:stability}
@@ -142,7 +144,7 @@ parameters held fixed. The allocation is said to be stable with constant $L$ if
 
 In words, $L$ is the worst case ratio between a change in the decision and the change in the
 evidence that caused it. Without such a bound the layer could swing from no correction to all of it
-because one score moved slightly, which is what a clinical user cannot audit.
+because one score moved slightly.
 
 
 \begin{theorem}[Allocation stability]
@@ -152,9 +154,11 @@ The allocation of Equation~\eqref{eq:allocation} satisfies Definition~\ref{def:s
 L \;=\; C_1 w_1 + C_2 w_2 + C_3 w_3 + C_4 w_4 + C_5 w_5 ,
 \label{eq:lipschitz}
 \end{equation}
-where $w_k = \sigma(\theta_k)$ are the learned rule weights. The constant is attained, so it is the
-exact Lipschitz constant and not merely an upper bound. Moreover $L < C_1 + C_2 + C_3 + C_4 + C_5 =
-0.75$ for every possible setting of the parameters.
+where $w_k = \sigma(\theta_k)$. The constant is attained, so it is the exact Lipschitz constant and
+not merely an upper bound. Moreover $L < C_1 + C_2 + C_3 + C_4 + C_5 = 0.75$ for every possible
+setting of the parameters. If a rule never fires its term drops out, and the same argument gives the
+exact constant of the remaining sum over the truth values the method actually produces, which
+Section~\ref{sec:gradient_audit} reports is the case for rule five here.
 \end{theorem}
 
 \begin{proof}
