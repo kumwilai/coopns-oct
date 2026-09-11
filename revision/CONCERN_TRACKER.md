@@ -46,8 +46,8 @@ full resolution visual comparison, and a restatement of the learning rates.
 
 ## Not a reviewer concern, still open
 
-- Received date 14 April 2026 is inferred from the manuscript number and needs the journal
-  acknowledgement email to confirm. This is the only item that cannot be settled from the repository.
+- The received date field is left empty, at the author's instruction. The journal fills it at
+  production, and guessing it from the manuscript number would have been a fabrication.
 - The seeded zeroshot result files carry no checkpoint field. Provenance was established from the
   sweep log ordering and from the fact that they differ from the pre sweep run, but it is not
   recorded in the files themselves.
