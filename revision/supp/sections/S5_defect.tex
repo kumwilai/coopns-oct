@@ -1,7 +1,7 @@
 \section{A defect found during revision, and its repair}
 \label{sec:supp_defect}
 
-We record this because the released code contains a switch that restores the earlier behaviour, and a
+We record this because the released code contains a switch that restores the earlier behavior, and a
 reader who finds that switch deserves to know what it is for.
 
 \subsection{What was wrong}
@@ -15,7 +15,7 @@ Two consequences follow. The rule layer had no influence on any output, since mu
 changes nothing. And the derivative of a clip at its bound is zero, so no gradient reached the rule
 parameters and they stayed at their initial values for the whole of training. We confirmed both
 directly, by reading the allocation map out of the trained model and by comparing every rule
-parameter in the saved weights against its initialiser after 2082 optimiser steps.
+parameter in the saved weights against its initializer after 2082 optimizer steps.
 
 \subsection{The repair}
 The allocation is now a bounded weighted vote. Writing $r_k \in [0,1]$ for the truth value of rule
@@ -45,7 +45,7 @@ released weights, the allocation now spans $\AllocMin$ to $\AllocMax$ with mean 
 standard deviation $\AllocStd$, and $\AllocClamp$ percent of pixels sit at either end of the clamp,
 against the whole image before the repair, direct confirmation that no pixel saturates in practice.
 
-\subsection{Reproducing the earlier behaviour}
+\subsection{Reproducing the earlier behavior}
 Setting the environment variable \texttt{LEGACY\_SATURATING\_ALLOCATION} to $1$ restores the original
 computation exactly. We verified this against a copy of the pre revision source on twenty random
 inputs, comparing the allocation maps for equality and the rule traces for agreement. Both matched.

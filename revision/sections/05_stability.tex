@@ -47,7 +47,7 @@ The bound is attained when each $r_k - r'_k$ takes the sign of its coefficient, 
 because every $C_k$ is positive and every $w_k$ lies strictly inside $(0,1)$.
 \end{proof}
 
-\begin{corollary}[Behaviour under a change of backbone]
+\begin{corollary}[Behavior under a change of backbone]
 \label{cor:transfer}
 If replacing one backbone by another changes the rule truth values at a pixel by at most $\epsilon$
 in the maximum norm, the parameters unchanged, the allocation there changes by at most $L\epsilon$.
@@ -89,7 +89,7 @@ $\mu_\mathcal{T}(\hat{\mathbf{x}}) = \mu_\mathcal{T}(\mathbf{b}) + w\,\eta_\math
 $\mu_\mathcal{B}(\hat{\mathbf{x}}) \le \mu_\mathcal{B}(\mathbf{b}) + w\,\eta_\mathcal{B}$, which bounds
 the numerator of $\mathrm{CNR}(\hat{\mathbf{x}})$ below by the numerator of
 Equation~\eqref{eq:cnr_bound}. On the background $\hat{\mathbf{x}}$ is the same convex combination
-pixel by pixel, so Minkowski's inequality on the centred values gives
+pixel by pixel, so Minkowski's inequality on the centered values gives
 $\sigma_\mathcal{B}(\hat{\mathbf{x}}) \le (1-w)\,\sigma_\mathcal{B}(\mathbf{b}) + w\,\sigma_\mathcal{B}(\mathbf{q}) \le \sigma_\mathcal{B}(\mathbf{b})$.
 Dividing the two bounds gives the claim, and $w > 0$ in every branch of Equation~\eqref{eq:blend}.
 \end{proof}

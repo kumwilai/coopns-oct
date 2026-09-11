@@ -5,6 +5,7 @@ Rules
   no em dash, no en dash used as punctuation
   no colon and no semicolon in body prose
   no use of the words experiment or experimental
+  American spelling, never British
 Math, labels, references, citations, URLs and the bibliography are exempt.
 
 usage  python3 revision/style_check.py path/to/file.tex
@@ -12,6 +13,15 @@ usage  python3 revision/style_check.py path/to/file.tex
 import re
 import os
 import sys
+
+# American spelling throughout the body. The bibliography is exempt, since a title
+# has to match what was published, and body_lines() already skips it.
+BRITISH = (r"\b(?:optimis|minimis|maximis|normalis|generalis|penalis|initialis|equalis"
+           r"|discretis|organis|realis|anonymis|summaris|characteris|recognis|utilis"
+           r"|regularis|visualis|standardis|parameteris)\w*\b"
+           r"|\b(?:behaviour|colour|favour|neighbour)\w*\b"
+           r"|\b(?:centred|centre|labelled|labelling|modelled|modelling|artefact|artefacts"
+           r"|whilst|amongst|defence|licence|practise|judgement|acknowledgement|learnt|grey)\b")
 
 EXEMPT_CMDS = r"\\(label|ref|eqref|cite|includegraphics|input|include|url|href|hypersetup|usepackage|documentclass|newtheorem|def|renewcommand|newcommand|bibitem|definecolor|setlength|resizebox|usetikzlibrary|markboth|doiinfo)\b"
 
@@ -64,6 +74,7 @@ def main(path):
             (r";", "semicolon"),
             (r"\bexperiment", "word experiment"),
             (r"\bExperiment", "word experiment"),
+            (BRITISH, "British spelling"),
         ):
             for m in re.finditer(pat, s):
                 ctx = s[max(0, m.start() - 45):m.start() + 45].strip()

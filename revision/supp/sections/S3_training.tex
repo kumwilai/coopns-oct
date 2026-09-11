@@ -6,7 +6,7 @@ Algorithm~\ref{alg:supp_training} states the procedure. The backbone is frozen t
 receives no gradient. The first stage activates only the clinical terms, so the correctors learn a
 useful direction. The second stage activates the fidelity term, so they learn how far to go.
 
-\subsection{Schedule and optimiser settings}
+\subsection{Schedule and optimizer settings}
 We use AdamW with decoupled weight decay of $10^{-4}$, random crops of $96 \times 96$ pixels, and a
 batch of sixteen crops, reduced to eight for DnCNN and SwinIR, the two with the largest memory footprint.
 Three learning rates are used, a lower one for the corrector networks and higher ones for the
@@ -20,7 +20,7 @@ Algorithm~\ref{alg:supp_training}.
 \label{alg:supp_training}
 \begin{algorithmic}[1]
 \Require frozen backbone $f_\theta$, paired training set, number of epochs $E$
-\State initialise the wrapper parameters, set each property threshold to its literature value
+\State initialize the wrapper parameters, set each property threshold to its literature value
 \For{$e = 1$ to $E$}
   \For{each batch of crops}
     \State compute the backbone output, with no gradient to $\theta$
@@ -44,7 +44,7 @@ it was chosen. A constant marked \emph{measured} was set from a property of the 
 marked \emph{selected} was chosen on the validation split and never on the test split. A constant
 marked \emph{fixed} is a structural choice that was not tuned.
 
-The networks use the default initialisation of their layers. Two exceptions are deliberate. The bias
+The networks use the default initialization of their layers. Two exceptions are deliberate. The bias
 of the brightness head starts at a small positive value so that the multiplicative branch begins from
 a mild brightening rather than from zero, which avoids a flat region of the loss at the start of
 training. The threshold of each property is declared as a trainable parameter and set to the value reported in

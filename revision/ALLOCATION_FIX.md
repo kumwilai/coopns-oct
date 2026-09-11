@@ -15,7 +15,7 @@ pixel. Measured on the released checkpoint the allocation map is the constant 1.
 100 percent of pixels and the gradient of the loss with respect to every negotiator
 parameter is exactly zero. The rules had no effect on any output and were never trained.
 
-Setting `LEGACY_SATURATING_ALLOCATION=1` restores that behaviour bit for bit. This was
+Setting `LEGACY_SATURATING_ALLOCATION=1` restores that behavior bit for bit. This was
 verified against the pre submission backup on twenty random inputs (single corrector and
 three corrector cases) with `torch.equal` on the maps and equality on the rule traces.
 
@@ -129,7 +129,7 @@ not part of the saturation defect. In the three corrector configuration both now
 gradient (measured 30.6 and 257.1 on a random input) because the hard count
 `(potential > threshold).float()` was replaced on the new path by the soft count
 `sigmoid(10 (potential - threshold))`, which is the same soft comparison the other rules
-already use. Second, `logic.sharpness` is used only by the parameterised t norm and is
+already use. Second, `logic.sharpness` is used only by the parameterized t norm and is
 unused under the Lukasiewicz t norm, so it never receives gradient. Neither caveat
 should be described in the paper as a trained parameter.
 
@@ -153,7 +153,7 @@ name and shape so `load_state_dict(strict=False)` loads all 456 tensors with not
 missing and nothing unexpected. Its meaning is rescaled rather than its value. The new base
 is b = 0.25 + 0.25 sigmoid(beta), so the stored 1.5 gives b = 0.454, which is inside the
 allowed range and is a sensible warm start. No load time rewriting is done. A fresh model
-initialises beta = 0.0 (b = 0.375). No parameter was added or removed, the negotiator has
+initializes beta = 0.0 (b = 0.375). No parameter was added or removed, the negotiator has
 13 scalar parameters before and after.
 
 ## 8. Chosen constants

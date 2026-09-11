@@ -53,7 +53,7 @@ throughout training.
 
 \textbf{Cooperation.} The wrapper should act where the backbone leaves room and stay quiet elsewhere.
 We take the Pearson correlation $\rho$ between the demand map $\mathbf{u}$ and $\boldsymbol{\pi}$, the
-summed proposal strength the rule layer reads, and penalise disagreement,
+summed proposal strength the rule layer reads, and penalize disagreement,
 \begin{equation}
 \mathcal{L}_{\mathrm{coop}} = \tfrac{1}{2}\,\mathrm{ReLU}\big(1 - \rho(\mathbf{u}, \boldsymbol{\pi})\big).
 \label{eq:loss_coop}
@@ -64,7 +64,7 @@ free of any window size to tune.
 \textbf{Edge supervision.} The additive branch is trained to reproduce the gradient that the backbone
 lost, measured with the Sobel operator $\nabla$ and weighted toward the places where the clean
 reference has an edge. Let $\mathbf{w}$ be the clean Sobel magnitude divided by its mean and clipped
-at ten, $\tilde{\mathbf{w}}$ its square normalised again to unit mean, and $\bar{\mathbf{g}}$ a Sobel
+at ten, $\tilde{\mathbf{w}}$ its square normalized again to unit mean, and $\bar{\mathbf{g}}$ a Sobel
 magnitude divided by its own maximum. With $\delta = [1.05\,\mathrm{EPI}(\mathbf{b}) -
 \mathrm{EPI}(\hat{\mathbf{x}})]_+$,
 \begin{equation}
@@ -77,7 +77,7 @@ magnitude divided by its own maximum. With $\delta = [1.05\,\mathrm{EPI}(\mathbf
 \end{split}
 \label{eq:loss_edge}
 \end{equation}
-The first part is the gradient the correction must restore, the second compares normalised edge
+The first part is the gradient the correction must restore, the second compares normalized edge
 magnitude, which is insensitive to overall brightness, and the third refuses an edge preservation
 index below five percent above the backbone.
 
@@ -103,7 +103,7 @@ the wrapper learning to do nothing and the ceiling stops it overshooting fidelit
 allocation map smooth so it leaves no Sobel trace of its own, the fourth bounds the edge branch, and
 the last three hold the background noise and the tissue brightness.
 
-\subsection{Data and optimisation schedule}
+\subsection{Data and optimization schedule}
 \label{sec:paired_data}
 Training uses paired data, a noisy scan and a clean reference averaged over repeated acquisitions.
 The reference enters the fidelity and clinical terms and supervises the edge branch. Testing uses no
@@ -117,8 +117,8 @@ with base learning rates of $2 \times 10^{-4}$ for the correctors, $5 \times 10^
 cooperation head and the strength predictor and $3 \times 10^{-4}$ for the rule layer. The
 supplementary file restates the procedure as pseudocode.
 
-The normalisation statistics of $f$ are held fixed throughout. DnCNN is the one backbone carrying
-batch normalisation, and left in training mode its buffers move, so the reference against which every
+The normalization statistics of $f$ are held fixed throughout. DnCNN is the one backbone carrying
+batch normalization, and left in training mode its buffers move, so the reference against which every
 clinical change of that backbone is measured would drift while the correction was being fitted
 against it.
 
@@ -127,7 +127,7 @@ against it.
 The terms of Equation~\eqref{eq:objective} carry fixed relative weights, the same for every backbone
 and seed. The clinical term dominates at 6, the property term is 1, the cooperation term is 0.2, and
 the fidelity term is 0 in the first stage and 1 in the second, which is what the two stage schedule
-means here, and the edge and regulariser terms are 1, since their internal coefficients
+means here, and the edge and regularizer terms are 1, since their internal coefficients
 already carry their scale. The parser also accepts ten weight flags, for the clinical
 term, the two contrast measures, fidelity in two forms, the edge term, three per measure
 preservations and efficiency. Not one of them reaches the loss. Two are printed at start up, which is
@@ -145,7 +145,7 @@ that was needed, so a backbone that required a looser condition is visible. Ever
 randomness is seeded, up to the nondeterminism of the convolution kernels, and the checkpoints chosen
 on validation are the ones scored on test.
 
-\subsection{Initialisation and the choice of every constant}
+\subsection{Initialization and the choice of every constant}
 \label{sec:constants}
 Every constant appears with its value where it acts and has one of four origins. Fixed structural
 choices, never tuned, are the sharpness $\kappa = 10$ of
@@ -159,7 +159,7 @@ $\pm 0.20$, the gate percentile 0.15, the three tolerances of Section~\ref{sec:s
 strength background blend and the learning rates. Selected in the grid of
 Section~\ref{sec:weight_selection}, on the validation split only, are the dead zone $d$ and the gate
 rule. Learned by the objective are $\beta$, $\theta_1$ to $\theta_5$, $\tau_0$, $\beta_0$ and the
-scale of the edge branch. Every layer uses its default initialisation with one deliberate exception,
+scale of the edge branch. Every layer uses its default initialization with one deliberate exception,
 the bias of the brightness channel starting at 0.5 so the raw gain begins at
 $0.5\,\alpha_{\max}$ in flat tissue rather than on a flat region of the loss. Nothing was ever chosen
 on the test split, and Section~\ref{sec:sensitivity} reports how far the results move when the

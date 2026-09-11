@@ -11,7 +11,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
-from figstyle import setup, save, INK, INK2, GREY
+from figstyle import setup, save, INK, INK2, GRAY
 
 S = {1: "#2a78d6", 2: "#1baf7a", 3: "#eda100", 4: "#4a3aa7", 5: "#eb6834", 6: "#0f7a53"}
 
@@ -50,7 +50,7 @@ def box(ax, x, y, title, sub, stage, w=W, h=H, tag=None):
                 bbox=dict(boxstyle="circle,pad=0.17", facecolor=S[stage], edgecolor="none"))
 
 
-def arrow(ax, pts, color=GREY, ls="-", lw=0.9):
+def arrow(ax, pts, color=GRAY, ls="-", lw=0.9):
     """Orthogonal polyline with a head on the last segment."""
     for i in range(len(pts) - 2):
         ax.plot([pts[i][0], pts[i + 1][0]], [pts[i][1], pts[i + 1][1]],
@@ -91,7 +91,7 @@ def main():
     ax.text(0.998, m(ROW_M), r"$\hat{\mathbf{x}}$", fontsize=10, color=INK, ha="center", va="center")
     ax.text(0.998, ROW_M - 0.050, "corrected", fontsize=6.3, color=INK2, ha="center", va="center")
 
-    # the spine, stages one, two, four, five, six, each arrow in the colour of its source
+    # the spine, stages one, two, four, five, six, each arrow in the color of its source
     arrow(ax, [(0.030, m(ROW_M)), (x0("a") - 0.003, m(ROW_M))])
     arrow(ax, [(x1("a"), m(ROW_M)), (x0("b"), m(ROW_M))])
     arrow(ax, [(x1("b"), m(ROW_M)), (x0("c"), m(ROW_M))], color=S[2])
@@ -107,9 +107,9 @@ def main():
     Y_IN = m(ROW_B) + 0.035
     Y_ANCHOR = ROW_B - 0.065
     arrow(ax, [(xc("a"), ROW_M), (xc("a"), Y_IN), (x0("b"), Y_IN)])
-    ax.plot([xc("a")], [Y_IN], marker="o", markersize=2.2, color=GREY, zorder=2)
+    ax.plot([xc("a")], [Y_IN], marker="o", markersize=2.2, color=GRAY, zorder=2)
     arrow(ax, [(xc("a"), Y_IN), (xc("a"), Y_ANCHOR), (x0("e") + W * 0.68, Y_ANCHOR),
-               (x0("e") + W * 0.68, ROW_M)], color=GREY, ls=DASH)
+               (x0("e") + W * 0.68, ROW_M)], color=GRAY, ls=DASH)
     # failure maps up into the correctors, for the strength map
     arrow(ax, [(xc("b"), ROW_B + H), (xc("b"), ROW_M)], color=S[3])
     # scores into the rule layer, one bend, entering from below

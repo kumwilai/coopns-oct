@@ -62,7 +62,7 @@ for name, prefix in _GROUPS:
 CLOSING = FRONT.get("closing", """
 We thank the reviewers again. The review process improved this work in a way that a lighter reading
 would not have, because the questions about the fuzzy constants and about the release of the code are
-what led us to find and repair a defect at the centre of the method. We hope the revised manuscript
+what led us to find and repair a defect at the center of the method. We hope the revised manuscript
 meets the standard of the journal.
 """)
 

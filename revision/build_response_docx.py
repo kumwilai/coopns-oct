@@ -21,7 +21,7 @@ from responses import META, OPENING, SUMMARY_OF_CHANGES, REVIEWERS, CLOSING  # n
 
 ACCENT = RGBColor(0x1F, 0x4E, 0x79)
 QUOTE_BG = "EEF3F8"
-GREY = RGBColor(0x44, 0x44, 0x44)
+GRAY = RGBColor(0x44, 0x44, 0x44)
 
 
 def shade(paragraph, hexcolor):
@@ -107,7 +107,7 @@ def add_comment_block(doc, label, text):
     r2 = p.add_run(" ".join(text.split()))
     r2.italic = True
     r2.font.size = Pt(10.5)
-    r2.font.color.rgb = GREY
+    r2.font.color.rgb = GRAY
 
 
 def add_response(doc, text):

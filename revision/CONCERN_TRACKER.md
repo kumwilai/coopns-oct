@@ -79,7 +79,7 @@ describe, the per cell seed spreads of Tables 3 and 4, and a restatement of the 
   the demand map, and a well ordered demand map would give a positive correlation.
 - The adapted rows have left the main paper. Each of their folds keeps the epoch that scores best on
   the subject it then reports, so they are selected on the data they describe. Table S7 of the
-  supplementary file carries them, labelled a historical diagnostic, and no claim of the paper rests
+  supplementary file carries them, labeled a historical diagnostic, and no claim of the paper rests
   on them.
 - The 173 test pairs come from five clean image identities, which the measures paragraph now says.
 - The loss weights are now given numerically, and the inactive learned weight path is disclosed.
@@ -107,7 +107,7 @@ describe, the per cell seed spreads of Tables 3 and 4, and a restatement of the 
   factors 1.12, 1.12, 1.00, 1.05, 1.20, 1.12, 1.10, 1.15 and 0.87, with a symmetric pull on three of
   them. The tissue contrast index is not among the nine. The equation now matches the code.
 - Equation 18 printed unweighted gradient matching. The code weights it by the clean edge map and
-  adds two parts, a normalised edge magnitude error and a hinge that refuses an edge preservation
+  adds two parts, a normalized edge magnitude error and a hinge that refuses an edge preservation
   index below five percent above the backbone. The equation now shows all three.
 - The objective of Equation 13 listed five terms. Eight more were active, a floor and a ceiling on
   the size of the change, a smoothness penalty on the allocation map, a ceiling on the edge branch

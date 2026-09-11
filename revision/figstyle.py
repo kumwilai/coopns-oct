@@ -1,12 +1,12 @@
 """Shared figure style for the manuscript.
 
 One look for every figure. Colours come from a palette that was checked with the
-colour vision deficiency validator, and every series also carries a second cue,
+color vision deficiency validator, and every series also carries a second cue,
 either a marker shape, a line style or a hatch, so the figures survive being
-printed in grey.
+printed in gray.
 
 Usage
-    from figstyle import setup, C, save, GREY
+    from figstyle import setup, C, save, GRAY
     setup()
     fig, ax = plt.subplots(figsize=COL1)
     ...
@@ -34,15 +34,15 @@ C = {
 ORDER = ["nafnet", "dncnn", "swinir", "kbnet"]
 LABEL = {"nafnet": "NAFNet", "dncnn": "DnCNN", "swinir": "SwinIR", "kbnet": "KBNet"}
 
-# Second cue for grey printing
+# Second cue for gray printing
 MARKER = {"nafnet": "o", "dncnn": "s", "swinir": "^", "kbnet": "D"}
 DASH = {"nafnet": (None, None), "dncnn": (4, 1.6), "swinir": (1.4, 1.4), "kbnet": (5.5, 1.6, 1.2, 1.6)}
 HATCH = {"nafnet": "", "dncnn": "///", "swinir": "...", "kbnet": "xxx"}
 
-# Ink. Text never wears a series colour.
+# Ink. Text never wears a series color.
 INK = "#0b0b0b"
 INK2 = "#52514e"
-GREY = "#8d8c88"
+GRAY = "#8d8c88"
 GRID = "#dcdbd6"
 SURFACE = "#ffffff"
 
@@ -74,7 +74,7 @@ def setup():
         "text.color": INK,
         "xtick.color": INK2,
         "ytick.color": INK2,
-        "axes.edgecolor": GREY,
+        "axes.edgecolor": GRAY,
         "axes.linewidth": 0.6,
         "xtick.major.width": 0.6,
         "ytick.major.width": 0.6,

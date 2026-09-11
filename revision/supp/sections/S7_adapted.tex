@@ -1,7 +1,7 @@
 \section{The adapted transfer protocol of the original submission, a test selected diagnostic}
 \label{sec:supp_adapted}
 
-\noindent\textbf{These numbers are not an estimate of generalisation.} Each fold keeps the epoch that
+\noindent\textbf{These numbers are not an estimate of generalization.} Each fold keeps the epoch that
 scores best on the subject it then reports, so they are selected on the data they describe. They are
 here as a record of what the original submission did and of the gap between the two protocols, and
 the main paper reports the frozen protocol throughout.
@@ -16,7 +16,7 @@ read directly, and we describe it exactly.
 Each fold holds out one subject, seventeen of Duke2013 or fifteen of Duke17 subjects form the
 training set, and the held-out subject is evaluated once. Training resumes from the PKU37 checkpoint
 of the tissue-bounded gate setting at seed 0 and runs for fifteen epochs with batch size two. The
-backbone weights and its normalisation statistics are frozen. The wrapper and the cooperation head
+backbone weights and its normalization statistics are frozen. The wrapper and the cooperation head
 that reads the backbone features are trainable. The learning rates are $2{\times}10^{-5}$,
 $1{\times}10^{-4}$ and $6{\times}10^{-5}$ for the corrector, potential and negotiator, five to ten
 times below the PKU37 schedule of Table~\ref{tab:constants}, the fidelity term enters at epoch five,
@@ -24,7 +24,7 @@ and an L2 penalty of weight 0.1 holds every trainable weight near its PKU37 valu
 weight consolidation without the Fisher weighting. A background correction variance penalty of
 weight 10 is also active. The checkpoint kept for each fold is the epoch with the highest validation
 score, and the validation image of a fold is its held-out subject. The adapted numbers are therefore
-selected on the subject they are evaluated on. That makes them optimistic rather than an upper bound
+selected on the subject they are evaluated on. That makes them optimiztic rather than an upper bound
 in any proved sense, and they should be read as a diagnostic of what the original submission did. The same was true of the original submission. We did not repair this by reselecting, since
 no unbiased checkpoint rule can be recovered from folds that were already trained this way.
 

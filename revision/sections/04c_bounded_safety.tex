@@ -27,7 +27,7 @@ smoothed before it is added so that it cannot create a new high frequency edge,
 \label{eq:apply}
 \end{equation}
 where $\mathrm{smooth}$ is a three by three mean filter, so a brightening is spread over a
-neighbourhood while a darkening acts where it was proposed. In the background, the complement of the
+neighborhood while a darkening acts where it was proposed. In the background, the complement of the
 gate eroded by two pixels, a masked mean filter of the same size is blended in at half strength,
 which lowers the background standard deviation without letting blur cross into tissue. The edge
 proposal is then added and the result clipped to the valid range,
@@ -46,7 +46,7 @@ E(\mathbf{t}) = 1 - \tfrac{1}{6}\sum_{i=1}^{6} s_i(\mathbf{t})
  + 0.1 \sum_{i=1}^{6} \max\big(0,\, 0.5 - s_i(\mathbf{t})\big),
 \label{eq:energy}
 \end{equation}
-which is small when the image is good and whose second term penalises any property below one half,
+which is small when the image is good and whose second term penalizes any property below one half,
 so a good average cannot hide one broken property. The constraint is
 $E(\mathbf{q}) \le E(\mathbf{b}) + 0.10$.
 

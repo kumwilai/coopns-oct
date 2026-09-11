@@ -19,7 +19,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 
-from figstyle import setup, save, tidy, INK, INK2, GREY, DIV_NEG, DIV_MID, DIV_POS
+from figstyle import setup, save, tidy, INK, INK2, GRAY, DIV_NEG, DIV_MID, DIV_POS
 
 PROPS = ["P1", "P2", "P3", "P4", "P5", "P6"]
 # Canonical measure order; a file may carry a subset of these, never more.
@@ -71,7 +71,7 @@ def panel_a(ax, results_dir):
                 print(f"warning: {p} missing measure '{m}'", file=sys.stderr)
 
     # A heatmap, not a grouped bar chart: up to 6 properties x 7 measures is 42 bars,
-    # unreadable at IEEE single-column width; a colour grid with printed values scales.
+    # unreadable at IEEE single-column width; a color grid with printed values scales.
     cmap = LinearSegmentedColormap.from_list("div", [DIV_NEG, DIV_MID, DIV_POS])
     cmap.set_bad(color="#f2f1ee")
     scale = np.nanmax(np.abs(mat), axis=0)
@@ -90,8 +90,8 @@ def panel_a(ax, results_dir):
             if np.isnan(v):
                 continue
             fmt = f"{v:+.2f}" if abs(v) < 10 else f"{v:+.1f}"
-            colour = "white" if abs(norm[i, j]) > 0.55 else INK
-            ax.text(j, i, fmt, ha="center", va="center", fontsize=5.0, color=colour)
+            color = "white" if abs(norm[i, j]) > 0.55 else INK
+            ax.text(j, i, fmt, ha="center", va="center", fontsize=5.0, color=color)
     ax.tick_params(length=0)
     ax.set_title("property removed", fontsize=7.3, color=INK, pad=3)
     return im
@@ -208,7 +208,7 @@ def panel_b(fig, cell, results_dir):
 
 
 def panel_c(ax, results_dir):
-    """Paired before/after safety diagnostics, normalised to the backbone value."""
+    """Paired before/after safety diagnostics, normalized to the backbone value."""
     d = _load(os.path.join(results_dir, "diagnostics_nafnet.json"))
     if d is None or "summary" not in d:
         _empty(ax, "diagnostics not available")
@@ -223,7 +223,7 @@ def panel_c(ax, results_dir):
         ("rpe_shift_backbone", "rpe_shift_corrected", "RPE\nshift", "lower"),
     ]
 
-    labels, ratios, colours = [], [], []
+    labels, ratios, colors = [], [], []
     for bk, ck, label, better in pairs:
         if bk not in s or ck not in s:
             print(f"warning: diagnostics missing '{bk}' or '{ck}'", file=sys.stderr)
@@ -235,7 +235,7 @@ def panel_c(ax, results_dir):
         improved = (ratio < 1.0) if better == "lower" else (ratio > 1.0)
         labels.append(label)
         ratios.append(ratio)
-        colours.append(DIV_POS if improved else DIV_NEG)
+        colors.append(DIV_POS if improved else DIV_NEG)
 
     if not labels:
         _empty(ax, "diagnostics not available")
@@ -243,15 +243,15 @@ def panel_c(ax, results_dir):
 
     x = np.arange(len(labels))
     w = 0.34
-    ax.bar(x - w / 2, [1.0] * len(labels), width=w, color=GREY, zorder=3, label="backbone")
-    ax.bar(x + w / 2, ratios, width=w, color=colours, zorder=3, label="corrected")
+    ax.bar(x - w / 2, [1.0] * len(labels), width=w, color=GRAY, zorder=3, label="backbone")
+    ax.bar(x + w / 2, ratios, width=w, color=colors, zorder=3, label="corrected")
     ax.axhline(1.0, color=INK2, linewidth=0.7, zorder=2)
     top = max([1.0] + ratios)
     ax.set_ylim(0, top * 1.62)
     # Every ratio sits near one, so a label placed just above its own bar lands at
     # the same height as its neighbours and the two collide. Two alternating levels
     # above the tallest bar keep each label over its bar and clear of the next.
-    for i, (xi, r, c) in enumerate(zip(x, ratios, colours)):
+    for i, (xi, r, c) in enumerate(zip(x, ratios, colors)):
         word = "better" if c == DIV_POS else "worse"
         arrow = "\u2193" if r < 1.0 else "\u2191"
         lvl = top * (1.13 if i % 2 == 0 else 1.30)
@@ -264,7 +264,7 @@ def panel_c(ax, results_dir):
     ax.set_ylabel("corrected / backbone", fontsize=6.4, color=INK2)
     tidy(ax)
     ax.tick_params(labelsize=6.0)
-    handles = [plt.Rectangle((0, 0), 1, 1, color=GREY),
+    handles = [plt.Rectangle((0, 0), 1, 1, color=GRAY),
                plt.Rectangle((0, 0), 1, 1, color=DIV_POS),
                plt.Rectangle((0, 0), 1, 1, color=DIV_NEG)]
     # The legend sat at the lower right, over the last pair of bars. Along the top
@@ -300,7 +300,7 @@ def main():
         cb.set_ticks([-1, 0, 1])
         cb.set_ticklabels(["worse", "0", "better"])
         cb.ax.tick_params(labelsize=5.8, length=0, colors=INK2, pad=1.5)
-        cb.set_label("column-normalised $\\Delta$", fontsize=6.0, color=INK2, labelpad=2)
+        cb.set_label("column-normalized $\\Delta$", fontsize=6.0, color=INK2, labelpad=2)
 
     panel_b(fig, gs[0, 1], args.results_dir)
 

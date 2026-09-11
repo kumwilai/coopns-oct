@@ -52,7 +52,7 @@ from validate_crossdataset import otsu_tissue_mask
 
 LABEL = {"nafnet": "NAFNet", "dncnn": "DnCNN", "swinir": "SwinIR", "kbnet": "KBNet"}
 # The second cue from figstyle's MARKER dict, rendered as a text glyph so a row can
-# carry "marker in that backbone's colour" without a dedicated scatter axis.
+# carry "marker in that backbone's color" without a dedicated scatter axis.
 MARKER_GLYPH = {"o": "●", "s": "■", "^": "▲", "D": "◆"}
 # Row order matches Table 3, fixed regardless of --backbones ordering.
 ROW_ORDER = ["nafnet", "dncnn", "swinir", "kbnet"]
@@ -216,7 +216,7 @@ def tag(ax, x, y, text, ha, va, fontsize):
 
 def row_label(ax, bb, outside=False):
     """The row's backbone name, preceded by that backbone's marker glyph in its own
-    colour. Over a noisy B-scan dark type on dark speckle is barely readable, so
+    color. Over a noisy B-scan dark type on dark speckle is barely readable, so
     outside=True puts the name in the margin to the left of the row instead."""
     if outside:
         ax.text(-0.03, 0.62, MARKER_GLYPH[MARKER[bb]], transform=ax.transAxes,
@@ -546,9 +546,9 @@ def main():
     axP.tick_params(axis="both", labelsize=5.5, colors=INK2, length=2, pad=1)
     for sp in axP.spines.values():
         sp.set_edgecolor("#c9c8c3"); sp.set_linewidth(0.5)
-    # No legend. Wherever it was placed it sat on the curves it labelled, and it
+    # No legend. Wherever it was placed it sat on the curves it labeled, and it
     # repeats what the row labels already say, each backbone name printed in its
-    # own colour beside its own row.
+    # own color beside its own row.
 
     save(fig, "fig_subjective_all")
     print(f"drew image {idx} (fig_subjective_all), crop {nh}x{nw}px")

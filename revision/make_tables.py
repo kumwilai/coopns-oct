@@ -254,7 +254,7 @@ def table_components():
         ("Alternatives of similar complexity on the same backbone output",
          [("Uniform allocation, trained", "matched_plain_eval"),
           ("Unsharp masking", "classical_unsharp"),
-          ("Adaptive equalisation", "classical_clahe")]))
+          ("Adaptive equalization", "classical_clahe")]))
     lines = []
     for title, rows in groups:
         block = []
@@ -437,7 +437,7 @@ def table_ablation():
             (None, None),
             ("Uniform allocation, trained", f"{OUT}/matched_plain_eval.json"),
             ("Unsharp masking", f"{OUT}/classical_unsharp.json"),
-            ("Adaptive equalisation", f"{OUT}/classical_clahe.json")]
+            ("Adaptive equalization", f"{OUT}/classical_clahe.json")]
     lines = []
     for name, path in rows:
         if name is None:

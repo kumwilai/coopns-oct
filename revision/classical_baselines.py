@@ -6,7 +6,7 @@ similar complexity. They act on exactly the same input as our wrapper and are
 scored with exactly the same metric code, imported from eval_pku37_test.
 
   unsharp   b + amount * (b - blur(b))
-  clahe     contrast limited adaptive histogram equalisation on b
+  clahe     contrast limited adaptive histogram equalization on b
 
 usage
   python revision/classical_baselines.py --mode tune          # pick the setting on the subset

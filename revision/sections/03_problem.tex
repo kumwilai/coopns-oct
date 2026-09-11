@@ -54,14 +54,14 @@ $\sigma_\mathcal{B}$ & Standard deviation over background \\
 
 
 
-\subsection{The optimisation problem}
-\label{sec:optimisation}
+\subsection{The optimization problem}
+\label{sec:optimization}
 The denoiser is given and is not changed. The task is to produce an image that beats
 $\mathbf{b} = f_\theta(\mathbf{y})$ on named clinical measures, stays close to it everywhere, and can
 explain every change it makes. The only free quantities are the wrapper parameters $\phi$, namely the
 cooperation head, the gain network, the edge network, the strength predictor and the rule layer, while
 the backbone parameters $\theta$ are held fixed throughout. Let $\mathcal{D}$ be a set of paired scans
-and $\hat{\mathbf{x}}(\phi)$ the output of the wrapper. We minimise the expected value of a weighted
+and $\hat{\mathbf{x}}(\phi)$ the output of the wrapper. We minimize the expected value of a weighted
 sum of six terms with fixed weights $w_c$, $w_p$, $w_o$, $w_s$ and $w_r$,
 \begin{equation}
 \begin{split}
