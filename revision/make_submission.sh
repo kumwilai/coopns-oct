@@ -39,7 +39,8 @@ grep -q "\[FILL\|\[CHECK\|\[DECISION\|\[TBD" responses_data.json && { echo "à¸œà
 AB=$(/home/kumwilai/osmnx-env/bin/python -c "
 import pymupdf
 t=pymupdf.open('paper/main.pdf')[0].get_text()
-i=t.find('Denoisers for optical')
+i=t.find('ABSTRACT')
+i=t.find(' ', i) if i >= 0 else 0
 j=t.find('INDEX TERMS')
 if j<0: j=t.find('I. INTRODUCTION')
 print(len(' '.join(t[i:j].split()).split()))")

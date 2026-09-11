@@ -72,18 +72,18 @@
 \corresp{Correspondence withheld for double blind review.}
 
 \begin{abstract}
-Denoisers for optical coherence tomography are trained to reduce a pixel error, so they can raise
-fidelity while lowering what a clinician reads, the contrast between retinal layers and the sharpness
-of their boundaries. We repair those properties afterwards, leaving the denoiser untouched. A
-small wrapper on the frozen denoiser measures six named clinical properties from the noisy input and
-its output alone, needing no clean image at test time, turns them into a per-pixel decision through five rules in fuzzy
-logic, bounds how far the image may move, and keeps a proposed change only while stated constraints
-hold, so every change is attributable to a named property at a named place. We prove that the decision cannot jump, by an exact rather than a loose constant, and give
-conditions under which the correction cannot lower contrast. One set of rules, budgets
-and weights serves four denoisers, only a small head being refitted. On all four, contrast
-rises by 3.5 to 11.3 percent and speckle suppression by 23.7 to 57.1 percent, for 0.17 to 0.98 dB of
-fidelity, and 21 of 24 gains clear the spread across seeds. Carried unchanged to two further datasets,
-40 of 48 pairs improve.
+A denoiser for optical coherence tomography minimises a pixel error, so it can raise fidelity while
+lowering the layer contrast and boundary sharpness a clinician actually reads. We make their repair a
+problem of its own, solved after denoising with the denoiser frozen. Four things are new. Six clinical
+properties in closed form are computed from the noisy input and the denoised output alone, each
+returning a score and a map of where it fails, so no clean image is needed at test time. Five fuzzy
+rules turn those maps into a per-pixel allocation whose response to a shift in evidence is bounded by
+an exact rather than a loose constant. A bounded proposal is admitted in proportion to how many of
+three constraints hold, and we prove when the correction cannot lower contrast, so every change is
+attributable to a named property at a named place. One set of rules, budgets and weights serves four
+denoisers, only a small head being refitted. On all four, contrast rises by 3.5 to 11.3 percent and
+speckle suppression by 23.7 to 57.1, for 0.17 to 0.98 dB of fidelity, and 40 of 48 measures improve on
+two further datasets with nothing refitted.
 \end{abstract}
 
 \begin{IEEEkeywords}
