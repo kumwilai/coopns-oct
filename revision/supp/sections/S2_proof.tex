@@ -16,9 +16,11 @@ a(\mathbf{r}) - a(\mathbf{r}') = \sum_{k} s_k C_k w_k (r_k - r'_k).
 \end{equation*}
 Taking absolute values and applying the triangle inequality,
 \begin{equation*}
+\begin{split}
 \big| a(\mathbf{r}) - a(\mathbf{r}') \big|
-\le \sum_{k} C_k w_k \, |r_k - r'_k|
-\le \Big( \sum_{k} C_k w_k \Big) \lVert \mathbf{r} - \mathbf{r}' \rVert_\infty ,
+&\le \sum_{k} C_k w_k \, |r_k - r'_k| \\
+&\le \Big( \sum_{k} C_k w_k \Big) \lVert \mathbf{r} - \mathbf{r}' \rVert_\infty ,
+\end{split}
 \end{equation*}
 which is the stability bound of Definition~1 of the main paper with $L = \sum_k C_k w_k$ as claimed.
 The bound is attained by taking $r_k - r'_k = s_k t$ for any $t$ small enough to keep both vectors in
@@ -57,9 +59,11 @@ convex combination of the means. Applying this over the tissue set and over the 
 where $\eta_\mathcal{B}' = \mu_\mathcal{B}(\mathbf{q}) - \mu_\mathcal{B}(\mathbf{b}) \le \eta_\mathcal{B}$
 by hypothesis. Subtracting,
 \begin{equation*}
+\begin{split}
 \mu_\mathcal{T}(\hat{\mathbf{x}}) - \mu_\mathcal{B}(\hat{\mathbf{x}})
-= \big(\mu_\mathcal{T}(\mathbf{b}) - \mu_\mathcal{B}(\mathbf{b})\big) + w\,(\eta_\mathcal{T} - \eta_\mathcal{B}')
-\ge \big(\mu_\mathcal{T}(\mathbf{b}) - \mu_\mathcal{B}(\mathbf{b})\big) + w\,(\eta_\mathcal{T} - \eta_\mathcal{B}),
+&= \big(\mu_\mathcal{T}(\mathbf{b}) - \mu_\mathcal{B}(\mathbf{b})\big) + w\,(\eta_\mathcal{T} - \eta_\mathcal{B}') \\
+&\ge \big(\mu_\mathcal{T}(\mathbf{b}) - \mu_\mathcal{B}(\mathbf{b})\big) + w\,(\eta_\mathcal{T} - \eta_\mathcal{B}),
+\end{split}
 \end{equation*}
 which lower bounds the numerator.
 
@@ -67,8 +71,10 @@ For the denominator, every background pixel of $\hat{\mathbf{x}}$ is the same co
 the corresponding pixels of $\mathbf{b}$ and $\mathbf{q}$. Treating the background pixel values as a
 random variable and applying Minkowski's inequality to the centred variables,
 \begin{equation*}
-\sigma_\mathcal{B}(\hat{\mathbf{x}}) \le (1-w)\,\sigma_\mathcal{B}(\mathbf{b}) + w\,\sigma_\mathcal{B}(\mathbf{q})
-\le (1-w)\,\sigma_\mathcal{B}(\mathbf{b}) + w\,\sigma_\mathcal{B}(\mathbf{b}) = \sigma_\mathcal{B}(\mathbf{b}),
+\begin{split}
+\sigma_\mathcal{B}(\hat{\mathbf{x}}) &\le (1-w)\,\sigma_\mathcal{B}(\mathbf{b}) + w\,\sigma_\mathcal{B}(\mathbf{q}) \\
+&\le (1-w)\,\sigma_\mathcal{B}(\mathbf{b}) + w\,\sigma_\mathcal{B}(\mathbf{b}) = \sigma_\mathcal{B}(\mathbf{b}),
+\end{split}
 \end{equation*}
 using the hypothesis $\sigma_\mathcal{B}(\mathbf{q}) \le \sigma_\mathcal{B}(\mathbf{b})$ in the second
 step. Dividing the lower bound on the numerator by the upper bound on the denominator gives the

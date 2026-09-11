@@ -6,15 +6,18 @@
 Let $\mathbf{x}$ be the clean reference, $\mathbf{b}$ the backbone output and $\hat{\mathbf{x}}$ the
 wrapper output. The objective of Equation~\eqref{eq:objective} has the following terms.
 
-\textbf{Fidelity.} This term combines the squared error with
-the structural similarity index~\cite{wang2004image},
+\textbf{Fidelity.} Let $\Delta = \mathrm{PSNR}(\mathbf{b}) - \mathrm{PSNR}(\hat{\mathbf{x}})$ be the
+drop against the backbone in decibels and $\Delta_s$ the corresponding drop in the structural
+similarity index~\cite{wang2004image}. Neither is charged until it exceeds a dead zone,
 \begin{equation}
-\mathcal{L}_{\mathrm{fid}} = \lVert \hat{\mathbf{x}} - \mathbf{x} \rVert_2^2
- + \big(1 - \mathrm{SSIM}(\hat{\mathbf{x}}, \mathbf{x})\big).
+\mathcal{L}_{\mathrm{fid}} = 5\,[\Delta - d]_+ + 15\,[\Delta - d - 0.4]_+^2
+ + 20\,[\Delta_s - 0.005]_+ ,
 \label{eq:loss_fid}
 \end{equation}
-A dead zone is applied to the peak signal to noise ratio part of this term, so no penalty is charged
-while the drop with respect to the backbone stays below $d$ decibels.
+where $[\cdot]_+$ is the positive part. The term is flat while the drop stays below $d$ decibels,
+linear for the next four tenths of a decibel and quadratic beyond that, so a small loss of fidelity
+is free and a large one is expensive. The dead zone $d$ is one of the two quantities selected per
+backbone in Section~\ref{sec:weight_selection}.
 
 \textbf{Clinical improvement.} This term rewards a rise in the clinical measures relative to the
 backbone, beginning with the contrast to noise ratio and the tissue contrast index, TCI. The logarithm
@@ -28,18 +31,21 @@ The same construction is added for the edge preservation index, the equivalent n
 the signal to noise ratio, each with its own weight, so a gain in one measure cannot be bought by a
 collapse in another.
 
-\textbf{Property calibration.} The rule layer compares each property score with a threshold, and if the scores drift away from the
-thresholds the comparison becomes uninformative, so this term pulls the scores toward the operating
-point,
+\textbf{Property scores.} This term asks each score to rise against the backbone, not against its
+threshold. With $\delta_i = s_i(\hat{\mathbf{x}}) - s_i(\mathbf{b})$, the backbone score held fixed,
 \begin{equation}
-\mathcal{L}_{\mathrm{pred}} = \sum_{i=1}^{6}\big(s_i(\hat{\mathbf{x}}) - \tau_i\big)^2 .
+\mathcal{L}_{\mathrm{pred}} = \sum_{i} v_i \Big( 3[-\delta_i]_+ - 2.5[\delta_i]_+
+ + 2\big[\tfrac{1}{2} - s_i(\hat{\mathbf{x}})\big]_+ \Big) ,
 \label{eq:loss_pred}
 \end{equation}
+where $[\cdot]_+$ is the positive part and $v_i$ is 3, 2, 2 and 1 on contrast, edge, boundary and
+texture. A drop costs more than a rise earns, and any score below one half is charged again. The
+thresholds $\tau_i$ are absent here, which is why they take no gradient and hold their
+Table~\ref{tab:predicates} values throughout.
 
-\textbf{Cooperation.} The wrapper should act where the backbone is unsure and stay quiet where it is
-confident. We measure the agreement between the demand map $\mathbf{u}$ and $\boldsymbol{\pi}$, the summed
-strength map of the two proposals that the rule layer of Section~\ref{sec:negotiator} reads, with the
-Pearson correlation $\rho$, and penalise disagreement,
+\textbf{Cooperation.} The wrapper should act where the backbone leaves room and stay quiet elsewhere.
+We take the Pearson correlation $\rho$ between the demand map $\mathbf{u}$ and $\boldsymbol{\pi}$, the
+summed proposal strength the rule layer reads, and penalise disagreement,
 \begin{equation}
 \mathcal{L}_{\mathrm{coop}} = \tfrac{1}{2}\,\mathrm{ReLU}\big(1 - \rho(\mathbf{u}, \boldsymbol{\pi})\big).
 \label{eq:loss_coop}
@@ -76,9 +82,13 @@ fixed against 31.21 dB and 0.948 when they are not.
 
 \subsection{How the operating point was chosen}
 \label{sec:weight_selection}
-The terms of Equation~\eqref{eq:objective} carry fixed relative weights. The training script can
-also learn them through an uncertainty weighting, and that path is inactive in every run reported
-here, which the absence of its parameters from the released checkpoints confirms. Two quantities are selected
+The terms of Equation~\eqref{eq:objective} carry fixed relative weights, identical for every backbone
+and every seed, namely $w_c = 1$ for the clinical term with internal weights 1.0 on edge preservation
+and 0.3 each on the speckle and signal to noise measures, $w_p = 1$, $w_o = 0.2$ and $w_s = 0.5$, with
+the fidelity term entering at weight 2.0 on its peak signal to noise part and 1.5 on its structural
+similarity part. The training script can also learn these weights through an uncertainty weighting,
+and that path is inactive in every run reported here, which the absence of its parameters from the
+released checkpoints confirms. Two quantities are selected
 per backbone on the validation split, the fidelity dead zone $d$ of Equation~\eqref{eq:loss_fid} and
 the rule of Equation~\eqref{eq:gate} that decides where a correction may act. The grid is the two
 gate rules crossed with dead zones of 0.3, 0.6 and 0.9 dB, and the tissue bounded gate crossed with

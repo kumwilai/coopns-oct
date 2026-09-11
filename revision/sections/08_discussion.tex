@@ -11,8 +11,10 @@ what a grader uses to place a boundary or judge a fluid pocket. The size of the 
 backbone leaves on each measure rather than its overall fidelity. On boundary sharpness NAFNet starts
 lowest at 0.851 of the reference and gains most, and DnCNN starts at 1.031, above the reference, and
 is the only backbone that falls. On edge preservation KBNet starts highest at 0.835 and is the only
-backbone left unchanged. For a deployment that must not lose fidelity at all, tightening the third
-constraint of Section~\ref{sec:safety} moves the output smoothly toward the backbone output.
+backbone left unchanged. A deployment that must not lose fidelity can lower the gain bound
+$\alpha_{\max}$, which scales every proposal and moves the output smoothly toward the backbone.
+Tightening the third constraint of Section~\ref{sec:safety} would not do this, because the acceptance
+rule keeps the candidate in full whenever the other two hold.
 SwinIR is the instructive case, since windowed attention smooths hard inside a window, so it leaves
 the most room on the contrast measures and yet pays the least fidelity of the four at 0.17 dB.
 

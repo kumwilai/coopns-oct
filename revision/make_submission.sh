@@ -36,6 +36,15 @@ n=$(grep -cE "Overfull \\\\hbox" paper/main.log || true); [ "$n" -eq 0 ] || { ec
 m=$(grep -cE "Overfull \\\\hbox" supp/main.log || true); [ "$m" -eq 0 ] || echo "เตือน ภาคผนวกมี Overfull hbox $m จุด"
 grep -rq "TBDRESULTS\|PLACEHOLDER" sections/*.tex supp/sections/*.tex && { echo "ผิด มีช่องว่างค้าง"; FAIL=1; } || true
 grep -q "\[FILL\|\[CHECK\|\[DECISION\|\[TBD" responses_data.json && { echo "ผิด จดหมายตอบมีวงเล็บค้าง"; FAIL=1; } || true
+AB=$(/home/kumwilai/osmnx-env/bin/python -c "
+import pymupdf
+t=pymupdf.open('paper/main.pdf')[0].get_text()
+i=t.find('Denoisers for optical')
+j=t.find('INDEX TERMS')
+if j<0: j=t.find('I. INTRODUCTION')
+print(len(' '.join(t[i:j].split()).split()))")
+[ "$AB" -le 200 ] || { echo "ผิด บทคัดย่อ $AB คำ เกิน 200 ซึ่งเป็นเพดานของวารสาร"; FAIL=1; }
+[ "$AB" -ge 100 ] || { echo "ผิด บทคัดย่อ $AB คำ ต่ำกว่า 100 ซึ่งเป็นขั้นต่ำของวารสาร"; FAIL=1; }
 /home/kumwilai/osmnx-env/bin/python style_check.py sections/*.tex supp/sections/*.tex | grep -v "^clean" && { echo "ผิด สไตล์ไม่ผ่าน"; FAIL=1; } || true
 
 echo

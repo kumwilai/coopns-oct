@@ -33,11 +33,13 @@ alone, where bold marks a mean that exceeds its spread.}
 The main paper reports that the map produced by the head reading the backbone features does not
 predict the error of that backbone. This section gives the rest of the analysis.
 
-Two measures were computed over the 173 test images. The rank correlation between the map and the
-absolute error of the backbone output with respect to the clean reference is $-0.258$. The
-sparsification error, defined as the area between the curve obtained by removing the pixels the map
+Two measures were computed over the \NImages{} test images. The quantity correlated with the
+absolute error of the backbone output is the demand map $\mathbf{u} = \mathbf{1} - \mathbf{c}$, which
+is high where the wrapper is told to act. A demand map that tracked backbone error would give a
+positive correlation. The measured rank correlation is \CalibRho{}, so the ordering runs the other
+way. The sparsification error, the area between the curve obtained by removing the pixels the map
 calls least reliable and the curve obtained by removing the pixels that are actually worst, is
-$0.775$. A perfect ordering scores zero on the second measure and one on the first.
+\CalibAuse{}. A perfect ordering scores zero on the second measure and one on the first.
 
 The reason is structural rather than a matter of tuning. The head is trained only through the
 cooperation term of the objective, which rewards agreement between the map and the estimated

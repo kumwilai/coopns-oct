@@ -21,8 +21,11 @@ parameter in the saved weights against its initialiser after 2082 optimiser step
 The allocation is now a bounded weighted vote. Writing $r_k \in [0,1]$ for the truth value of rule
 $k$ and $w_k \in (0,1)$ for its learned weight,
 \begin{equation}
-a = B_{\min} + (B_{\max}-B_{\min})\,\sigma(\beta)
-    - C_1 w_1 r_1 + C_2 w_2 r_2 + C_3 w_3 r_3 + C_4 w_4 r_4 - C_5 w_5 r_5 ,
+\begin{split}
+a = {}& B_{\min} + (B_{\max}-B_{\min})\,\sigma(\beta) \\
+     & - C_1 w_1 r_1 + C_2 w_2 r_2 + C_3 w_3 r_3 \\
+     & + C_4 w_4 r_4 - C_5 w_5 r_5 ,
+\end{split}
 \end{equation}
 with $B_{\min} = 0.25$, $B_{\max} = 0.50$ and budgets $C_1 = 0.15$, $C_2 = 0.25$, $C_3 = 0.15$,
 $C_4 = 0.10$ and $C_5 = 0.10$. The budgets satisfy

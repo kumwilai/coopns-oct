@@ -52,7 +52,7 @@ the clinical literature for that property. It receives no gradient under the obj
 paper, and in every selected checkpoint all six sit at their literature values to four decimals, so
 they are fixed in effect and the main paper reports them as fixed.
 
-\begin{table}[!tb]
+\begin{table*}[!tb]
 \centering
 \caption{Every constant in the method, where it acts and how it was chosen. Fixed means a structural
 choice that was not tuned. Set in development means it was chosen once on the validation split while
@@ -63,7 +63,7 @@ the test split.}
 \label{tab:constants}
 \setlength{\tabcolsep}{3pt}
 \footnotesize
-\begin{tabular}{llll}
+\begin{tabular}{p{0.16\textwidth}p{0.30\textwidth}p{0.30\textwidth}l}
 \toprule
 Constant & Value & Acts on & Origin \\
 \midrule
@@ -84,7 +84,7 @@ fidelity dead zone $d$ & 0.6 or 0.9 dB & Eq.~(14) of the main paper & selected i
 gate rule & percentile or tissue bounded & Eq.~(6) of the main paper & selected in the revision \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 \subsection{Structural constants}
 Table~\ref{tab:supp_constants} lists the remaining constants, which are structural and were not
@@ -95,18 +95,18 @@ tuned.
 \caption{Structural constants. None of these was tuned.}
 \label{tab:supp_constants}
 \footnotesize
-\begin{tabular}{llp{0.42\columnwidth}}
+\begin{tabular}{p{0.22\columnwidth}p{0.24\columnwidth}p{0.39\columnwidth}}
 \toprule
 Constant & Value & Role \\
 \midrule
 gate steepness & 20 & sharpness of the background gate \\
-failure sharpness & 10 & sharpness of the score to failure conversion \\
+failure sharpness & 10 & sharpness of score to failure conversion \\
 smoothing window & $3 \times 3$ & smoothing of the brightening term \\
-erosion window & $5 \times 5$ & keeps background smoothing away from tissue \\
+erosion window & $5 \times 5$ & keeps background smoothing off tissue \\
 crop size & $96 \times 96$ & training crops \\
 batch size & 16, or 8 for DnCNN and SwinIR & training batch \\
 edge bound & $\pm 0.08$ & nominal bound of the additive branch \\
-quarter resolution & $H/4 \times W/4$ & the gain network runs at this scale \\
+quarter resolution & $H/4 \times W/4$ & scale of the gain network \\
 \bottomrule
 \end{tabular}
 \end{table}

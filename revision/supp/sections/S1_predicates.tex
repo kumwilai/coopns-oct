@@ -6,29 +6,29 @@ the backbone output alone. No clean reference is used at any point.
 
 \begin{table*}[t]
 \centering
-\caption{Closed form of the six clinical properties. For each predicate, the table lists its clinical role, image-level score, and pixel-level failure map. larger $\mathbf{m}_i$ means stronger evidence that the corresponding property is locally unsatisfied. The expanded subterm definitions follow immediately below. Here $\bar e=\operatorname{mean}(e(x))$, $b_e=\mathbf{1}[e(x)>\bar e]$, $v(z)=\operatorname{mean}_w z$ is a depth profile, $\rho_h$ is 1-pixel horizontal autocorrelation, and $\operatorname{Var}_k$ is local variance over a $k\times k$ window.}
+\caption{Closed form of the six clinical properties. For each predicate, the table lists its clinical role, image-level score, and pixel-level failure map. larger $\mathbf{m}_i$ means stronger evidence that the corresponding property is locally unsatisfied. The expanded subterm definitions follow immediately below. Here $\bar e=\operatorname{mean}(e(\mathbf{b}))$, $b_e=\mathbf{1}[e(\mathbf{b})>\bar e]$, $v(z)=\operatorname{mean}_w z$ is a depth profile, $\rho_h$ is 1-pixel horizontal autocorrelation, and $\operatorname{Var}_k$ is local variance over a $k\times k$ window.}
 \label{tab:predicates_full}
-\setlength{\tabcolsep}{3pt}
+\setlength{\tabcolsep}{2pt}
 \footnotesize
-\begin{tabular}{cp{0.18\textwidth}p{0.33\textwidth}p{0.28\textwidth}c}
+\begin{tabular}{cp{0.13\textwidth}p{0.37\textwidth}p{0.34\textwidth}c}
 \toprule
 $P_i$ & Clinical role & Aggregate score $s_i$ & Failure map $\mathbf{m}_i$ & $\tau_i$ \\
 \midrule
 $P_1$ & Edge continuity &
 $0.4\,c_{\text{cont}}+0.3\,c_{\text{efr}}+0.3\,c_{\text{ang}}$ &
-$(1-\tilde e)(1-b_e)$, \ $\tilde e=e(x)/(e_{\max}+\varepsilon)$ &
+$(1-\tilde e)(1-b_e)$, \ $\tilde e=e(\mathbf{b})/(e_{\max}+\varepsilon)$ &
 0.6 \\
 $P_2$ & Local contrast recovery &
-$0.20\,s_{\text{range}}+0.35\,s_{\text{cnr}}+0.20\,s_{\text{var}}+0.25\,s_{\text{cov}}$ &
-$[\operatorname{ReLU}(\bar\sigma-\sigma_9(x))/(\bar\sigma+\varepsilon)+0.3\,\mathbf{1}[\sigma_9(x)<0.01]]_{[0,1]}$ &
+$0.20 s_{\text{range}}\!+\!0.35 s_{\text{cnr}}\!+\!0.20 s_{\text{var}}\!+\!0.25 s_{\text{cov}}$ &
+$\big[\operatorname{ReLU}(\bar\sigma-\sigma_9)/(\bar\sigma+\varepsilon) + 0.3\,\mathbf{1}[\sigma_9\!<\!0.01]\big]_{[0,1]}$\hspace*{-2pt} &
 0.5 \\
 $P_3$ & Flat-region smoothness &
 $0.6\,q_{\text{var}}+0.4\,q_{\text{res}}$ &
-$F \odot \sigma_5(x)/(\max \sigma_5(x)+\varepsilon)$ &
+$F \odot \sigma_5(\mathbf{b})/(\max \sigma_5(\mathbf{b})+\varepsilon)$ &
 0.75 \\
 $P_4$ & Structural coherence &
 $0.4\,s_{\text{self}}+0.3\,s_{\text{reg}}+0.3\,s_{\text{vert}}$ &
-$e(e(x))/(\max e(e(x))+\varepsilon)$ &
+$e(e(\mathbf{b}))/(\max e(e(\mathbf{b}))+\varepsilon)$ &
 0.5 \\
 $P_5$ & Speckle conformity &
 $0.7\,\operatorname{mean}(\exp(-|cv-cv^\star|/0.15))+0.3\,\exp(-5|\rho_h(z)|)$ &
@@ -36,44 +36,13 @@ $1-\exp(-|cv-cv^\star|/0.15)$ &
 0.3 \\
 $P_6$ & Layer visibility &
 $0.4\,s_{\text{clr}}+0.3\,s_{\text{dep}}+0.3\,s_{\text{smo}}$ &
-$\operatorname{Var}_7(e(x))/(\max \operatorname{Var}_7(e(x))+\varepsilon)$ &
+$\operatorname{Var}_7(e(\mathbf{b}))/(\max \operatorname{Var}_7(e(\mathbf{b}))+\varepsilon)$ &
 0.7 \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
-{\footnotesize
-\noindent\textbf{Expanded subterms in the property table of the main paper.}
-\textbf{$P_1$.}
-$c_{\text{cont}}=\langle\operatorname{erode}(\operatorname{dilate}(b_e)),b_e\rangle/(\|b_e\|_1+\varepsilon)$,
-$c_{\text{efr}}=\exp(-5|r_e-0.2|)$ with
-$r_e=\|\mathbf{1}[e(x)>1.5\bar e]\|_1/(\|\mathbf{1}[e(x)<0.5\bar e]\|_1+\varepsilon)$,
-and $c_{\text{ang}}=\exp(-2\,\operatorname{mean}(\sigma_5(\theta(x))))$.
-\textbf{$P_2$.}
-$s_{\text{range}}=\operatorname{sigm}(10(\Delta_r-0.3))$, $\Delta_r=\max(x)-\min(x)$.
-$s_{\text{cnr}}=\operatorname{sigm}(15(\bar\sigma-0.05))$, $\bar\sigma=\operatorname{mean}(\sigma_9(x))$.
-$s_{\text{var}}=\max(0.2,\operatorname{sigm}(-20(v_\sigma-0.02)+2))$, $v_\sigma=\operatorname{Var}(\sigma_9(x))$.
-$s_{\text{cov}}=\operatorname{sigm}(5(\gamma-0.4))$, $\gamma=\operatorname{mean}(\mathbf{1}[\sigma_9(x)>0.3\bar\sigma])$.
-\textbf{$P_3$.}
-$F=\mathbf{1}[e(x)<0.3\bar e]$,
-$q_{\text{var}}=1-\langle F,\sigma_5(x)/(\sigma_5(y)+\varepsilon)\rangle/(\|F\|_1+\varepsilon)$,
-and $q_{\text{res}}=\exp(-5\,\operatorname{mean}|y-x|)$.
-\textbf{$P_4$.}
-$s_{\text{self}}$ is the average Pearson correlation between $x$ and shifts $(0,2)$, $(2,0)$, and $(2,2)$.
-$s_{\text{reg}}=\exp(-12\,\operatorname{mean}(e(e(x))))$.
-$s_{\text{vert}}=\operatorname{clip}(\max |\nabla_z v(x)|/(8\,\operatorname{mean}|\nabla_z v(x)|),0,1)$.
-\textbf{$P_5$.}
-$z=\log(y+\varepsilon)-\log(x+\varepsilon)$,
-$cv=\sigma_{15}(|z|)/(\mu_{15}(|z|)+\varepsilon)$,
-and $cv^\star(d)$, where $d$ is the axial depth index, is the depth-wise Gamma-K target coefficient of variation used by the implementation.
-\textbf{$P_6$.}
-$s_{\text{clr}}=\operatorname{mean}(\operatorname{clip}(\max |\nabla_z v(x)|/(10\,\operatorname{mean}|\nabla_z v(x)|),0,1))$,
-$s_{\text{dep}}=\operatorname{clip}(20\,\operatorname{Var}(v(x)),0,1)$,
-and $s_{\text{smo}}=1-\operatorname{clip}(10\,\operatorname{mean}(\operatorname{Var}_z(\operatorname{mean}_w e(x))),0,1)$.
-
-These are the implemented predicates. The maps $\mathbf{m}_i$ are the spatial quantities consumed by the negotiator and potential head, while the scores $s_i$ drive the rule activations.
-}
-\noindent The released code computes exactly these quantities. The relevant class is named
+\noindent The release computes exactly these quantities. The relevant class is named
 \texttt{EnhancedGTFreePredicates} and the speckle property is computed by
 \texttt{PhysicsAccurateSpecklePredicate}.
 
@@ -86,3 +55,38 @@ local contrast and speckle conformity carry most of the evidence on this image, 
 are close to satisfied everywhere.}
 \label{fig:supp_predicate_maps}
 \end{figure*}
+
+\subsection{Expanded subterms of Table 2 of the main paper}
+{\footnotesize
+\textbf{Subterms.}
+$P_1$.
+$c_{\text{cont}}=\langle\operatorname{erode}(\operatorname{dilate}(b_e)),b_e\rangle/(\|b_e\|_1+\varepsilon)$,
+$c_{\text{efr}}=\exp(-5|r_e-0.2|)$ with
+$r_e=\|\mathbf{1}[e>1.5\bar e]\|_1/(\|\mathbf{1}[e<0.5\bar e]\|_1+\varepsilon)$,
+and $c_{\text{ang}}=\exp(-2\,\operatorname{mean}(\sigma_5(\theta)))$ with $\theta$ the Sobel edge angle of $\mathbf{b}$.
+$P_2$.
+$s_{\text{range}}=\operatorname{sigm}(10(\Delta_r-0.3))$ with $\Delta_r=\max(\mathbf{b})-\min(\mathbf{b})$,
+$s_{\text{cnr}}=\operatorname{sigm}(15(\bar\sigma-0.05))$,
+$s_{\text{var}}=\max(0.2,\operatorname{sigm}(-20(v_\sigma-0.02)+2))$ with $v_\sigma=\operatorname{Var}(\sigma_9(\mathbf{b}))$,
+and $s_{\text{cov}}=\operatorname{sigm}(5(\gamma-0.4))$ with $\gamma=\operatorname{mean}(\mathbf{1}[\sigma_9(\mathbf{b})>0.3\bar\sigma])$.
+$P_3$.
+$F=\mathbf{1}[e<0.3\bar e]$,
+$q_{\text{var}}=1-\langle F,\sigma_5(\mathbf{b})/(\sigma_5(\mathbf{y})+\varepsilon)\rangle/(\|F\|_1+\varepsilon)$,
+and $q_{\text{res}}=\exp(-5\,\operatorname{mean}|\mathbf{y}-\mathbf{b}|)$.
+$P_4$.
+$s_{\text{self}}$ is the mean Pearson correlation between $\mathbf{b}$ and its shifts by $(0,2)$, $(2,0)$ and $(2,2)$ pixels,
+$s_{\text{reg}}=\exp(-12\,\operatorname{mean}(e(e)))$,
+and $s_{\text{vert}}=\operatorname{clip}(\max |\nabla_z v(\mathbf{b})|/(8\,\operatorname{mean}|\nabla_z v(\mathbf{b})|),0,1)$.
+$P_5$.
+$z=\log(\mathbf{y}+\varepsilon)-\log(\mathbf{b}+\varepsilon)$,
+$cv=\sigma_{15}(|z|)/(\mu_{15}(|z|)+\varepsilon)$ with $\mu_{15}$ the local mean,
+and $cv^\star(d) = 1/\sqrt{k(d)}$ is the coefficient of variation of fully developed speckle under a
+Gamma model with shape $k(d)$, taken piecewise in relative axial depth as $k = 2.5$ above $0.20$,
+$4.0$ to $0.50$, $10.0$ to $0.75$ and $1.5$ below, giving targets of $0.63$, $0.50$, $0.32$ and
+$0.82$.
+$P_6$.
+$s_{\text{clr}}=\operatorname{mean}(\operatorname{clip}(\max |\nabla_z v(\mathbf{b})|/(10\,\operatorname{mean}|\nabla_z v(\mathbf{b})|),0,1))$,
+$s_{\text{dep}}=\operatorname{clip}(20\,\operatorname{Var}(v(\mathbf{b})),0,1)$,
+and $s_{\text{smo}}=1-\operatorname{clip}(10\,\operatorname{mean}(\operatorname{Var}_z(\operatorname{mean}_w e)),0,1)$
+with $\operatorname{mean}_w$ the mean across width and $\operatorname{Var}_z$ the variance along depth.
+}

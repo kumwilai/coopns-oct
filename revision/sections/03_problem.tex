@@ -74,10 +74,11 @@ $\mathcal{L}_{\mathrm{clin}}$ rewards improvement of the clinical measures over 
 $\mathcal{L}_{\mathrm{pred}}$ calibrates the property scores against their thresholds,
 $\mathcal{L}_{\mathrm{coop}}$ ties the amount of correction to the estimated correction demand, and
 $\mathcal{L}_{\mathrm{edge}}$ supervises the additive edge branch. Section~\ref{sec:training} gives
-each term in full. Three constraints must hold on every image, stated formally in
-Section~\ref{sec:safety}. The aggregate clinical quality must not fall by more than a fixed tolerance,
-no single property may fall by more than a fixed tolerance while another rises, and the relative
-change from the backbone output must stay below a fixed bound. The objective is differentiable in
+each term in full. Three constraints are checked on every image, stated formally in
+Section~\ref{sec:safety}. The aggregate clinical quality should not fall by more than a fixed
+tolerance, no single property should fall by more than a fixed tolerance while another rises, and the
+relative change from the backbone output should stay below a fixed bound. How many hold decides how much of the change is
+kept, so the rule is a majority test and not three hard guarantees. The objective is differentiable in
 $\phi$, including the rule layer, because every logical connective is a piecewise linear surrogate, so
 it is solved with AdamW~\cite{loshchilov2019decoupled}. During training the constraints enter as
 penalties, and at test time they are evaluated exactly on each image and the number satisfied decides

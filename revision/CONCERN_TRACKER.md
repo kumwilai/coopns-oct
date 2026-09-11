@@ -1,8 +1,9 @@
 # OJCS-2026-04-0386 revision tracker
 
-Deadline 15 Sep 2026. Last audited 11 Sep 2026, after an adversarial audit of every
-promise in the response letter against the manuscript.
-Main paper 12 pages and self contained. Supplement 7 pages, submitted alongside for extra detail.
+Deadline 15 Sep 2026. Last audited 11 Sep 2026, after two audits. The first checked every promise in
+the response letter against the manuscript. The second, an external critical read, found statements in
+the manuscript that contradicted the code, and those are listed below as settled.
+Main paper 12 pages and self contained. Supplement 8 pages, submitted alongside for extra detail.
 Both compile with no undefined reference and no overfull line.
 Response letter has no unresolved bracket and every section, table and figure reference verified.
 
@@ -54,6 +55,30 @@ full resolution visual comparison, and a restatement of the learning rates.
   gate rather than the tissue bounded gate NAFNet was finally selected with. Its checkpoint is gone,
   so the rest of its configuration cannot be read back. The paper says this rather than claiming a
   match it cannot verify.
+
+## Settled in the second audit, each verified against the code or the checkpoints
+
+- Equation 16 printed a sum of squared differences between each property score and its threshold.
+  The code compares the corrected score against the backbone score with weights 3, 2, 2 and 1 and a
+  penalty below one half, and the thresholds appear nowhere in it. That is why the thresholds take no
+  gradient and hold their literature values. The equation now matches the code.
+- Equation 14 printed squared error plus one minus the structural similarity index and mentioned a
+  dead zone that did not appear in it. The dead zone is one of the two selected quantities, so the
+  equation now shows the three part function the code implements.
+- The paper said the three safety constraints must hold on every image. The rule accepts on two of
+  three, and 38 images pass only two while still receiving the full candidate. It is now described as
+  a majority acceptance test.
+- The deployment advice said tightening the third constraint moves the output toward the backbone.
+  It does not when the other two hold. It now says to lower the gain bound.
+- The parameter overhead was given as about 2.4 percent, which is the shared part alone. The whole
+  wrapper is 2.3 to 5.8 percent, since the DnCNN head is larger than the shared wrapper.
+- The Lipschitz gap was called a conservative proof, contradicting the supplement, which says the
+  constant is attained. It now says the perturbations never reach the worst case.
+- The cooperation map diagnostic did not say which map was correlated with the backbone error. It is
+  the demand map, and a well ordered demand map would give a positive correlation.
+- The adapted rows are now labelled in the main paper as selected on the subject they report.
+- The 173 test pairs come from five clean image identities, which the measures paragraph now says.
+- The loss weights are now given numerically, and the inactive learned weight path is disclosed.
 
 ## Settled since the last audit
 

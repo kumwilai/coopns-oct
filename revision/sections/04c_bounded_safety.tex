@@ -67,7 +67,10 @@ w = \begin{cases}
 \label{eq:blend}
 \end{equation}
 Otherwise the output falls back to the backbone while retaining five to eight percent of the proposal,
-so the decision remains visible rather than silently discarded.
+so the decision remains visible rather than silently discarded. The candidate is accepted in full whenever any two
+constraints hold, so one violated constraint does not by itself withhold the change. This is a
+majority test on three measured conditions and not an enforcement of three bounds, and
+Section~\ref{sec:safety_check} reports how often each holds.
 
 
 \begin{figure*}[!tb]
@@ -87,7 +90,8 @@ $\mathbf{b}$, $\bar e$ its mean, $b_e = \mathbf{1}[e > \bar e]$, $\sigma_k$ and 
 the local standard deviation and variance over a $k \times k$ window, $\bar\sigma$ the mean of
 $\sigma_9$, $v(\cdot)$ the depth profile averaged across width, $\nabla_z$ the derivative along depth,
 $\rho_h$ the one pixel horizontal autocorrelation, $\operatorname{sigm}$ the logistic function,
-$\varepsilon$ a small constant, and $cv$ the local coefficient of variation of the log residual.}
+$\varepsilon$ a small constant, and $cv$ the local coefficient of variation of the log residual. The
+named subterms are expanded in the supplementary file.}
 \label{tab:predicates}
 \setlength{\tabcolsep}{3pt}
 \scriptsize
@@ -119,36 +123,6 @@ $P_6$ & layer visibility &
 $0.4\,s_{\text{clr}}+0.3\,s_{\text{dep}}+0.3\,s_{\text{smo}}$ &
 $\operatorname{Var}_7(e)/(\max \operatorname{Var}_7(e)+\varepsilon)$ &
 where the local variance of the edge map is high across depth & 0.70 \\
-\midrule
-\multicolumn{6}{p{0.97\textwidth}}{
-\textbf{Subterms.}
-$P_1$.
-$c_{\text{cont}}=\langle\operatorname{erode}(\operatorname{dilate}(b_e)),b_e\rangle/(\|b_e\|_1+\varepsilon)$,
-$c_{\text{efr}}=\exp(-5|r_e-0.2|)$ with
-$r_e=\|\mathbf{1}[e>1.5\bar e]\|_1/(\|\mathbf{1}[e<0.5\bar e]\|_1+\varepsilon)$,
-and $c_{\text{ang}}=\exp(-2\,\operatorname{mean}(\sigma_5(\theta)))$ with $\theta$ the Sobel edge angle of $\mathbf{b}$.
-$P_2$.
-$s_{\text{range}}=\operatorname{sigm}(10(\Delta_r-0.3))$ with $\Delta_r=\max(\mathbf{b})-\min(\mathbf{b})$,
-$s_{\text{cnr}}=\operatorname{sigm}(15(\bar\sigma-0.05))$,
-$s_{\text{var}}=\max(0.2,\operatorname{sigm}(-20(v_\sigma-0.02)+2))$ with $v_\sigma=\operatorname{Var}(\sigma_9(\mathbf{b}))$,
-and $s_{\text{cov}}=\operatorname{sigm}(5(\gamma-0.4))$ with $\gamma=\operatorname{mean}(\mathbf{1}[\sigma_9(\mathbf{b})>0.3\bar\sigma])$.
-$P_3$.
-$F=\mathbf{1}[e<0.3\bar e]$,
-$q_{\text{var}}=1-\langle F,\sigma_5(\mathbf{b})/(\sigma_5(\mathbf{y})+\varepsilon)\rangle/(\|F\|_1+\varepsilon)$,
-and $q_{\text{res}}=\exp(-5\,\operatorname{mean}|\mathbf{y}-\mathbf{b}|)$.
-$P_4$.
-$s_{\text{self}}$ is the mean Pearson correlation between $\mathbf{b}$ and its shifts by $(0,2)$, $(2,0)$ and $(2,2)$ pixels,
-$s_{\text{reg}}=\exp(-12\,\operatorname{mean}(e(e)))$,
-and $s_{\text{vert}}=\operatorname{clip}(\max |\nabla_z v(\mathbf{b})|/(8\,\operatorname{mean}|\nabla_z v(\mathbf{b})|),0,1)$.
-$P_5$.
-$z=\log(\mathbf{y}+\varepsilon)-\log(\mathbf{b}+\varepsilon)$,
-$cv=\sigma_{15}(|z|)/(\mu_{15}(|z|)+\varepsilon)$ with $\mu_{15}$ the local mean,
-and $cv^\star(d)$ is the target coefficient of variation of OCT speckle at axial depth $d$ under the Gamma K model of the released code.
-$P_6$.
-$s_{\text{clr}}=\operatorname{mean}(\operatorname{clip}(\max |\nabla_z v(\mathbf{b})|/(10\,\operatorname{mean}|\nabla_z v(\mathbf{b})|),0,1))$,
-$s_{\text{dep}}=\operatorname{clip}(20\,\operatorname{Var}(v(\mathbf{b})),0,1)$,
-and $s_{\text{smo}}=1-\operatorname{clip}(10\,\operatorname{mean}(\operatorname{Var}_z(\operatorname{mean}_w e)),0,1)$
-with $\operatorname{mean}_w$ the mean across width and $\operatorname{Var}_z$ the variance along depth.} \\
 \bottomrule
 \end{tabular}
 \end{table*}
