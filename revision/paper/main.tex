@@ -60,7 +60,7 @@ Denoisers for optical coherence tomography are trained to reduce a pixel error, 
 fidelity while lowering what a clinician reads, the contrast between layers and the sharpness of
 their boundaries. We repair those properties separately. A small wrapper on the frozen denoiser
 measures six named clinical properties from the noisy input and the denoised output alone, needing no
-clean image at test time, turns them into a per pixel decision through five rules, and bounds the
+clean image at test time, turns them into a per-pixel decision through five rules, and bounds the
 change. We prove that the decision moves by at most an exact constant below \num{0.75}
 when the evidence changes, measure the realised response, and give three conditions under which the
 correction cannot lower contrast to noise ratio. Only the head reading backbone features changes with it. The shared part is \num{168630} parameters and that head adds \num{4659}

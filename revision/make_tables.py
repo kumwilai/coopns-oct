@@ -448,6 +448,10 @@ def theory_numbers():
            r"\newcommand{\AllocMean}{%.3f}" % g.get("alloc_mean", {}).get("mean", 0),
            r"\newcommand{\AllocStd}{%.3f}" % g.get("alloc_std", {}).get("mean", 0),
            r"\newcommand{\NImages}{%d}" % n]
+    _per = r.get("per_image", [])
+    if _per and "cond_margin" in _per[0]:
+        out.append(r"\newcommand{\CondBoth}{%d}"
+                   % sum(1 for x in _per if x.get("cond_margin") and x.get("cond_sigma")))
     for key, cmd in (("cond_margin", "CondMargin"), ("cond_sigma", "CondSigma"),
                      ("boundary_not_worsened", "BoundOK")):
         if key in g and "true" in g[key]:

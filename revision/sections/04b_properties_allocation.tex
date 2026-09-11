@@ -26,7 +26,7 @@ f_i = \sigma\big(\kappa (\tau_i - s_i)\big), \qquad \kappa = 10 ,
 \end{equation}
 so $f_i$ is near one when property $i$ is failing and near zero when it is satisfied. The same soft comparison is used to test the cooperation
 map and the strength of a proposal against their own thresholds. Each corrector produces that
-strength as a per pixel map from the backbone output and the failure maps it serves, large where its
+strength as a per-pixel map from the backbone output and the failure maps it serves, large where its
 property is far below threshold. Before the rules fire, that strength is multiplied by one half plus the
 demand map, so the same proposal looks stronger to the rules at a pixel where the head reports low
 cooperation. Conjunction uses the Lukasiewicz

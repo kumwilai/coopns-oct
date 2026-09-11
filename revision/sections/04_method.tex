@@ -42,5 +42,5 @@ backbone output, and an unsharp mask. Its output is bounded to $\pm 0.08$ and sc
 factor. An additive form suits boundaries, which should be sharpened by the same amount in a bright
 layer as in a dark one.
 
-A third small network predicts a per pixel strength map $\boldsymbol{\lambda}$ with values in $[0,1]$
+A third small network predicts a per-pixel strength map $\boldsymbol{\lambda}$ with values in $[0,1]$
 from the failure maps of Stage three. It modulates how much of the raw gain survives at each pixel.

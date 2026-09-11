@@ -3,14 +3,14 @@
 
 The cross dataset numbers of the original submission were not produced by the no adaptation
 protocol the text described. The script that produced them resumed the corrector trained on PKU37
-and trained it further on the target dataset in a leave one subject out design. We rerun that
+and trained it further on the target dataset in a leave-one-subject-out design. We rerun that
 protocol here with the selected NAFNet checkpoint so that the gap between the two protocols can be
 read directly, and we describe it exactly.
 
 \subsection{Protocol}
 Each fold holds out one subject, seventeen of Duke2013 or fifteen of Duke17 subjects form the
-training set, and the held out subject is evaluated once. Training resumes from the PKU37 checkpoint
-of the tissue bounded gate setting at seed 0 and runs for fifteen epochs with batch size two. The
+training set, and the held-out subject is evaluated once. Training resumes from the PKU37 checkpoint
+of the tissue-bounded gate setting at seed 0 and runs for fifteen epochs with batch size two. The
 backbone weights and its normalisation statistics are frozen. The wrapper and the cooperation head
 that reads the backbone features are trainable. The learning rates are $2{\times}10^{-5}$,
 $1{\times}10^{-4}$ and $6{\times}10^{-5}$ for the corrector, potential and negotiator, five to ten
@@ -18,7 +18,7 @@ times below the PKU37 schedule of Table~\ref{tab:constants}, the fidelity term e
 and an L2 penalty of weight 0.1 holds every trainable weight near its PKU37 value, which is elastic
 weight consolidation without the Fisher weighting. A background correction variance penalty of
 weight 10 is also active. The checkpoint kept for each fold is the epoch with the highest validation
-score, and the validation image of a fold is its held out subject. The adapted numbers are therefore
+score, and the validation image of a fold is its held-out subject. The adapted numbers are therefore
 selected on the subject they are evaluated on and should be read as an upper bound for this
 protocol. The same was true of the original submission.
 
@@ -28,7 +28,7 @@ checkpoint from the main paper.
 
 \begin{table*}[!tb]
 \centering
-\caption{NAFNet, adapted protocol over one leave one subject out fold per subject, against the no
+\caption{NAFNet, adapted protocol over one leave-one-subject-out fold per subject, against the no
 adaptation protocol of Table 3 of the main paper on the same checkpoint. Clinical rows are percentage
 change from backbone output to corrected output. The spread is the standard deviation across
 subjects, the count is the number of subjects on which the measure improved, and $p$ is a two sided
@@ -75,6 +75,6 @@ subjects that is significant at the one percent level.
 We draw one conclusion. Adaptation on fifteen to seventeen images of the target scanner reliably
 improves one measure, contrast, which the frozen model already improves on both sets. It pays for
 that in fidelity and signal to noise ratio on both sets, its effect on the remaining measures
-changes direction between two scanners, and it does so from a checkpoint selected on the held out
+changes direction between two scanners, and it does so from a checkpoint selected on the held-out
 subject. The frozen model gives six positive measures on both sets with no fitting on the target
 data, and it is the protocol the main paper reports and the one we recommend.

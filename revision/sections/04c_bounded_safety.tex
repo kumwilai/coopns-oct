@@ -26,8 +26,8 @@ smoothed before it is added so that it cannot create a new high frequency edge,
  + (\boldsymbol{\alpha} - \mathrm{ReLU}(\boldsymbol{\alpha})) \odot \mathbf{b}\,\big) \odot \mathbf{g},
 \label{eq:apply}
 \end{equation}
-where $\mathrm{smooth}$ is a three by three mean filter. The darkening part is left unsmoothed because
-it has zero mean and cancels itself. In the background, defined by the complement of the gate eroded
+where $\mathrm{smooth}$ is a three by three mean filter. The darkening part is left unsmoothed, so the
+brightening is spread over a neighbourhood while a darkening acts where it was proposed. In the background, defined by the complement of the gate eroded
 by two pixels, a masked three by three mean filter is blended in at half strength, which lowers the
 background standard deviation without letting blur cross into tissue. Finally the edge proposal is
 added and the result is clipped to the valid range,
@@ -66,7 +66,7 @@ w = \begin{cases}
 \end{cases}
 \label{eq:blend}
 \end{equation}
-Otherwise the output falls back to the backbone while retaining five to eight percent of the proposal,
+Otherwise the output falls back to the backbone while retaining five percent when none holds and about eight when one does,
 so the decision remains visible rather than silently discarded. The candidate is accepted in full whenever any two
 constraints hold, so one violated constraint does not by itself withhold the change. This is a
 majority test on three measured conditions and not an enforcement of three bounds, and

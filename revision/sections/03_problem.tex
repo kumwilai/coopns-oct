@@ -4,7 +4,7 @@
 \subsection{Notation}
 \label{sec:notation}
 Images are real valued arrays of height $H$ and width $W$ with values in $[0,1]$. We write $\mathbf{y}$
-for the noisy B scan that comes off the scanner and $\mathbf{x}$ for the clean reference obtained by
+for the noisy B-scan that comes off the scanner and $\mathbf{x}$ for the clean reference obtained by
 averaging many repeated scans of the same location. A pixel index is written $p$, so $y_p$ is one
 pixel of $\mathbf{y}$.
 
@@ -22,8 +22,8 @@ only is defined where it is introduced.
 \toprule
 Symbol & Meaning \\
 \midrule
-$\mathbf{y}$ & Noisy input B scan \\
-$\mathbf{x}$ & Clean reference B scan \\
+$\mathbf{y}$ & Noisy input B-scan \\
+$\mathbf{x}$ & Clean reference B-scan \\
 $f_\theta$ & Frozen denoising backbone with parameters $\theta$ \\
 $\mathbf{b}$ & Backbone output, $\mathbf{b} = f_\theta(\mathbf{y})$ \\
 $\phi$ & Trainable parameters of the wrapper \\
@@ -81,5 +81,5 @@ relative change from the backbone output should stay below a fixed bound. How ma
 kept, so the rule is a majority test and not three hard guarantees. The objective is differentiable in
 $\phi$, including the rule layer, because every logical connective is a piecewise linear surrogate, so
 it is solved with AdamW~\cite{loshchilov2019decoupled}. During training the constraints enter as
-penalties, and at test time they are evaluated exactly on each image and the number satisfied decides
-how much of the proposed change is applied, which makes them binding rather than advisory.
+penalties. At test time they are evaluated exactly on each image and the number satisfied sets the
+blend weight through the majority rule.

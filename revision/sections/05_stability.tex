@@ -66,8 +66,13 @@ for the separation between tissue and background divided by the variability of t
 \label{thm:cnr}
 Let $\eta_\mathcal{T} = \mu_\mathcal{T}(\mathbf{q}) - \mu_\mathcal{T}(\mathbf{b}) \ge 0$ be the gain in
 tissue mean and let $\eta_\mathcal{B} \ge \mu_\mathcal{B}(\mathbf{q}) - \mu_\mathcal{B}(\mathbf{b})$
-bound the leakage into the background. If the correction does not raise the background variability,
-that is $\sigma_\mathcal{B}(\mathbf{q}) \le \sigma_\mathcal{B}(\mathbf{b})$, then the output of
+bound the leakage into the background. Suppose the tissue and background sets are the same for
+$\mathbf{b}$, $\mathbf{q}$ and $\hat{\mathbf{x}}$, that
+$\sigma_\mathcal{B}(\mathbf{b}) > 0$ and the correction does not raise the background variability, so
+$\sigma_\mathcal{B}(\mathbf{q}) \le \sigma_\mathcal{B}(\mathbf{b})$, and that the bounded numerator
+$\big(\mu_\mathcal{T}(\mathbf{b}) - \mu_\mathcal{B}(\mathbf{b})\big) + w\,(\eta_\mathcal{T} -
+\eta_\mathcal{B})$ is non negative, which holds whenever the backbone already separates tissue from
+background and $\eta_\mathcal{T} \ge \eta_\mathcal{B}$. Then the output of
 Equation~\eqref{eq:blend} satisfies
 \begin{equation}
 \mathrm{CNR}(\hat{\mathbf{x}}) \;\ge\;

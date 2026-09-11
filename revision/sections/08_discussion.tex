@@ -4,19 +4,19 @@
 \subsection{Why fidelity falls, and when that is the right trade}
 \label{sec:psnr_tradeoff}
 Peak signal to noise ratio falls when the wrapper is applied, by 0.17 to 0.98 dB depending on the
-backbone. A denoiser trained on squared error sits at a local
-optimum of that error, so any change that raises contrast or boundary definition moves away from it. A change of a few tenths of a decibel is smaller
-than the variation between two acquisitions of the same eye, while the quantities that improve are
-what a grader uses to place a boundary or judge a fluid pocket. The size of the gain tracks the room a
+backbone. A denoiser trained on squared error sits near a local optimum of that
+error, so a change that raises contrast or boundary definition moves away from it. A few tenths of a
+decibel is smaller than the variation between two acquisitions of the same eye, while the quantities
+that improve are the ones a grader uses. The size of the gain tracks the room a
 backbone leaves on each measure rather than its overall fidelity. On boundary sharpness NAFNet starts
 lowest at 0.851 of the reference and gains most, and DnCNN starts at 1.031, above the reference, and
 is the only backbone that falls. On edge preservation KBNet starts highest at 0.835 and is the only
 backbone left unchanged. A deployment that must not lose fidelity can lower the gain bound
-$\alpha_{\max}$, which scales every proposal and moves the output smoothly toward the backbone.
-Tightening the third constraint of Section~\ref{sec:safety} would not do this, because the acceptance
-rule keeps the candidate in full whenever the other two hold.
-SwinIR is the instructive case, since windowed attention smooths hard inside a window, so it leaves
-the most room on the contrast measures and yet pays the least fidelity of the four at 0.17 dB.
+$\alpha_{\max}$, which attenuates the multiplicative branch, though the edge branch has its own bound
+and only bypassing the wrapper recovers the backbone output exactly. Tightening the third constraint
+would not do this, since the rule keeps the candidate in full whenever the other two hold.
+SwinIR is the instructive case, since windowed attention smooths hard inside a window, leaving the
+most room on contrast yet paying the least fidelity of the four at 0.17 dB.
 
 \subsection{Limitations}
 The correction is bounded by construction, so a backbone that has destroyed a structure cannot be
@@ -25,9 +25,9 @@ from \EdgeInvBack{} to \EdgeInvCorr{} percent and the retention of the weakest d
 falls from \WeakRetBack{} to \WeakRetCorr{} percent, on \EdgeInvUp{} and \WeakRetDown{} of \NImages{} images. Neither is
 zero, and the validation criterion that selected the operating
 point scores six clinical measures and fidelity and does not see either of them. We measured what
-that blindness costs, on the validation split so that the test split is used once. The setting the
-criterion ranked second for NAFNet raises weak structure retention from 40.7 to 43.9 percent where
-the selected setting lowers it to 37.7, and adds less to the invented edge rate. The criterion is
+that blindness costs, on the validation split so that the test split is used once. The setting ranked second for NAFNet
+raises weak structure retention from 40.7 to 43.9 percent where the selected one lowers it to 37.7,
+and adds less to the invented edge rate. The criterion is
 therefore blind in a way that matters, and a user who values faint detail above contrast should score
 these two measures during selection. We did not reselect on this evidence, because the criterion was
 fixed before the test split was scored and changing it afterwards would spend that split twice. The clinical

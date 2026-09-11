@@ -31,17 +31,20 @@ The same construction is added for the edge preservation index, the equivalent n
 the signal to noise ratio, each with its own weight, so a gain in one measure cannot be bought by a
 collapse in another.
 
-\textbf{Property scores.} This term asks each score to rise against the backbone, not against its
-threshold. With $\delta_i = s_i(\hat{\mathbf{x}}) - s_i(\mathbf{b})$, the backbone score held fixed,
+\textbf{Preservation scores.} This term acts on four scores $g_j$ separate from the six properties of
+Table~\ref{tab:predicates}, comparing the corrected output with the backbone output on local
+contrast, the gradient across layer boundaries, the local variance carrying texture, and the gradient
+magnitude at edges. With $\delta_j = g_j(\hat{\mathbf{x}}) - g_j(\mathbf{b})$, the backbone value fixed,
 \begin{equation}
-\mathcal{L}_{\mathrm{pred}} = \sum_{i} v_i \Big( 3[-\delta_i]_+ - 2.5[\delta_i]_+
- + 2\big[\tfrac{1}{2} - s_i(\hat{\mathbf{x}})\big]_+ \Big) ,
+\mathcal{L}_{\mathrm{pred}} = \sum_{j=1}^{4} v_j \Big( 3[-\delta_j]_+ - 2.5[\delta_j]_+
+ + 2\big[\tfrac{1}{2} - g_j(\hat{\mathbf{x}})\big]_+ \Big) ,
 \label{eq:loss_pred}
 \end{equation}
-where $[\cdot]_+$ is the positive part and $v_i$ is 3, 2, 2 and 1 on contrast, edge, boundary and
-texture. A drop costs more than a rise earns, and any score below one half is charged again. The
-thresholds $\tau_i$ are absent here, which is why they take no gradient and hold their
-Table~\ref{tab:predicates} values throughout.
+where $[\cdot]_+$ is the positive part and $v_j$ is 3, 2, 2 and 1 in that order. A drop costs more
+than a rise earns, and any score below one half is charged again. The thresholds $\tau_i$ of the six
+properties play no part here. They enter Equation~\eqref{eq:soft_failure}, but the rule layer that
+evaluates it runs without gradient tracking, so no path reaches them and all six hold their
+Table~\ref{tab:predicates} values throughout training.
 
 \textbf{Cooperation.} The wrapper should act where the backbone leaves room and stay quiet elsewhere.
 We take the Pearson correlation $\rho$ between the demand map $\mathbf{u}$ and $\boldsymbol{\pi}$, the
@@ -82,20 +85,18 @@ fixed against 31.21 dB and 0.948 when they are not.
 
 \subsection{How the operating point was chosen}
 \label{sec:weight_selection}
-The terms of Equation~\eqref{eq:objective} carry fixed relative weights, identical for every backbone
-and every seed, namely $w_c = 1$ for the clinical term with internal weights 1.0 on edge preservation
-and 0.3 each on the speckle and signal to noise measures, $w_p = 1$, $w_o = 0.2$ and $w_s = 0.5$, with
-the fidelity term entering at weight 2.0 on its peak signal to noise part and 1.5 on its structural
-similarity part. The training script can also learn these weights through an uncertainty weighting,
-and that path is inactive in every run reported here, which the absence of its parameters from the
-released checkpoints confirms. Two quantities are selected
-per backbone on the validation split, the fidelity dead zone $d$ of Equation~\eqref{eq:loss_fid} and
-the rule of Equation~\eqref{eq:gate} that decides where a correction may act. The grid is the two
-gate rules crossed with dead zones of 0.3, 0.6 and 0.9 dB, and the tissue bounded gate crossed with
-radii of 41 and 61 pixels. It selected the tissue bounded gate at radius 41 and a dead zone of 0.6 dB
-for NAFNet, and the percentile gate at a dead zone of 0.9 dB for the other three. Everything else is
-held at one value for every backbone and every run. For each backbone every setting is trained at three random seeds
-and scored on the validation images. A setting is admissible only if it clears its bounds at its
+The terms of Equation~\eqref{eq:objective} carry fixed relative weights, the same for every backbone
+and seed. The clinical term dominates at 6, the property term is 1, the cooperation term is 0.2, and
+the fidelity term is 0 in the first stage and 1 in the second, which is what the two stage schedule
+means here. The parser also accepts flags for a peak signal to noise
+weight, a structural similarity weight and per measure weights, none of which reaches the loss. They
+are inert like the three already named in the release notes, which lists all of them. Two quantities
+are selected per backbone on validation, the dead zone $d$ of Equation~\eqref{eq:loss_fid} and the
+gate of Equation~\eqref{eq:gate}. The grid crosses the two gate rules with dead zones of 0.3, 0.6 and
+0.9 dB and the tissue-bounded gate with radii of 41 and 61 pixels. It chose the tissue-bounded gate
+at radius 41 with a dead zone of 0.6 dB for NAFNet and the percentile gate at 0.9 dB for the other
+three. Everything else is held at one value throughout. Each setting is trained at three seeds and
+scored on validation. A setting is admissible only if it clears its bounds at its
 \emph{worst} seed rather than on average, and among the
 admissible settings we take the one with the largest lower confidence bound on its weakest clinical
 measure. When no setting clears the first pair of bounds we relax them one step at a time and record
@@ -121,6 +122,6 @@ scale of the edge branch. Every layer uses its default initialisation with one d
 the bias of the brightness channel of the gain network starts at 0.5, so the raw gain begins at
 $0.5\,\alpha_{\max}$ in flat tissue rather than on a flat region of the loss. Nothing was ever chosen
 on the test split, and Section~\ref{sec:sensitivity} reports how much the results move when the
-constants of the rule layer are changed, the direct test of whether any of them does hidden work.
+constants of the rule layer are changed, the direct test of whether any of them materially affects the result.
 
 
