@@ -73,17 +73,17 @@
 
 \begin{abstract}
 A denoiser for optical coherence tomography minimises a pixel error, so it can raise fidelity while
-lowering the layer contrast and boundary sharpness a clinician actually reads. We make their repair a
-problem of its own, solved after denoising with the denoiser frozen. Four things are new. Six clinical
-properties in closed form are computed from the noisy input and the denoised output alone, each
-returning a score and a map of where it fails, so no clean image is needed at test time. Five fuzzy
-rules turn those maps into a per-pixel allocation whose response to a shift in evidence is bounded by
-an exact rather than a loose constant. A bounded proposal is admitted in proportion to how many of
-three constraints hold, and we prove when the correction cannot lower contrast, so every change is
-attributable to a named property at a named place. One set of rules, budgets and weights serves four
-denoisers, only a small head being refitted. On all four, contrast rises by 3.5 to 11.3 percent and
-speckle suppression by 23.7 to 57.1, for 0.17 to 0.98 dB of fidelity, and 40 of 48 measures improve on
-two further datasets with nothing refitted.
+lowering the layer contrast and boundary sharpness a clinician reads. We repair those properties
+afterwards, with the denoiser frozen. Four things are new. Six clinical properties in closed form read
+the noisy input and the denoised output alone, each returning a score and a map of where it fails, so
+no clean image is needed at test time. Five fuzzy rules turn those maps into a per-pixel allocation
+whose response to a shift in evidence is bounded by an exact rather than a loose constant. A bounded
+proposal is admitted in proportion to how many of three constraints hold, we prove when contrast
+cannot fall, and every change traces to a named property at a named place. One set of rules and
+weights serves four denoisers, only a small head refitted. All six measures rise on two of them and
+five of six on the others, contrast by 3.5 to 11.3 percent, speckle suppression by 23.7 to 57.1 and
+signal to noise by 8.0 to 23.0, at 0.17 to 0.98 dB of fidelity. Carried unchanged to two other
+datasets, 40 of 48 measures improve.
 \end{abstract}
 
 \begin{IEEEkeywords}
