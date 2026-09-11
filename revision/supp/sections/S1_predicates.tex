@@ -58,8 +58,14 @@ inner product equals $\|b_e\|_1$ and the ratio is one wherever the closing is de
 $256\times256$ fields it reads $0.952$, and every pixel of the shortfall lies on the two pixel border,
 where the zero padding erodes the dilated set. Restricted to the interior it is exactly $1$. The
 subterm therefore contributes a constant near $0.4$ to $P_1$ and the score varies only through
-$c_{\text{efr}}$ and $c_{\text{ang}}$. The failure map of $P_1$ does not read it at all, so the
-allocation is unaffected,
+$c_{\text{efr}}$ and $c_{\text{ang}}$. We are careful about what follows from that. The failure map
+of $P_1$ does not read this subterm, so it does not enter the allocation through the per pixel path.
+It does enter $s_1$, which reaches the soft failure of Equation~(\EqFailure) and the acceptance
+energy of Equation~(\EqEnergy), so it is not inert in the forward computation and we do not claim the
+output is independent of it. What we claim is narrower, that it is non discriminative, a near
+constant offset rather than a measurement of continuity. We keep it exactly as it was run, since
+replacing it would shift $s_1$ and could change a rule truth value or an acceptance decision, and
+every number in this paper was produced with it in place. The other two subterms are
 $c_{\text{efr}}=\exp(-5|r_e-0.2|)$ with
 $r_e=\|\mathbf{1}[e>1.5\bar e]\|_1/(\|\mathbf{1}[e<0.5\bar e]\|_1+\varepsilon)$,
 and $c_{\text{ang}}=\exp(-2\,\operatorname{mean}(\sigma_5(\theta)))$ with $\theta$ the Sobel edge angle of $\mathbf{b}$.

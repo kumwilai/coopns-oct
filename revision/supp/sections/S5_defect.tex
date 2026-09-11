@@ -33,8 +33,14 @@ $C_4 = 0.10$ and $C_5 = 0.10$. The budgets satisfy
 B_{\max} + C_2 + C_3 + C_4 = 1, \qquad B_{\min} - C_1 - C_5 = 0 ,
 \end{equation}
 so the value lies in the unit interval before any clipping, for every input and every parameter
-setting. Clipping is therefore never active, saturation is impossible rather than unlikely, and the
-gradient reaches every rule parameter.
+setting. Clipping is therefore never active and saturation is impossible rather than unlikely, which
+restores the gradient to the rule layer. It restores it to four of the five weighted rules and to the
+base. The fifth is a separate matter and not a consequence of the clamp. Its truth value is computed
+only where more than one corrector proposes at a pixel, and in the configuration reported here the
+allocation is formed for a single multiplicative gain proposal, so that truth value is the constant
+zero and the term $-C_5 w_5 r_5$ vanishes whatever $w_5$ is. The reported implementation therefore
+has four active weighted rules and a trainable base, with the fifth rule configured and inactive and
+the six thresholds fixed, which is the inventory Section~V-I of the main paper measures.
 
 The repair also tightens the theory. Because the allocation is affine in the rule truth values with
 signed coefficients and no clipping intervenes, the Lipschitz constant of Theorem~1 of the main paper

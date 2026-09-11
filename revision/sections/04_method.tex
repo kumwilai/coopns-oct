@@ -142,9 +142,9 @@ parameters held fixed. The allocation is said to be stable with constant $L$ if
 \end{equation}
 \end{definition}
 
-In words, $L$ is the worst case ratio between a change in the decision and the change in the
-evidence that caused it. Without such a bound the layer could swing from no correction to all of it
-because one score moved slightly.
+In words, $L$ is the worst case ratio between a change in the decision and the change in the evidence
+that caused it. Without it the layer could swing from no correction to all of it because one score
+moved slightly.
 
 
 \begin{theorem}[Allocation stability]
@@ -173,6 +173,5 @@ because every $C_k$ is positive and every $w_k$ lies strictly inside $(0,1)$.
 If replacing one backbone by another changes the rule truth values at a pixel by at most $\epsilon$
 in the maximum norm, the parameters unchanged, the allocation there changes by at most $L\epsilon$.
 \end{corollary}
-
-This concerns the routing rule alone, not whether image quality transfers, which
+\noindent This concerns the routing rule alone, not whether image quality transfers, which
 Section~\ref{sec:results_ood} settles by measurement.

@@ -228,16 +228,15 @@ FOOT = [r"\bottomrule", r"\end{tabular}"]
 def table_in_distribution():
     """The four backbones on the PKU37 test set, and nothing else.
 
-    Set in one column, so the backbone PSNR moves to the caption and the seed
-    spread of the fidelity column to the supplement, where every clinical cell
-    already carries its own. Bold still marks a mean that exceeds its spread, so
-    nothing about significance is lost."""
+    Set in one column, so the absolute backbone PSNR moves to the caption. The
+    seed spread of the fidelity column stays, since it appears nowhere else and
+    dropping it would remove the only uncertainty reported for fidelity."""
     lines, seeds = _backbone_rows("test")
     narrow = []
     for row in lines:
         cells = row.rstrip(" \\\\").split(" & ")
         # drop the absolute backbone PSNR, and the plus or minus from the delta
-        cells = [cells[0]] + [cells[2].split(" $\\pm$ ")[0]] + cells[3:]
+        cells = [cells[0]] + [cells[2]] + cells[3:]
         narrow.append(" & ".join(cells) + r" \\")
     header = [r"\begin{tabular}{lccccccc}", r"\toprule",
               r"Backbone & $\Delta$PSNR & $\Delta$CNR & $\Delta$TCI & $\Delta$EPI & "
@@ -246,17 +245,26 @@ def table_in_distribution():
 
 
 def table_zeroshot():
-    """The same four backbones on Duke17 and Duke2013 with nothing refitted."""
+    """The same four backbones on Duke17 and Duke2013 with nothing refitted.
+
+    Same shape as the in distribution table, so a reader compares a row here
+    against a row there without re reading a header. One column, so the absolute
+    backbone PSNR moves to the caption."""
     lines, seed_counts = [], []
     for i, (ds, tag) in enumerate((("Duke17", "duke17"), ("Duke2013", "duke2013"))):
         if i:
             lines.append(r"\midrule")
-        lines.append(r"\multicolumn{9}{l}{\textit{%s}} \\" % ds)
+        lines.append(r"\multicolumn{8}{l}{\textit{%s}} \\" % ds)
         block_lines, block_seeds = transfer_block(tag)
-        lines.extend(block_lines)
+        for row in block_lines:
+            cells = row.rstrip(" \\\\").split(" & ")
+            lines.append(" & ".join([cells[0]] + [cells[2]] + cells[3:]) + r" \\")
         if block_seeds:
             seed_counts.append(block_seeds)
-    return "\n".join(HEAD9W + lines + FOOT), (max(seed_counts) if seed_counts else 0)
+    header = [r"\begin{tabular}{lccccccc}", r"\toprule",
+              r"Backbone & $\Delta$PSNR & $\Delta$CNR & $\Delta$TCI & $\Delta$EPI & "
+              r"$\Delta$BS & $\Delta$ENL & $\Delta$SNR \\", r"\midrule"]
+    return "\n".join(header + lines + FOOT), (max(seed_counts) if seed_counts else 0)
 
 
 def table_components():

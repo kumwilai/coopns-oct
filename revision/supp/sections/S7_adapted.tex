@@ -40,31 +40,32 @@ not seed matched and the comparison is indicative.
 adaptation protocol of Table 4 of the main paper, whose column is the mean over three seeds, so the
 two columns are not seed matched. Clinical rows are percentage
 change from backbone output to corrected output. The spread is the standard deviation across
-subjects, the count is the number of subjects on which the measure improved, and $p$ is a two sided
-Wilcoxon signed rank test on the paired per subject values.}
+subjects, and the count is the number of subjects on which the measure improved. No $p$ value is
+given, because every checkpoint was chosen on the subject it is then scored on, so a test on those
+paired values would not carry its usual meaning.}
 \label{tab:supp_adapted}
 \footnotesize
-\begin{tabular}{lrrrr}
+\begin{tabular}{lrrr}
 \toprule
-Measure & No adaptation & Adapted & Improved & $p$ \\
+Measure & No adaptation & Adapted & Improved \\
 \midrule
-\multicolumn{5}{l}{\textit{Duke17, 16 subjects}} \\
-$\Delta$PSNR (dB) & $-0.17$ & $-0.23 \pm 0.44$ & 6 of 16 & 0.093 \\
-$\Delta$CNR & $+7.51$ & $+10.68 \pm 1.55$ & 16 of 16 & $3.1{\times}10^{-5}$ \\
-$\Delta$TCI & $+4.00$ & $+2.69 \pm 4.16$ & 12 of 16 & 0.018 \\
-$\Delta$EPI & $+1.37$ & $+1.49 \pm 0.78$ & 15 of 16 & $6.1{\times}10^{-5}$ \\
-$\Delta$BS & $+4.15$ & $+4.13 \pm 5.18$ & 13 of 16 & 0.0017 \\
-$\Delta$ENL & $+21.35$ & $+24.29 \pm 17.72$ & 15 of 16 & $6.1{\times}10^{-5}$ \\
-$\Delta$SNR & $+5.43$ & $+2.95 \pm 8.97$ & 9 of 16 & 0.50 \\
+\multicolumn{4}{l}{\textit{Duke17, 16 subjects}} \\
+$\Delta$PSNR (dB) & $-0.17$ & $-0.23 \pm 0.44$ & 6 of 16 \\
+$\Delta$CNR & $+7.51$ & $+10.68 \pm 1.55$ & 16 of 16 \\
+$\Delta$TCI & $+4.00$ & $+2.69 \pm 4.16$ & 12 of 16 \\
+$\Delta$EPI & $+1.37$ & $+1.49 \pm 0.78$ & 15 of 16 \\
+$\Delta$BS & $+4.15$ & $+4.13 \pm 5.18$ & 13 of 16 \\
+$\Delta$ENL & $+21.35$ & $+24.29 \pm 17.72$ & 15 of 16 \\
+$\Delta$SNR & $+5.43$ & $+2.95 \pm 8.97$ & 9 of 16 \\
 \midrule
-\multicolumn{5}{l}{\textit{Duke2013, 18 subjects}} \\
-$\Delta$PSNR (dB) & $-0.35$ & $-0.45 \pm 0.47$ & 4 of 18 & 0.0016 \\
-$\Delta$CNR & $+7.37$ & $+15.43 \pm 4.09$ & 18 of 18 & $7.6{\times}10^{-6}$ \\
-$\Delta$TCI & $+1.41$ & $+5.15 \pm 3.75$ & 17 of 18 & $1.5{\times}10^{-5}$ \\
-$\Delta$EPI & $+0.85$ & $+0.90 \pm 0.89$ & 15 of 18 & 0.00084 \\
-$\Delta$BS & $+0.51$ & $+2.96 \pm 2.97$ & 14 of 18 & 0.0010 \\
-$\Delta$ENL & $+28.80$ & $+9.23 \pm 28.61$ & 8 of 18 & 0.80 \\
-$\Delta$SNR & $+9.29$ & $-5.29 \pm 13.97$ & 3 of 18 & 0.010 \\
+\multicolumn{4}{l}{\textit{Duke2013, 18 subjects}} \\
+$\Delta$PSNR (dB) & $-0.35$ & $-0.45 \pm 0.47$ & 4 of 18 \\
+$\Delta$CNR & $+7.37$ & $+15.43 \pm 4.09$ & 18 of 18 \\
+$\Delta$TCI & $+1.41$ & $+5.15 \pm 3.75$ & 17 of 18 \\
+$\Delta$EPI & $+0.85$ & $+0.90 \pm 0.89$ & 15 of 18 \\
+$\Delta$BS & $+0.51$ & $+2.96 \pm 2.97$ & 14 of 18 \\
+$\Delta$ENL & $+28.80$ & $+9.23 \pm 28.61$ & 8 of 18 \\
+$\Delta$SNR & $+9.29$ & $-5.29 \pm 13.97$ & 3 of 18 \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -75,12 +76,12 @@ subject. Fidelity and signal to noise ratio
 and signal to noise ratio are lower than the frozen model by a further 0.06 and 0.10 dB, with one and
 two subjects losing more than 1 dB, and a signal to noise ratio 2.5 and 14.6 points lower. The mean absolute correction rises from
 0.0104 to 0.0121 on Duke17 and from 0.0118 to 0.0164 on Duke2013. The other measures do not agree
-between the two sets. On Duke17 the tissue contrast index falls from $+4.0$ to $+2.7$ percent while
-the speckle measure rises, and no measure falls below zero, although the signal to noise ratio is no
-longer significant. On Duke2013 the tissue contrast index, edge preservation and boundary sharpness
-all rise, the speckle measure changes on eight subjects one way and ten the other and is not
-significant, and the signal to noise ratio falls by 5.3 percent, a decrease on fifteen of eighteen
-subjects that is significant at the one percent level.
+between the two sets. On Duke17 the tissue contrast index reads $+2.7$ against $+4.0$ percent
+while the speckle measure is higher, and no measure is below zero. On Duke2013 the tissue contrast
+index, edge preservation and boundary sharpness are all higher, the speckle measure moves one way on
+eight subjects and the other on ten, and the signal to noise ratio is 5.3 percentage points lower on
+fifteen of eighteen subjects. We do not attach significance language to any of these, for the reason
+below.
 
 We draw no conclusion about what adaptation achieves. These numbers are kept only to document the
 procedure the original submission used. Every checkpoint was chosen on the subject it is then scored

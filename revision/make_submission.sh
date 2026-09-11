@@ -10,12 +10,16 @@ echo "== สร้างตารางและค่าคงที่จา�
 ( cd .. && /home/kumwilai/osmnx-env/bin/python revision/make_tables.py >/dev/null )
 
 echo "== คอมไพล์บทความหลัก =="
-( cd paper && $TEC -X compile main.tex --outdir . --keep-intermediates --keep-logs >/dev/null 2>&1 )
+# A hard TeX error used to be swallowed here, leaving the previous PDF in place
+# and every later check reading a stale file. Fail loudly instead.
+( cd paper && $TEC -X compile main.tex --outdir . --keep-intermediates --keep-logs >/dev/null 2>&1 ) \
+  || { echo "ผิด บทความหลักคอมไพล์ไม่ผ่าน"; ( cd paper && $TEC -X compile main.tex --outdir . 2>&1 | grep -E "^error" | head -5 ); exit 1; }
 # The supplement prints the main paper's equation numbers, so they are read from
 # the aux that the compile above just produced rather than typed in by hand.
 /home/kumwilai/osmnx-env/bin/python gen_eqnums.py
 echo "== คอมไพล์ภาคผนวก =="
-( cd supp && $TEC -X compile main.tex --outdir . --keep-intermediates --keep-logs >/dev/null 2>&1 )
+( cd supp && $TEC -X compile main.tex --outdir . --keep-intermediates --keep-logs >/dev/null 2>&1 ) \
+  || { echo "ผิด ภาคผนวกคอมไพล์ไม่ผ่าน"; ( cd supp && $TEC -X compile main.tex --outdir . 2>&1 | grep -E "^error" | head -5 ); exit 1; }
 echo "== สร้างจดหมายตอบ =="
 /home/kumwilai/osmnx-env/bin/python build_response_docx.py >/dev/null
 

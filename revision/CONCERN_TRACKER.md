@@ -84,6 +84,40 @@ describe, the per cell seed spreads of Tables 3 and 4, and a restatement of the 
 - The 173 test pairs come from five clean image identities, which the measures paragraph now says.
 - The loss weights are now given numerically, and the inactive learned weight path is disclosed.
 
+## Round four, the letter synchronised and the remaining gaps closed
+
+- Response 2.2 asserted that tightening the third constraint moves the output toward the backbone and
+  then, four sentences later, withdrew the same claim. The correction had been appended and the
+  original left standing. The old paragraph is gone and one explanation remains.
+- Response 3.5 still said the constraints enter training as penalties, which the main paper now
+  contradicts. Replaced.
+- Response 3.1 said four contributions and listed five. It now lists the four the paper has.
+- Table 3 had lost the seed spread on fidelity, which appears nowhere else, since Table S6 carries
+  only the six clinical measures. Restored, and Table 4 is now the same shape and also one column, so
+  a row here compares against a row there without re reading a header.
+- The DnCNN overhead is 5.7 percent, not 5.8. Arithmetic from our own counts.
+- The claim that DnCNN and KBNet each have a measure that falls on test was wrong for KBNet, whose
+  edge preservation is plus 0.0005 percent with one seed negative. Both are now described separately
+  from the selection outcome.
+- The supplement said the repair restores the gradient to every rule parameter. It restores it to
+  four weighted rules and the base. The fifth is inactive because its truth value is the constant
+  zero when a single corrector proposes, which is now the stated reason rather than an observation.
+- The two Lipschitz constants now carry their domains. 0.6014 is exact on the whole cube and 0.5489
+  is exact on the face where the fifth coordinate is fixed, which bounds any smaller attainable set.
+  "Real perturbations never reach the worst case" became "the perturbations tested did not attain it".
+- The P1 disclosure claimed the allocation is unaffected. Only the failure map is. The score reaches
+  the soft failure and the acceptance energy, so the narrower claim is that the subterm is non
+  discriminative, not that the output is independent of it.
+- Theorem S1 of the supplement gained the positive output background variance the main theorem has.
+- The p value column of the adapted table is removed. Every checkpoint there was chosen on the
+  subject it is scored on, so the test does not carry its usual meaning.
+- Enforcement language softened where only a finite penalty acts, the mean absolute change renamed
+  away from the gate symbol, the selection score no longer called a confidence bound, and the
+  explanation claim narrowed to the multiplicative gain, since the edge branch and the background
+  operation do not pass through the allocation.
+- make_submission.sh discarded compiler output, so a hard TeX error left the previous PDF in place
+  and every later check read a stale file. It now fails loudly and prints the error.
+
 ## Round three, second pass, the predicates and the objective read against the code
 
 - The $P_1$ continuity subterm carries no information. Erosion after dilation by the same element is
