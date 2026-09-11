@@ -118,9 +118,9 @@ def panel_b(fig, cell, results_dir):
     ref_worst = _worst(ref)
 
     sweeps = [
-        ("base", [-1.0, -0.5, 0.5, 1.0], "base alloc."),
-        ("usecorr", [2.0, 3.0, 5.0, 6.0], "use_corrector"),
-        ("boost", [1.0, 2.0, 4.0, 5.0], "boost_failing"),
+        ("base", [-1.0, -0.5, 0.5, 1.0], "base level"),
+        ("usecorr", [2.0, 3.0, 5.0, 6.0], "weight of rule 2"),
+        ("boost", [1.0, 2.0, 4.0, 5.0], "weight of rule 3"),
     ]
     points = {}
     all_vals = [] if ref_worst is None else [ref_worst]
@@ -158,7 +158,6 @@ def panel_b(fig, cell, results_dir):
     axes = [fig.add_subplot(inner[i, 0]) for i in range(4)]
     yrange = ylim[1] - ylim[0]
     yticks = [round(ylim[0] + yrange * p, 2) for p in (0.2, 0.8)]
-    label_box = dict(facecolor="white", edgecolor="none", alpha=0.85, pad=1.0)
 
     for ax, (name, xs, label) in zip(axes[:3], sweeps):
         pts = points[name]
@@ -172,18 +171,20 @@ def panel_b(fig, cell, results_dir):
             ax.axhline(ref_worst, color=INK2, linewidth=0.7, linestyle=(0, (3, 2)), zorder=2)
         ax.set_ylim(*ylim)
         ax.set_yticks(yticks)
-        # Label sits inside the plot area rather than as an axes title, so it never
-        # competes for vertical room with the panel's own title above the stack.
-        ax.text(0.03, 0.93, label, transform=ax.transAxes, va="top", ha="left",
-                fontsize=6.1, color=INK2, bbox=label_box)
+        # The label used to sit inside the plot area. These rows are short, so a
+        # label of fixed point size covered the line it described. It sits just
+        # above each row now, which is a title in all but name.
+        ax.text(0.0, 1.08, label, transform=ax.transAxes, va="bottom", ha="left",
+                fontsize=6.1, color=INK2)
         tidy(ax)
         ax.tick_params(labelsize=5.6)
 
-    axes[0].set_title("worst clinical $\\Delta$ vs. constant", fontsize=7.3, color=INK, pad=4)
+    axes[0].set_title("worst clinical $\\Delta$ against each constant", fontsize=7.3, color=INK, pad=12)
     if ref_worst is not None:
         from matplotlib.lines import Line2D
         proxy = Line2D([0], [0], color=INK2, linewidth=0.7, linestyle=(0, (3, 2)))
-        axes[0].legend([proxy], ["reference"], loc="lower right", fontsize=5.3,
+        # At the lower right this sat on the dashed line and the last point.
+        axes[0].legend([proxy], ["reference"], loc="lower left", fontsize=5.3,
                        frameon=False, handlelength=1.4, borderaxespad=0.15)
 
     axt = axes[3]
@@ -200,8 +201,8 @@ def panel_b(fig, cell, results_dir):
     axt.set_ylim(*ylim)
     axt.set_xlim(-0.6, max(1.6, len(keys) - 0.4))
     axt.set_yticks(yticks)
-    axt.text(0.03, 0.93, "t-norm (alt.)", transform=axt.transAxes, va="top", ha="left",
-             fontsize=6.1, color=INK2, bbox=label_box)
+    axt.text(0.0, 1.08, "alternative conjunction", transform=axt.transAxes, va="bottom",
+             ha="left", fontsize=6.1, color=INK2)
     tidy(axt)
     axt.tick_params(labelsize=5.6)
 
@@ -246,11 +247,17 @@ def panel_c(ax, results_dir):
     ax.bar(x + w / 2, ratios, width=w, color=colours, zorder=3, label="corrected")
     ax.axhline(1.0, color=INK2, linewidth=0.7, zorder=2)
     top = max([1.0] + ratios)
-    ax.set_ylim(0, top * 1.30)
-    for xi, r, c in zip(x, ratios, colours):
+    ax.set_ylim(0, top * 1.62)
+    # Every ratio sits near one, so a label placed just above its own bar lands at
+    # the same height as its neighbours and the two collide. Two alternating levels
+    # above the tallest bar keep each label over its bar and clear of the next.
+    for i, (xi, r, c) in enumerate(zip(x, ratios, colours)):
         word = "better" if c == DIV_POS else "worse"
-        arrow = "↓" if r < 1.0 else "↑"
-        ax.text(xi + w / 2, r + top * 0.03, f"{arrow} {word}", ha="center", va="bottom",
+        arrow = "\u2193" if r < 1.0 else "\u2191"
+        lvl = top * (1.13 if i % 2 == 0 else 1.30)
+        ax.plot([xi + w / 2, xi + w / 2], [r + top * 0.02, lvl - top * 0.03],
+                color=c, linewidth=0.5, zorder=2)
+        ax.text(xi + w / 2, lvl, f"{arrow} {word}", ha="center", va="bottom",
                 fontsize=5.6, color=c)
     ax.set_xticks(x)
     ax.set_xticklabels(labels, fontsize=6.2)
@@ -260,16 +267,22 @@ def panel_c(ax, results_dir):
     handles = [plt.Rectangle((0, 0), 1, 1, color=GREY),
                plt.Rectangle((0, 0), 1, 1, color=DIV_POS),
                plt.Rectangle((0, 0), 1, 1, color=DIV_NEG)]
-    ax.legend(handles, ["backbone (=1)", "improved", "worse"], loc="lower right",
+    # The legend sat at the lower right, over the last pair of bars. Along the top
+    # instead, in the headroom the two label levels opened up.
+    ax.legend(handles, ["backbone (=1)", "improved", "worse"], loc="upper left",
               fontsize=5.4, frameon=False, handlelength=1.1, handletextpad=0.4,
-              borderaxespad=0.1)
+              borderaxespad=0.15, ncol=3, columnspacing=0.9)
     ax.set_title("safety: before / after", fontsize=7.3, color=INK, pad=3)
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default="revision/figures/fig_studies")
-    ap.add_argument("--results_dir", default="outputs/revision")
+    # Relative to the project root, not the working directory. Run from inside
+    # revision/ the old default produced revision/revision/figures/.
+    ap.add_argument("--out", default=os.path.join(_ROOT, "revision", "figures", "fig_studies"))
+    # Resolve from the project root, not the working directory, so the script
+    # produces the same figure whether it is run from the root or from revision/.
+    ap.add_argument("--results_dir", default=os.path.join(_ROOT, "outputs", "revision"))
     args = ap.parse_args()
     setup()
 

@@ -47,6 +47,7 @@ import re; print(len(re.split(r'[\\s-]+', ' '.join(t[i:j].split()).strip())))")
 [ "$AB" -le 250 ] || { echo "ผิด บทคัดย่อ $AB คำ เกิน 250 ซึ่งเป็นเพดานของวารสาร"; FAIL=1; }
 [ "$AB" -ge 100 ] || { echo "ผิด บทคัดย่อ $AB คำ ต่ำกว่า 100 ซึ่งเป็นขั้นต่ำของวารสาร"; FAIL=1; }
 /home/kumwilai/osmnx-env/bin/python style_check.py sections/*.tex supp/sections/*.tex | grep -v "^clean" && { echo "ผิด สไตล์ไม่ผ่าน"; FAIL=1; } || true
+/home/kumwilai/osmnx-env/bin/python figure_check.py | grep -v "^clean" && { echo "ผิด มีตัวอักษรทับบล็อกในรูป"; FAIL=1; } || true
 
 echo
 echo "บทความหลัก $P หน้า   ภาคผนวก $S หน้า"

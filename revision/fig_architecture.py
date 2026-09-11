@@ -16,8 +16,8 @@ from figstyle import setup, save, INK, INK2, GREY
 S = {1: "#2a78d6", 2: "#1baf7a", 3: "#eda100", 4: "#4a3aa7", 5: "#eb6834", 6: "#0f7a53"}
 
 # Geometry. One spine through the middle row, the head above it, the properties below it.
-ROW_M = 0.420
-PITCH = 0.265
+ROW_M = 0.408
+PITCH = 0.252
 ROW_T, ROW_B = ROW_M + PITCH, ROW_M - PITCH
 H = 0.170
 W = 0.162
@@ -25,12 +25,14 @@ GAP = 0.0215
 COL = {k: 0.050 + i * (W + GAP) for i, k in enumerate("abcde")}
 DASH = (0, (2.4, 1.8))
 
-# Axes limits and size. The axes is the drawn area, so the limits are set to the
-# content and the figure is sized to keep the old scale of 400 pt per x unit and
-# 119 pt per y unit. Width stays at 403.8 pt, height falls from 122 pt to 102 pt.
-XLIM = (-0.010, 1.015)
-YLIM = (0.070, 0.905)
-FIGSIZE = (5.568, 0.835 * 119.2 / 72)
+# Axes limits and size. The axes is the drawn area, so the limits are the measured
+# extent of everything drawn plus an equal margin on all four sides. The figure is
+# then sized to hold the original scale of 400 pt per x unit and 119 pt per y unit,
+# so the blocks and the type keep the size they had when the layout was set.
+PAD = 0.014
+XLIM = (-0.0033 - PAD, 1.0375 + PAD)
+YLIM = (0.0910 - PAD, 0.8937 + PAD)
+FIGSIZE = ((XLIM[1] - XLIM[0]) * 400 / 72, (YLIM[1] - YLIM[0]) * 119.2 / 72)
 
 
 def box(ax, x, y, title, sub, stage, w=W, h=H, tag=None):
@@ -38,12 +40,12 @@ def box(ax, x, y, title, sub, stage, w=W, h=H, tag=None):
         ax.add_patch(FancyBboxPatch((x, y), w, h,
                      boxstyle="round,pad=0.006,rounding_size=0.02",
                      linewidth=lw, edgecolor=S[stage], facecolor=fc, alpha=al, zorder=z))
-    ax.text(x + w / 2, y + h * 0.63, title, ha="center", va="center", fontsize=6.8,
+    ax.text(x + w / 2, y + h * 0.685, title, ha="center", va="center", fontsize=6.8,
             color=INK, zorder=4)
-    ax.text(x + w / 2, y + h * 0.27, sub, ha="center", va="center", fontsize=6.6,
+    ax.text(x + w / 2, y + h * 0.255, sub, ha="center", va="center", fontsize=6.6,
             color=INK2, zorder=4)
     if tag is not None:
-        ax.text(x + 0.004, y + h + 0.005, str(tag), ha="center", va="center", fontsize=5.9,
+        ax.text(x + 0.017, y + h + 0.038, str(tag), ha="center", va="center", fontsize=5.9,
                 color="white", zorder=6,
                 bbox=dict(boxstyle="circle,pad=0.17", facecolor=S[stage], edgecolor="none"))
 
@@ -85,17 +87,17 @@ def main():
     xc = lambda c: COL[c] + W / 2
 
     ax.text(0.018, m(ROW_M), r"$\mathbf{y}$", fontsize=10, color=INK, ha="center", va="center")
-    ax.text(0.018, m(ROW_M) - 0.085, "noisy", fontsize=6.3, color=INK2, ha="center", va="center")
-    ax.text(0.972, m(ROW_M), r"$\hat{\mathbf{x}}$", fontsize=10, color=INK, ha="center", va="center")
-    ax.text(0.972, m(ROW_M) - 0.085, "corrected", fontsize=6.3, color=INK2, ha="center", va="center")
+    ax.text(0.018, ROW_M - 0.050, "noisy", fontsize=6.3, color=INK2, ha="center", va="center")
+    ax.text(0.998, m(ROW_M), r"$\hat{\mathbf{x}}$", fontsize=10, color=INK, ha="center", va="center")
+    ax.text(0.998, ROW_M - 0.050, "corrected", fontsize=6.3, color=INK2, ha="center", va="center")
 
     # the spine, stages one, two, four, five, six, each arrow in the colour of its source
-    arrow(ax, [(0.032, m(ROW_M)), (x0("a"), m(ROW_M))])
+    arrow(ax, [(0.030, m(ROW_M)), (x0("a") - 0.003, m(ROW_M))])
     arrow(ax, [(x1("a"), m(ROW_M)), (x0("b"), m(ROW_M))])
     arrow(ax, [(x1("b"), m(ROW_M)), (x0("c"), m(ROW_M))], color=S[2])
     arrow(ax, [(x1("c"), m(ROW_M)), (x0("d"), m(ROW_M))], color=S[4])
     arrow(ax, [(x1("d"), m(ROW_M)), (x0("e"), m(ROW_M))], color=S[5])
-    arrow(ax, [(x1("e"), m(ROW_M)), (0.958, m(ROW_M))])
+    arrow(ax, [(x1("e") + 0.007, m(ROW_M)), (0.976, m(ROW_M))])
     # backbone features up into the head
     arrow(ax, [(xc("a"), ROW_M + H), (xc("a"), ROW_T)])
     # the cooperation map into the rule layer, one bend, entering from above
