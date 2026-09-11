@@ -1,4 +1,4 @@
-\section{Method}
+\section{Clinical Properties and a Stable Rule Layer}
 \label{sec:method}
 
 \begin{figure*}[!tb]
@@ -10,13 +10,15 @@ bounded and gated. Three constraints decide how much is kept.}
 \label{fig:architecture}
 \end{figure*}
 
-\subsection{Overview}
-Fig.~\ref{fig:architecture} shows the method as six stages, taken in order in the subsections that
-follow. Stage one asks where the backbone output can be left alone, two what change is available,
-three what is wrong and where, four where it should be applied, five how, and six whether it is
-allowed at all.
+Fig.~\ref{fig:architecture} shows the method as six stages, taken in order here and in
+Section~\ref{sec:bounded_safety}. Stage one asks where the backbone output can be left alone, two
+what change is available, three what is wrong and where, four where it should be applied, five how,
+and six whether it is allowed at all. This section carries the first four, which name what is wrong
+and decide where to act, and proves that the decision cannot jump.
+Section~\ref{sec:bounded_safety} carries the last two, which bound the change and decide how much of
+it to keep, and proves when contrast cannot fall.
 
-\subsection{Stage one, the backbone and the cooperation map}
+\subsection{Stages one and two, the cooperation map and two bounded proposals}
 \label{sec:confidence}
 The backbone is frozen after training and gives $\mathbf{b} = f_\theta(\mathbf{y})$. The cooperation
 map $\mathbf{c}$ says where $\mathbf{b}$ can be left alone and where a change is wanted. A two layer
@@ -34,9 +36,7 @@ shallow feature convolution of SwinIR, and the head is a pair of convolutions si
 tensor it is given, the widths listed in the supplementary file. Everything after this stage is
 shared, which is the precise sense in which the method is modular rather than architecture free.
 
-\subsection{Stage two, the two correctors}
-\label{sec:correctors}
-Two changes of deliberately different kinds are proposed.
+\emph{Two bounded proposals.}\label{sec:correctors} Two changes of deliberately different kinds are proposed.
 
 The \emph{gain} network proposes a multiplicative change. It runs at quarter resolution and emits a
 brightness channel through a rectifier, so it can only brighten, and a contrast channel through a
@@ -52,3 +52,124 @@ boundaries, which should be sharpened by the same amount in a bright layer as in
 
 A third small network predicts a per-pixel strength map $\boldsymbol{\lambda}$ with values in $[0,1]$
 from the failure maps of Stage three. It modulates how much of the raw gain survives at each pixel.
+
+\subsection{Stage three, the six clinical properties}
+\label{sec:predicates}
+Each of the six properties
+names a way a denoised OCT image is known to fail and each is written as a formula so it can be
+recomputed by anyone. Table~\ref{tab:predicates} gives, for every property, the reason it exists,
+its score $s_i \in [0,1]$ as a weighted sum of named subterms, its map
+$\mathbf{m}_i \in [0,1]^{H \times W}$ in closed form, where that map is large, and the threshold
+$\tau_i$ that separates satisfied from unsatisfied, with every subterm defined beneath the table. A
+larger score means the property is better satisfied and a larger map value means stronger local
+evidence that it is not, and Fig.~\ref{fig:predicate_maps} shows all six maps on one image. None of these quantities needs a clean reference. They are computed from the
+noisy input and the backbone output only, so they remain available at test time on a scanner the
+method has never seen.
+
+\begin{figure*}[!tb]
+\centering
+\includegraphics[width=0.76\textwidth]{figures/fig_predicate_maps.pdf}
+\caption{The six failure maps on one backbone output, with the score each property returns for the
+whole image. Dark means strong local evidence that the property is unsatisfied. The maps disagree
+with each other, which is the point of keeping six of them. Edge continuity and local contrast fire
+along the layer boundaries and through the textured tissue between them, speckle conformity fires
+almost everywhere on this image and drives its low score, and the remaining three are close to
+satisfied and stay pale. The allocation of Equation~\eqref{eq:allocation} is built from these maps,
+so a reader can see which property asked for a change at any pixel.}
+\label{fig:predicate_maps}
+\end{figure*}
+
+\subsection{Stage four, the rule layer, and why its decision cannot jump}
+\label{sec:negotiator}
+The rule layer decides where the gain proposal should act through five named rules, each casting a
+signed vote.
+
+Each property score is first turned into a soft failure signal by comparing it with its threshold,
+\begin{equation}
+f_i = \sigma\big(\kappa (\tau_i - s_i)\big), \qquad \kappa = 10 ,
+\label{eq:soft_failure}
+\end{equation}
+so $f_i$ is near one when property $i$ is failing. The same soft comparison tests the cooperation map
+and the strength of a proposal against their own thresholds. Each corrector produces that strength as
+a per-pixel map from the backbone output and the failure maps it serves, large where its property is
+far below threshold, and it is multiplied by one half plus the demand map before the rules fire, so
+the same proposal looks stronger where the head reports low cooperation. Conjunction uses the
+Lukasiewicz form $\mathrm{AND}(a,b) = \max(0, a + b - 1)$, piecewise linear with a bounded slope,
+which is what makes the bound of Theorem~\ref{thm:stability} tight.
+
+The five rules follow. Rule one fires when the cooperation map is high and the proposal weak, and
+votes against changing the image. Rule two fires when the map is low and the proposal strong, and
+votes for. Rule three fires when a relevant property is failing, and votes for. Rule four fires when
+map and strength are both middling, and votes weakly for. Rule five fires when several correctors
+want the same pixel, and votes against. Write $r_1$ to $r_5$ for the truth values.
+
+The allocation at each pixel is the bounded weighted vote
+\begin{equation}
+\begin{aligned}
+a ={}& \underbrace{B_{\min} + (B_{\max} - B_{\min})\,\sigma(\beta)}_{\text{base, no rule firing}} \\
+    &- C_1 w_1 r_1 + C_2 w_2 r_2 + C_3 w_3 r_3 + C_4 w_4 r_4 - C_5 w_5 r_5 ,
+\end{aligned}
+\label{eq:allocation}
+\end{equation}
+where $\beta$ is a learnable base logit, $w_k = \sigma(\theta_k) \in (0,1)$ are learnable rule weights
+and the budgets are $B_{\min} = 0.25$, $B_{\max} = 0.50$, $C_1 = 0.15$, $C_2 = 0.25$, $C_3 = 0.15$,
+$C_4 = 0.10$ and $C_5 = 0.10$.
+
+The budgets satisfy $B_{\max} + C_2 + C_3 + C_4 = 1$ and $B_{\min} - C_1 - C_5 = 0$. Since every
+truth value lies in $[0,1]$ and every weight in $(0,1)$, Equation~\eqref{eq:allocation} lies in
+$[0,1]$ for every input and every parameter value, and no clipping is ever needed. Without the
+identity a clamp is needed, the allocation saturates at one end of it, as it did on every pixel of
+the submitted version of this work, the rule weights receive no gradient, and the stability result of
+Theorem~\ref{thm:stability} is vacuous.
+\label{sec:allocation_defect}
+
+\label{sec:stability}
+\emph{What stability means here.} This is not stability in the sense of Lyapunov and we claim no fixed point. The quantity that must
+not behave erratically is the decision of the rule layer, a function of the five rule truth values,
+which are exactly what shift when the backbone or the scanner changes.
+
+\begin{definition}[Stability of the allocation]
+\label{def:stability}
+Let $\mathbf{r} = (r_1, \ldots, r_5) \in [0,1]^5$ be the vector of rule truth values at one pixel and
+let $a(\mathbf{r})$ be the allocation of Equation~\eqref{eq:allocation} at that pixel with the
+parameters held fixed. The allocation is said to be stable with constant $L$ if
+\begin{equation}
+\big| a(\mathbf{r}) - a(\mathbf{r}') \big| \;\le\; L \, \lVert \mathbf{r} - \mathbf{r}' \rVert_\infty
+\qquad \text{for all } \mathbf{r}, \mathbf{r}' \in [0,1]^5 .
+\label{eq:stability_def}
+\end{equation}
+\end{definition}
+
+In words, $L$ is the worst case ratio between a change in the decision and the change in the
+evidence that caused it. Without such a bound the layer could swing from no correction to all of it
+because one score moved slightly, which is what a clinical user cannot audit.
+
+
+\begin{theorem}[Allocation stability]
+\label{thm:stability}
+The allocation of Equation~\eqref{eq:allocation} satisfies Definition~\ref{def:stability} with
+\begin{equation}
+L \;=\; C_1 w_1 + C_2 w_2 + C_3 w_3 + C_4 w_4 + C_5 w_5 ,
+\label{eq:lipschitz}
+\end{equation}
+where $w_k = \sigma(\theta_k)$ are the learned rule weights. The constant is attained, so it is the
+exact Lipschitz constant and not merely an upper bound. Moreover $L < C_1 + C_2 + C_3 + C_4 + C_5 =
+0.75$ for every possible setting of the parameters.
+\end{theorem}
+
+\begin{proof}
+The allocation is affine in $\mathbf{r}$ with coefficients $\pm C_k w_k$, so subtracting two values
+and applying the triangle inequality gives
+$|a(\mathbf{r}) - a(\mathbf{r}')| \le \sum_k C_k w_k |r_k - r'_k| \le L \lVert \mathbf{r} - \mathbf{r}' \rVert_\infty$.
+The bound is attained when each $r_k - r'_k$ takes the sign of its coefficient, and $L < 0.75$
+because every $C_k$ is positive and every $w_k$ lies strictly inside $(0,1)$.
+\end{proof}
+
+\begin{corollary}[Behavior under a change of backbone]
+\label{cor:transfer}
+If replacing one backbone by another changes the rule truth values at a pixel by at most $\epsilon$
+in the maximum norm, the parameters unchanged, the allocation there changes by at most $L\epsilon$.
+\end{corollary}
+
+This concerns the routing rule alone, not whether image quality transfers, which
+Section~\ref{sec:results_ood} settles by measurement.

@@ -9,33 +9,33 @@ Response letter has no unresolved bracket and every section, table and figure re
 
 | ID | Concern | Where it is answered | Status |
 |---|---|---|---|
-| R1-1 | cooperation map has no loss enforcing an uncertainty meaning | VII F measures it, rank correlation minus 0.258, renamed, calibrated removed | CLOSED |
-| R1-2 | no predicate level ablation | VII D, all six removals on the reported checkpoint, maps in Fig. 2 | CLOSED |
-| R1-3 | risk of artificial sharpening and hallucinated boundaries | VII H, four measures, two reported as costs, named in Limitations | CLOSED |
-| R1-4 | fuzzy rule weights look heuristic | VII D, fourteen variations, none turns a measure negative | CLOSED |
-| R1-5 | missing expert network and neuro symbolic literature | II C, 26 references all resolved | CLOSED |
+| R1-1 | cooperation map has no loss enforcing an uncertainty meaning | V H measures it, rank correlation minus 0.258, renamed, calibrated removed | CLOSED |
+| R1-2 | no predicate level ablation | V F, all six removals on the reported checkpoint, maps in Fig. 2 | CLOSED |
+| R1-3 | risk of artificial sharpening and hallucinated boundaries | V J, four measures, two reported as costs, named in Limitations | CLOSED |
+| R1-4 | fuzzy rule weights look heuristic | V F, fourteen variations, none turns a measure negative | CLOSED |
+| R1-5 | missing expert network and neuro symbolic literature | I C, 26 references all resolved | CLOSED |
 | R1-6 | typos and grammar | style script clean, mechanical checks clean | CLOSED |
 | R2-1 | LOO protocol contradiction | Table 3 carries the no adaptation protocol only, Table S7 reports the adapted one as a test selected historical diagnostic | CLOSED |
-| R2-2 | explain the PSNR drop, SwinIR minus 1.69 dB | VIII A, cache defect fixed, SwinIR now minus 0.17 dB | CLOSED |
+| R2-2 | explain the PSNR drop, SwinIR minus 1.69 dB | VI A, cache defect fixed, SwinIR now minus 0.17 dB | CLOSED |
 | R3-1 | highlight the new ideas | I B | CLOSED |
 | R3-2 | motivation not clear | I A | CLOSED |
-| R3-3 | cite three specific modeling papers | II C, all three cited and discussed | CLOSED |
-| R3-4 | define stability | V A, Definition 1 before the theorem | CLOSED |
-| R3-5 | state the optimization problem and how it is solved | III B | CLOSED |
+| R3-3 | cite three specific modeling papers | I C, all three cited and discussed | CLOSED |
+| R3-4 | define stability | III C, Definition 1 before the theorem | CLOSED |
+| R3-5 | state the optimization problem and how it is solved | II B | CLOSED |
 | R3-6 | embedded notation is hard to read | Table 1 defines every symbol before first use | CLOSED |
-| R3-7 | define the operator in equation 6 | III A, Hadamard product defined in words and symbols | CLOSED |
+| R3-7 | define the operator in equation 6 | II A, Hadamard product defined in words and symbols | CLOSED |
 | R3-8 | drop the multiplication dot | removed throughout, the remaining \cdot are argument placeholders | CLOSED |
-| R3-9 | justify the six predicates and give sensitivity | Table 2 and VII D | CLOSED |
-| R3-10 | training algorithm unclear | VI, six loss terms with every weight, the schedule, the selection rule, the constants, Algorithm 1 of the supplement | CLOSED |
-| R3-11 | safety validation on lesions, fluid, thin layers | VII H, expert reading stated as a limitation | CLOSED |
-| R3-12 | link theory to the results section | VII G for the theorems, VII H for the three constraints | CLOSED |
+| R3-9 | justify the six predicates and give sensitivity | Table 2 and V F | CLOSED |
+| R3-10 | training algorithm unclear | V, six loss terms with every weight, the schedule, the selection rule, the constants, Algorithm 1 of the supplement | CLOSED |
+| R3-11 | safety validation on lesions, fluid, thin layers | V J, expert reading stated as a limitation | CLOSED |
+| R3-12 | link theory to the results section | V I for the theorems, V J for the three constraints | CLOSED |
 | R3-13 | public code and data link without password | answered with a reason, double blind, archive on acceptance | ANSWERED BY DECISION |
 | R3-14 | follows from 13 | release documents the six defects and the checks | CLOSED |
 | R3-15 | do not call them experiments | zero occurrences in the source | CLOSED |
 | R3-16 | fair comparison at similar complexity | Table 5, lower block, text narrowed to match the code | CLOSED |
-| R3-17 | how were the fuzzy parameters computed | IV E and VII D and the constants table of the supplement | CLOSED |
-| R3-18 | transferability needs cost and variability numbers | VII I, wall clock and seed spread per backbone | CLOSED |
-| R3-19 | verify the assumed constants and bounds hold | VII G and VII H, honest majority statement, failures reported | CLOSED |
+| R3-17 | how were the fuzzy parameters computed | III C and V F and the constants table of the supplement | CLOSED |
+| R3-18 | transferability needs cost and variability numbers | V K, wall clock and seed spread per backbone | CLOSED |
+| R3-19 | verify the assumed constants and bounds hold | V I and V J, honest majority statement, failures reported | CLOSED |
 
 ## Self containment
 
@@ -96,12 +96,14 @@ describe, the per cell seed spreads of Tables 3 and 4, and a restatement of the 
   main paper. Retinal layers run across the scan, so the crop is now 120 by 300 and the figure is
   less than half its old height. Its backbone names moved out of the B-scans, where dark type on
   dark speckle was barely readable.
-- Section VII cut by about a third and every other section tightened. The references are 26, down
+- Section V cut by about a third and every other section tightened. The references are 26, down
   from 34. Nothing a reviewer asked for was removed.
-- The three sections that carried the six stages, two to a section, became one Method section with
-  six stages in it, which is how the paper had been describing itself all along. Eleven numbered
-  sections down to nine. Every section pointer in the response letter and in this file was remapped
-  from the compiled numbering rather than by hand.
+- Eleven numbered sections down to seven. Related work became a subsection of the introduction. The
+  method split into two sections named for what they contribute rather than for what they contain,
+  and each absorbed the theorem that belongs to it, so the stability result now sits with the rule
+  layer it bounds and the contrast result with the safety decision it protects. Training joined the
+  tests and results. Every section pointer in the response letter and in this file was remapped from
+  the compiled numbering rather than by hand, then checked against the sections the built PDF has.
 
 ## Settled in the third audit, the objective read line by line against the code
 
@@ -118,9 +120,9 @@ describe, the per cell seed spreads of Tables 3 and 4, and a restatement of the 
   and four terms protecting the background and the tissue brightness. They are now a sixth term,
   Equation 19, with every constant printed.
 - The flag for the edge weight never reaches the loss. It is now named with the other inert flags.
-- The section pointers of this tracker still named the eleven subsection layout of Section VII. The
+- The section pointers of this tracker still named the eleven subsection layout of Section V. The
   merge to nine had moved eight of them. All are checked against the compiled document.
-- The one line gloss of the property term in Section III B still said it calibrates the scores
+- The one line gloss of the property term in Section II B still said it calibrates the scores
   against their thresholds, which the corrected Equation 16 contradicts. It now says what the code
   does.
 

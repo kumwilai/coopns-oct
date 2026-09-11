@@ -1,3 +1,6 @@
+\section{Bounded Change and a Guaranteed Safety Decision}
+\label{sec:bounded_safety}
+
 \subsection{Stage five, applying the change}
 \label{sec:composition}
 The admitted gain is the raw proposal modulated by the allocation and the strength map, then bounded,
@@ -117,3 +120,54 @@ where the local variance of the edge map is high across depth & 0.70 \\
 \bottomrule
 \end{tabular}
 \end{table*}
+
+\subsection{The correction cannot reduce contrast}
+\label{sec:cnr_guarantee}
+Write
+$\mathrm{CNR}(\mathbf{t}) = (\mu_\mathcal{T}(\mathbf{t}) - \mu_\mathcal{B}(\mathbf{t})) / \sigma_\mathcal{B}(\mathbf{t})$
+for the separation between tissue and background divided by the variability of the background.
+
+\begin{theorem}[Contrast margin]
+\label{thm:cnr}
+Let $\eta_\mathcal{T} = \mu_\mathcal{T}(\mathbf{q}) - \mu_\mathcal{T}(\mathbf{b}) \ge 0$ be the gain in
+tissue mean and let $\eta_\mathcal{B} \ge \mu_\mathcal{B}(\mathbf{q}) - \mu_\mathcal{B}(\mathbf{b})$
+bound the leakage into the background. Suppose the tissue and background sets are the same for
+$\mathbf{b}$, $\mathbf{q}$ and $\hat{\mathbf{x}}$, that
+$\sigma_\mathcal{B}(\mathbf{b}) > 0$ and the correction does not raise the background variability, so
+$\sigma_\mathcal{B}(\mathbf{q}) \le \sigma_\mathcal{B}(\mathbf{b})$, and that the bounded numerator
+$\big(\mu_\mathcal{T}(\mathbf{b}) - \mu_\mathcal{B}(\mathbf{b})\big) + w\,(\eta_\mathcal{T} -
+\eta_\mathcal{B})$ is non negative, which holds whenever the backbone already separates tissue from
+background and $\eta_\mathcal{T} \ge \eta_\mathcal{B}$. Then the output of
+Equation~\eqref{eq:blend} satisfies
+\begin{equation}
+\mathrm{CNR}(\hat{\mathbf{x}}) \;\ge\;
+\frac{\big(\mu_\mathcal{T}(\mathbf{b}) - \mu_\mathcal{B}(\mathbf{b})\big) + w\,(\eta_\mathcal{T} - \eta_\mathcal{B})}
+     {\sigma_\mathcal{B}(\mathbf{b})} .
+\label{eq:cnr_bound}
+\end{equation}
+In particular, whenever $\eta_\mathcal{T} > \eta_\mathcal{B}$ the correction cannot reduce the
+contrast to noise ratio.
+\end{theorem}
+
+\begin{proof}
+The mean over a fixed pixel set is linear, so
+$\mu_\mathcal{T}(\hat{\mathbf{x}}) = \mu_\mathcal{T}(\mathbf{b}) + w\,\eta_\mathcal{T}$ and
+$\mu_\mathcal{B}(\hat{\mathbf{x}}) \le \mu_\mathcal{B}(\mathbf{b}) + w\,\eta_\mathcal{B}$, which bounds
+the numerator of $\mathrm{CNR}(\hat{\mathbf{x}})$ below by the numerator of
+Equation~\eqref{eq:cnr_bound}. On the background $\hat{\mathbf{x}}$ is the same convex combination
+pixel by pixel, so Minkowski's inequality on the centered values gives
+$\sigma_\mathcal{B}(\hat{\mathbf{x}}) \le (1-w)\,\sigma_\mathcal{B}(\mathbf{b}) + w\,\sigma_\mathcal{B}(\mathbf{q}) \le \sigma_\mathcal{B}(\mathbf{b})$.
+Dividing the two bounds gives the claim, and $w > 0$ in every branch of Equation~\eqref{eq:blend}.
+\end{proof}
+
+
+Three parts of the design make these hypotheses hold in practice. The gate of
+Equation~\eqref{eq:gate} keeps $\eta_\mathcal{B}$ small by suppressing change in the dark region, the
+brightness branch cannot be negative, which keeps $\eta_\mathcal{T}$ non negative, and the background
+smoothing lowers $\sigma_\mathcal{B}(\mathbf{q})$ rather than raising it.
+
+Both guarantees are deliberately narrow. Theorem~\ref{thm:stability} bounds how far the routing
+decision can move, not whether it is correct. Theorem~\ref{thm:cnr} concerns contrast alone. Neither
+promises that the output is closer to the clean reference, which Section~\ref{sec:results_id} shows
+it usually is not. They concern the wrapper, not the denoiser underneath it, and
+Section~\ref{sec:theory_check} tests both on real images.
