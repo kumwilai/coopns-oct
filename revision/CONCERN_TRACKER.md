@@ -1,6 +1,7 @@
 # OJCS-2026-04-0386 revision tracker
 
-Deadline 15 Sep 2026. Last audited 10 Sep 2026 evening.
+Deadline 15 Sep 2026. Last audited 11 Sep 2026, after an adversarial audit of every
+promise in the response letter against the manuscript.
 Main paper 12 pages. Supplement 9 pages. Both compile with no undefined reference.
 Response letter has no unresolved bracket and every section, table and figure reference verified.
 
@@ -36,6 +37,21 @@ Response letter has no unresolved bracket and every section, table and figure re
 
 ## Not a reviewer concern, still open
 
-- Received date 14 April 2026 is inferred from the manuscript number and needs the journal acknowledgement email to confirm.
-- Whether the selection criterion is blind to the safety measures is being measured on the validation split for the selected gate and the runner up gate. One Limitations sentence will report the outcome either way.
-- The seeded zeroshot result files carry no checkpoint field. Provenance was established from the sweep log ordering and from the fact that they differ from the pre sweep run, but it is not recorded in the files.
+- Received date 14 April 2026 is inferred from the manuscript number and needs the journal
+  acknowledgement email to confirm. This is the only item that cannot be settled from the repository.
+- The seeded zeroshot result files carry no checkpoint field. Provenance was established from the
+  sweep log ordering and from the fact that they differ from the pre sweep run, but it is not
+  recorded in the files themselves.
+- The matched complexity baseline was fitted before the gate search, so it carries the percentile
+  gate rather than the tissue bounded gate NAFNet was finally selected with. Its checkpoint is gone,
+  so the rest of its configuration cannot be read back. The paper says this rather than claiming a
+  match it cannot verify.
+
+## Settled since the last audit
+
+- The selection criterion is blind to the two safety measures. Measured on the validation split, the
+  runner up gate for NAFNet raises weak structure retention to 43.9 percent where the selected gate
+  lowers it to 37.6. Reported in Limitations. No reselection, because the criterion was fixed before
+  the test split was scored.
+- All three safety constraints are now reported. Energy and bounded change hold on all 173 images,
+  the no sacrifice constraint fails on 38, and the layer returns the candidate in full everywhere.
