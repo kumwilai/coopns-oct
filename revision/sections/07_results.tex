@@ -13,109 +13,135 @@ index~\cite{wang2004image}, both taken against the clean reference $\mathbf{x}$.
 Equation~\eqref{eq:alpha} already uses $\Delta$ for the gain map. Neither is charged until it exceeds
 a dead zone,
 \begin{equation}
-\mathcal{L}_{\mathrm{fid}} = 5\,[D - d]_+ + 15\,[D - d - 0.4]_+^2
- + 20\,[D_s - 0.005]_+ ,
+\mathcal{L}_{\mathrm{fid}} = \lambda_{1}\,[D - d]_+ + \lambda_{2}\,[D - d - \Delta_d]_+^2
+ + \lambda_{3}\,[D_s - d_s]_+ ,
 \label{eq:loss_fid}
 \end{equation}
-where $[\cdot]_+$ is the positive part. The term is flat while the drop stays below $d$ decibels,
-linear for the next four tenths and quadratic beyond, so a small loss of fidelity is free and a large
-one expensive. The dead zone $d$ is one of the two quantities selected per backbone in
-Section~\ref{sec:weight_selection}.
+where $[\cdot]_+$ is the positive part. The term is flat while the drop stays below the dead zone $d$,
+linear for a further $\Delta_d$ and quadratic beyond, so a small loss of fidelity is free and a large
+one expensive. Every constant named in this subsection has its value in Table~\ref{tab:objconst},
+except $d$, which Section~\ref{sec:weight_selection} selects per backbone.
 
 \textbf{Clinical improvement.} This term penalizes falling short of a target on one side, with a
-symmetric term for three of the nine that also penalizes overshooting, so a gain in one measure is
-discouraged from being paid for by a collapse in another. Let $q_m$ be quantity $m$ on the
-wrapper output and $t_m = \kappa_m q_m(\mathbf{b})$ its target, the backbone value scaled by a fixed
-factor. Writing $\varepsilon_m = t_m - q_m$,
+symmetric term for three of the nine that also penalizes overshooting. Let $q_m$ be quantity $m$ on
+the wrapper output and $t_m = \kappa_m q_m(\mathbf{b})$ its target, the backbone value scaled by a
+fixed factor. With $\varepsilon_m = t_m - q_m$,
 \begin{equation}
 \mathcal{L}_{\mathrm{clin}} = \frac{1}{\sum_m w_m} \sum_{m \in M} w_m
- \Big( 3[\varepsilon_m]_+ + [\varepsilon_m]_+^2 + \tfrac{1}{2} s_m \varepsilon_m^2 \Big).
+ \Big( \gamma_{1}[\varepsilon_m]_+ + \gamma_{2}[\varepsilon_m]_+^2 + \gamma_{3}\, s_m \varepsilon_m^2 \Big).
 \label{eq:loss_clin}
 \end{equation}
-The set $M$ holds nine quantities, the three preservation scores of local contrast, boundary gradient
-and texture, then EPI, CNR, BS, ENL, SNR and the ratio of the backbone squared error to the wrapper
-squared error, each defined in the supplementary file with its window, mask and reduction. Their
-weights $w_m$ are 1, 5, 1, 15, 40, 5, 8, 40 and 10 and their factors $\kappa_m$ are 1.12, 1.12, 1.00,
-1.05, 1.20, 1.12, 1.10, 1.15 and 0.87, the last allowing about six tenths of a decibel. The indicator
-$s_m$ is one for ENL, SNR and the squared error ratio, a symmetric pull holding those three near
-target. None of the nine is used at test time.
+The set $M$ holds nine quantities in this order, the three preservation scores of local contrast,
+boundary gradient and texture, then EPI, CNR, BS, ENL, SNR and the ratio of the backbone squared
+error to the wrapper squared error, each defined in the supplementary file with its window and
+reduction. The weights $w_m$
+and factors $\kappa_m$ are in Table~\ref{tab:objconst}, the last factor allowing about six tenths of
+a decibel. The indicator $s_m$ is one for ENL, SNR and the squared error ratio, a symmetric pull
+holding those three near target. None of the nine is used at test time.
 
 \textbf{Preservation scores.} This term acts on four scores $g_j$ separate from the six properties of
-Table~\ref{tab:predicates}, comparing corrected against backbone on local contrast, the boundary
-gradient, the local variance carrying texture and the edge magnitude. With
+Table~\ref{tab:predicates}, comparing corrected against backbone on local contrast, boundary
+gradient, texture variance and edge magnitude. With
 $\delta_j = g_j(\hat{\mathbf{x}}) - g_j(\mathbf{b})$, the backbone value fixed,
 \begin{equation}
-\mathcal{L}_{\mathrm{pred}} = \sum_{j=1}^{4} v_j \Big( 3[-\delta_j]_+ - 2.5[\delta_j]_+
- + 2\big[\tfrac{1}{2} - g_j(\hat{\mathbf{x}})\big]_+ \Big) ,
+\mathcal{L}_{\mathrm{pred}} = \sum_{j=1}^{4} v_j \Big( \eta_{1}[-\delta_j]_+ - \eta_{2}[\delta_j]_+
+ + \eta_{3}\big[g_\star - g_j(\hat{\mathbf{x}})\big]_+ \Big) ,
 \label{eq:loss_pred}
 \end{equation}
-where $v_j$ is 3, 2, 2 and 1 in that order. A drop costs more than a rise earns, and any score below
-one half is penalized again. The thresholds $\tau_i$ play no part here. They enter
+with $v_j$ and the three $\eta$ in Table~\ref{tab:objconst}. A drop costs more than a rise earns,
+since $\eta_1 > \eta_2$, and any score below the floor $g_\star$ is penalized again. The thresholds $\tau_i$ play no part here. They enter
 Equation~\eqref{eq:soft_failure}, evaluated in a module whose output reaches the objective only
-through detached quantities, so no gradient path reaches $\tau_i$ and all six hold their
-Table~\ref{tab:predicates} values throughout training. This is not true of the rule layer
-as a whole. The base level $\beta$ and the rule weights $\theta_k$ of
-Equation~\eqref{eq:allocation} are differentiable and do receive gradients, which
+through detached quantities, so no gradient path reaches them and all six hold their
+Table~\ref{tab:predicates} values throughout training. The rule layer as a whole is different. Its
+base level $\beta$ and rule weights $\theta_k$ are differentiable and do receive gradients, which
 Section~\ref{sec:gradient_audit} measures parameter by parameter.
 
-\textbf{Cooperation.} The wrapper should act where the backbone leaves room and stay quiet elsewhere.
-We take the Pearson correlation $\rho$ between the demand map $\mathbf{u}$ and $\boldsymbol{\pi}$, the
-summed proposal strength the rule layer reads, and penalize disagreement,
+\textbf{Cooperation.} The wrapper should act where the backbone leaves room. We take the Pearson
+correlation $\rho$ between the demand map $\mathbf{u}$ and $\boldsymbol{\pi}$, the summed proposal
+strength the rule layer reads, and penalize disagreement,
 \begin{equation}
-\mathcal{L}_{\mathrm{coop}} = \tfrac{1}{2}\,\mathrm{ReLU}\big(1 - \rho(\mathbf{u}, \boldsymbol{\pi})\big).
+\mathcal{L}_{\mathrm{coop}} = c_{\mathrm{co}}\,\mathrm{ReLU}\big(1 - \rho(\mathbf{u}, \boldsymbol{\pi})\big).
 \label{eq:loss_coop}
 \end{equation}
 Each map is first rescaled to $[0,1]$ by its own minimum and maximum, so the term is invariant to a
-positive affine change of either but not to a negative one, which reverses the sign. The correlation
-is undefined for a constant map, where the implementation returns a zero loss, the one place this
-term is not differentiable.
+positive affine change of either but not a negative one, which reverses the sign. The correlation is
+undefined for a constant map, where the implementation returns zero, the one place this term is not
+differentiable.
 
-\textbf{Edge supervision.} The additive branch is trained to reproduce the gradient that the backbone
-lost, measured with the Sobel operator $\nabla$ and weighted toward the places where the clean
-reference has an edge. Let $\mathbf{w}$ be the clean Sobel magnitude divided by its mean and clipped
-at ten, $\tilde{\mathbf{w}}$ its square normalized again to unit mean, and $\bar{\mathbf{g}}$ a Sobel
-magnitude divided by its own maximum. With $\delta = [1.05\,\mathrm{EPI}(\mathbf{b}) -
-\mathrm{EPI}(\hat{\mathbf{x}})]_+$,
+\textbf{Edge supervision.} The additive branch is trained to reproduce the gradient the backbone
+lost, measured with the Sobel operator $\nabla$ and weighted toward the clean reference edges. Let $\mathbf{w}$ be the clean Sobel magnitude divided by its mean and clipped
+at $w_{\max}$, $\tilde{\mathbf{w}}$ its square normalized again to unit mean, and $\bar{\mathbf{g}}$ a
+Sobel magnitude divided by its own maximum. With
+$\delta = [\rho_e\,\mathrm{EPI}(\mathbf{b}) - \mathrm{EPI}(\hat{\mathbf{x}})]_+$,
 \begin{equation}
 \begin{split}
-\mathcal{L}_{\mathrm{edge}} = \;&10\,\big\lVert \sqrt{\mathbf{w}} \odot
+\mathcal{L}_{\mathrm{edge}} = \;&\mu_{1}\,\big\lVert \sqrt{\mathbf{w}} \odot
   (\nabla\hat{\mathbf{x}} - \nabla\mathbf{x}) \big\rVert_2^2 \\
- &+ 10\,\big\lVert \sqrt{\tilde{\mathbf{w}}} \odot
+ &+ \mu_{2}\,\big\lVert \sqrt{\tilde{\mathbf{w}}} \odot
   (\bar{\mathbf{g}}(\hat{\mathbf{x}}) - \bar{\mathbf{g}}(\mathbf{x})) \big\rVert_2^2
- + 45\,(3\delta + \delta^2).
+ + \mu_{3}\,(a_e\,\delta + \delta^2).
 \end{split}
 \label{eq:loss_edge}
 \end{equation}
 The first part is the gradient the correction must restore, the second compares normalized edge
-magnitude, and the third penalizes an edge preservation index below five percent above the
-backbone.
+magnitude, and the third penalizes an edge preservation index below $\rho_e$ times the backbone.
 
 \textbf{Bounds and background protection.} The last term keeps the change small, smooth and
-confined. Let $A$ be the mean absolute change over the upper half of the
-image, named $A$ because $a$ is the allocation and $\mathbf{g}$ the gate, let $e$ be the mean
-absolute output of the edge branch, and $\mathbf{m}$ a soft mask below the fifteenth percentile of
-the backbone output. Here $\sigma_R$ and $\mu_U$ are taken over the lower quarter and the upper half
-of the frame, fixed bands and not the anatomical sets $\mathcal{T}$ and $\mathcal{B}$ of
-Theorem~\ref{thm:cnr},
+confined. It is a weighted sum of seven penalties,
 \begin{equation}
-\begin{split}
-\mathcal{L}_{\mathrm{reg}} = \;&\min\big(40[0.002 - A]_+,\, 5\big) \\
- &+ \min\big(200[A - 0.006]_+^2,\, 5\big) \\
- &+ 2\,\overline{\lVert \nabla \boldsymbol{\alpha} \rVert}
- + 30[e - 0.06]_+^2 \\
- &+ 80\big[\sigma_R(\hat{\mathbf{x}}) - 0.75\,\sigma_R(\mathbf{b})\big]_+ \\
- &+ 100\Big[\tfrac{\sigma_R(\hat{\mathbf{x}})}{\sigma_R(\mathbf{b})} - 0.95\Big]_+ \\
- &+ 150\Big[0.99 - \tfrac{\mu_U(\hat{\mathbf{x}})}{\mu_U(\mathbf{b})}\Big]_+
- + 2\,\overline{\lvert \hat{\mathbf{x}} - \mathbf{b} \rvert \odot \mathbf{m}} ,
-\end{split}
+\mathcal{L}_{\mathrm{reg}} = \sum_{k=1}^{8} \nu_k \, \phi_k ,
 \label{eq:loss_reg}
 \end{equation}
-where a bar denotes the mean over pixels. Every squared norm in Equations~\eqref{eq:loss_edge}
-and~\eqref{eq:loss_reg} is likewise a mean over pixels and over the batch, not a sum, so no term
-changes scale with the crop size. The floor discourages the wrapper from learning to do nothing
-and the ceiling from overshooting fidelity, the third keeps the admitted gain $\boldsymbol{\alpha}$
-of Equation~\eqref{eq:alpha} smooth, not the allocation, the fourth bounds the edge branch, and the
-last three penalize a rise in background noise or a fall in tissue brightness.
+with weights in Table~\ref{tab:objconst}. Write $A$ for the mean absolute
+change over the upper half of the image, named $A$ since $a$ is the allocation and $\mathbf{g}$ the
+gate, $e$ for the mean absolute output of the edge branch, $\mathbf{m}$ for a soft mask below the
+$p_g$ percentile of the backbone output, and $\sigma_R$, $\mu_U$ for the standard deviation over the
+lower quarter and the mean over the upper half of the frame, fixed bands and not the anatomical sets
+of Theorem~\ref{thm:cnr}. The penalties are a floor $\phi_1 = \min([A_{\min} - A]_+, \phi_{\max})$ and a ceiling
+$\phi_2 = \min([A - A_{\max}]_+^2, \phi_{\max})$ on the size of the change,
+$\phi_3 = \overline{\lVert \nabla \boldsymbol{\alpha} \rVert}$ on the smoothness of the admitted
+gain, $\phi_4 = [e - e_{\max}]_+^2$ on the edge branch, and four protecting the background and
+tissue, $\phi_5 = [\sigma_R(\hat{\mathbf{x}}) - \rho_\sigma \sigma_R(\mathbf{b})]_+$,
+$\phi_6 = [\sigma_R(\hat{\mathbf{x}})/\sigma_R(\mathbf{b}) - \rho_b]_+$,
+$\phi_7 = [\rho_t - \mu_U(\hat{\mathbf{x}})/\mu_U(\mathbf{b})]_+$ and
+$\phi_8 = \overline{\lvert \hat{\mathbf{x}} - \mathbf{b} \rvert \odot \mathbf{m}}$. A bar denotes the mean over pixels, and every squared norm in
+Equations~\eqref{eq:loss_edge} and~\eqref{eq:loss_reg} is a mean over pixels and batch, not a sum,
+so no term changes scale with the crop size.
+
+\begin{table}[!tb]
+\centering
+\caption{Every named constant of the method and the objective, above and below the rule. Vectors
+follow the order the text gives. None was tuned, the dead zone $d$ of Equation~\eqref{eq:loss_fid}
+being the one quantity selected per backbone, together with the choice of gate.}
+\label{tab:objconst}
+\setlength{\tabcolsep}{3pt}
+\setlength{\aboverulesep}{0pt}
+\setlength{\belowrulesep}{0pt}
+\renewcommand{\arraystretch}{0.95}
+\scriptsize
+\begin{tabular}{llp{0.44\columnwidth}}
+\toprule
+Eq. & Symbol & Value \\
+\midrule
+\eqref{eq:soft_failure} & $\kappa_p$, and $u_{\mathrm{lo}}, u_{\mathrm{hi}}, n_\star$ of~\eqref{eq:rules} & 10 and 0.3, 0.7, 1.5 \\
+\eqref{eq:alpha} & $g_{\max}$, and $\kappa_g, p_g, R$ of~\eqref{eq:gate} & 0.20 and 20, 0.15, 41 \\
+\eqref{eq:energy} & $c_f, s_f$, and $w_0, w_1$ of~\eqref{eq:blend} & 0.1, 0.5 and 0.05, 0.10 \\
+ & $t_E, t_\uparrow, t_\downarrow, t_r$ & 0.10, 0.01, 0.10, 0.2 \\
+\midrule
+\eqref{eq:loss_fid} & $\lambda_{1..3}$, $\Delta_d$, $d_s$ & 5, 15, 20 and 0.4 dB, 0.005 \\
+\eqref{eq:loss_clin} & $\gamma_{1..3}$ & 3, 1, 0.5 \\
+ & $w_m$ & 1, 5, 1, 15, 40, 5, 8, 40, 10 \\
+ & $\kappa_m$ & 1.12, 1.12, 1.00, 1.05, 1.20, 1.12, 1.10, 1.15, 0.87 \\
+ & $s_m$ & 1 for ENL, SNR and the error ratio, else 0 \\
+\eqref{eq:loss_pred} & $\eta_{1..3}$, $v_j$, $g_\star$ & 3, 2.5, 2 and 3, 2, 2, 1 and 0.5 \\
+\eqref{eq:loss_coop} & $c_{\mathrm{co}}$ & 0.5 \\
+\eqref{eq:loss_edge} & $\mu_{1..3}$, $w_{\max}$, $\rho_e$, $a_e$ & 10, 10, 45 and 10, 1.05, 3 \\
+\eqref{eq:loss_reg} & $\nu_{1..8}$ & 40, 200, 2, 30, 80, 100, 150, 2 \\
+ & $A_{\min}, A_{\max}, \phi_{\max}$ & 0.002, 0.006, 5 \\
+ & $e_{\max}, \rho_\sigma, \rho_b, \rho_t$ & 0.06, 0.75, 0.95, 0.99 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Schedule, selection and constants}
 \label{sec:paired_data}
@@ -156,17 +182,13 @@ $+0.0005$ percent with one of its three seeds negative.
 The supplementary file gives the bound and the four levels. Every source of randomness is seeded, up to the nondeterminism
 of the convolution kernels, and the checkpoints chosen on validation are the ones scored on test.
 
-\emph{Initialization and every constant.} \label{sec:constants}Every constant appears with its value where it acts and has one of four origins. Fixed structural
-choices, never tuned, are the sharpness $\kappa = 10$ of Equation~\eqref{eq:soft_failure}, the
-steepness 20 of both gates, the window sizes, the quarter resolution of the gain network, the bound
-$\pm 0.08$ of the edge branch, the thresholds $\tau_i$ of Table~\ref{tab:predicates}, and the budgets
-$B$ and $C$. Set once on validation and never revisited are $\alpha_{\max} = 0.15$, the gain bound
-$\pm 0.20$, the gate percentile 0.15 and radius 41, the three tolerances of
-Section~\ref{sec:safety}, the half strength background blend and the learning rates. Selected in the grid of
-Section~\ref{sec:weight_selection}, on the validation split only, are the dead zone $d$ and the gate
-rule. Learned by the objective are $\beta$, $\theta_1$ to $\theta_4$, $\tau_0$, $\beta_0$ and the
-scale of the edge branch. The fifth rule weight $\theta_5$ is declared learnable and is not,
-for the reason Section~\ref{sec:gradient_audit} gives.
+\emph{Initialization and every constant.} \label{sec:constants}Table~\ref{tab:objconst} holds every named constant. The window sizes, the quarter resolution of the
+gain network, the edge bound $\pm 0.08$, the thresholds $\tau_i$ and the budgets $B$ and $C$ are
+structural and were never tuned. The rest of the table was set once on validation while the method
+was built and never revisited, except $d$ and the gate rule, which
+Section~\ref{sec:weight_selection} selects. Learned are $\beta$, $\theta_1$ to $\theta_4$, the five
+rule thresholds, $\tau_0$, $\beta_0$ and the scale of the edge branch, while $\theta_5$ is declared
+learnable and is not.
 
 The wrapper is not fitted from scratch. Each run restores the whole wrapper, the rule layer included,
 from the corrector of the submitted version for that backbone and trains it for ten epochs with a

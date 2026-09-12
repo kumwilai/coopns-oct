@@ -15,7 +15,7 @@ Response letter has no unresolved bracket and every section, table and figure re
 | R1-4 | fuzzy rule weights look heuristic | V F, fourteen variations, none turns a measure negative | CLOSED |
 | R1-5 | missing expert network and neuro symbolic literature | I C, 26 references all resolved | CLOSED |
 | R1-6 | typos and grammar | style script clean, mechanical checks clean | CLOSED |
-| R2-1 | LOO protocol contradiction | Table 3 carries the no adaptation protocol only, Table S7 reports the adapted one as a test selected historical diagnostic | CLOSED |
+| R2-1 | LOO protocol contradiction | Table 4 carries the no adaptation protocol only, Table S7 reports the adapted one as a test selected historical diagnostic | CLOSED |
 | R2-2 | explain the PSNR drop, SwinIR minus 1.69 dB | VI A, cache defect fixed, SwinIR now minus 0.17 dB | CLOSED |
 | R3-1 | highlight the new ideas | I B | CLOSED |
 | R3-2 | motivation not clear | I A | CLOSED |
@@ -32,7 +32,7 @@ Response letter has no unresolved bracket and every section, table and figure re
 | R3-13 | public code and data link without password | the release is built and goes public after acceptance, under a permanent identifier | ANSWERED BY DECISION |
 | R3-14 | follows from 13 | release documents the six defects and the checks | CLOSED |
 | R3-15 | do not call them experiments | zero occurrences in the source | CLOSED |
-| R3-16 | fair comparison at similar complexity | Table 5, lower block, text narrowed to match the code | CLOSED |
+| R3-16 | fair comparison at similar complexity | Table 6, lower block, text narrowed to match the code | CLOSED |
 | R3-17 | how were the fuzzy parameters computed | III C and V F and the constants table of the supplement | CLOSED |
 | R3-18 | transferability needs cost and variability numbers | V K, wall clock and seed spread per backbone | CLOSED |
 | R3-19 | verify the assumed constants and bounds hold | V I and V J, honest majority statement, failures reported | CLOSED |
@@ -84,6 +84,31 @@ describe, the per cell seed spreads of Tables 3 and 4, and a restatement of the 
 - The 173 test pairs come from five clean image identities, which the measures paragraph now says.
 - The loss weights are now given numerically, and the inactive learned weight path is disclosed.
 
+## Every constant named, no bare numerals left in any equation
+
+The equations carried their values inline, which read badly and buried the ones that matter. Every
+constant now has a name and Table 3 holds every value, so an equation shows its structure and the
+table shows what it was set to.
+
+- The fidelity term is $\lambda_1,\lambda_2,\lambda_3$ with a dead zone $d$, a further $\Delta_d$ and
+  an SSIM tolerance $d_s$, in place of 5, 15, 0.4, 20 and 0.005.
+- The clinical term keeps $w_m$ and $\kappa_m$ as vectors in the table rather than nine numbers each
+  in the prose, and its three coefficients are $\gamma_1,\gamma_2,\gamma_3$.
+- The preservation term is $\eta_1,\eta_2,\eta_3$ with a floor $g_\star$, the cooperation term
+  $c_{\mathrm{co}}$, and the edge term $\mu_1,\mu_2,\mu_3$ with $w_{\max}$, $\rho_e$ and $a_e$.
+- The regularizer was eight inline penalties spread over ten lines of display maths. It is now
+  $\sum_k \nu_k \phi_k$ over eight named penalties, with the thresholds $A_{\min}$, $A_{\max}$,
+  $\phi_{\max}$, $e_{\max}$, $\rho_\sigma$, $\rho_b$ and $\rho_t$.
+- The method equations follow the same rule. $\kappa_p$ for the property sharpness, $\kappa_g$, $p_g$
+  and $R$ for the gates, $g_{\max}$ for the clamp, $u_{\mathrm{lo}}$, $u_{\mathrm{hi}}$ and
+  $n_\star$ for the rule bands, $c_f$ and $s_f$ for the energy, $w_0$ and $w_1$ for the blend, and
+  $t_E$, $t_\uparrow$, $t_\downarrow$, $t_r$ for the three tolerances.
+- A check now scans every display equation for a bare numeral and finds none outside indices.
+
+Adding Table 3 renumbered the results tables. PKU37 is Table 4, transfer Table 5 and the component
+study Table 6, and every pointer in the letter, the supplement and this file was remapped and then
+checked against the compiled document.
+
 ## Round five, the method made complete in the main paper
 
 The paper is self contained. A general reader needs no supplementary file, which is submitted for
@@ -129,8 +154,8 @@ review only.
 - Response 3.5 still said the constraints enter training as penalties, which the main paper now
   contradicts. Replaced.
 - Response 3.1 said four contributions and listed five. It now lists the four the paper has.
-- Table 3 had lost the seed spread on fidelity, which appears nowhere else, since Table S6 carries
-  only the six clinical measures. Restored, and Table 4 is now the same shape and also one column, so
+- Table 4 had lost the seed spread on fidelity, which appears nowhere else, since Table S6 carries
+  only the six clinical measures. Restored, and Table 5 is now the same shape and also one column, so
   a row here compares against a row there without re reading a header.
 - The DnCNN overhead is 5.7 percent, not 5.8. Arithmetic from our own counts.
 - The claim that DnCNN and KBNet each have a measure that falls on test was wrong for KBNet, whose
@@ -223,9 +248,9 @@ review only.
 
 ## Restructured for readability, 12 pages held
 
-- Table 3 of the previous version merged four studies into one float, so a reader comparing two
-  backbones had to work out which block a row belonged to. It is now Table 3 for the test set,
-  Table 4 for transfer and Table 5 for the component removals and the alternative operators.
+- Table 4 of the previous version merged four studies into one float, so a reader comparing two
+  backbones had to work out which block a row belonged to. It is now Table 4 for the test set,
+  Table 5 for transfer and Table 6 for the component removals and the alternative operators.
 - The six failure maps and the full resolution visual comparison moved from the supplementary file
   into the main paper as Figures 2 and 4. The supplement is 7 pages and carries nothing a claim
   rests on.

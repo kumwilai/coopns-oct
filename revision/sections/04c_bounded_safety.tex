@@ -3,27 +3,28 @@
 
 \subsection{Stage five, applying the change}
 \label{sec:composition}
-The admitted gain is the raw proposal modulated by the allocation and the strength map, then bounded,
+The admitted gain is the raw proposal modulated by the allocation and the strength map, then bounded
+at $g_{\max} = 0.20$,
 \begin{equation}
-\boldsymbol{\alpha} = \mathrm{clamp}\big(\boldsymbol{\Delta} \odot \mathbf{a} \odot \boldsymbol{\lambda},\, -0.20,\, 0.20\big).
+\boldsymbol{\alpha} = \mathrm{clamp}\big(\boldsymbol{\Delta} \odot \mathbf{a} \odot \boldsymbol{\lambda},\, -g_{\max},\, g_{\max}\big).
 \label{eq:alpha}
 \end{equation}
 A gate suppresses any change in the dark background,
 \begin{equation}
-\mathbf{g} = \sigma\big(20\,(\mathbf{b} - q_{0.15})\big),
+\mathbf{g} = \sigma\big(\kappa_g\,(\mathbf{b} - q_{p_g}(\mathbf{b}))\big),
 \label{eq:gate}
 \end{equation}
-where $q_{0.15}$ is the fifteenth percentile of the backbone output of that image, a percentile
-rather than a fixed level so the gate works across scanners of different brightness. The second form, used where the
+with steepness $\kappa_g = 20$, where $q_{p_g}$ is the $p_g = 0.15$ quantile of the backbone output
+of that image, a percentile rather than a fixed level so the gate works across scanners of different
+brightness. The second form, used where the
 selection of Section~\ref{sec:weight_selection} chose it, replaces the percentile by the per image
 Otsu threshold and dilates the result with a maximum filter of side $R$,
 \begin{equation}
-\mathbf{g} = \mathrm{maxpool}_{R}\big(\sigma(20\,(\mathbf{b} - \mathrm{otsu}(\mathbf{b})))\big),
-\quad R = 41 ,
+\mathbf{g} = \mathrm{maxpool}_{R}\big(\sigma(\kappa_g\,(\mathbf{b} - \mathrm{otsu}(\mathbf{b})))\big) ,
 \label{eq:gate_halo}
 \end{equation}
-which widens the admitted region to a band around tissue, because the edge branch earns its contrast
-and texture gains just outside the tissue boundary. Both gates read the detached backbone output and
+at radius $R = 41$, which widens the admitted region to a band around tissue, because the edge branch
+earns its contrast and texture gains just outside the tissue boundary. Both gates read the detached backbone output and
 carry no gradient. Neither is ever exactly zero, since a logistic is strictly positive and a maximum
 filter preserves that. Over the test scans the smallest value Equation~\eqref{eq:gate_halo} reaches
 is 0.017 to 0.071 by image and Equation~\eqref{eq:gate} 0.045 to 0.20, so the darkest background is
@@ -58,18 +59,20 @@ The candidate $\mathbf{q}$ is not returned directly. Three constraints are check
 \textbf{Aggregate quality must not fall.} Define for any image $\mathbf{t}$ the energy
 \begin{equation}
 E(\mathbf{t}) = 1 - \tfrac{1}{6}\sum_{i=1}^{6} s_i(\mathbf{t})
- + 0.1 \sum_{i=1}^{6} \max\big(0,\, 0.5 - s_i(\mathbf{t})\big),
+ + c_f \sum_{i=1}^{6} \big[s_f - s_i(\mathbf{t})\big]_+ ,
 \label{eq:energy}
 \end{equation}
-which is small when the image is good and whose second term penalizes any property below one half,
-so a good average cannot hide one broken property. The constraint is
-$E(\mathbf{q}) \le E(\mathbf{b}) + 0.10$.
+which is small when the image is good and whose second term, at weight $c_f = 0.1$, penalizes any
+property below the floor $s_f = 0.5$, so a good average cannot hide one broken property. The
+constraint is $E(\mathbf{q}) \le E(\mathbf{b}) + t_E$ with tolerance $t_E = 0.10$.
 
 \textbf{No property may be sacrificed for another.} The second constraint requires that at least one
-property improves by more than $0.01$ and that no property falls by more than $0.10$.
+property improves by more than $t_{\uparrow} = 0.01$ and that none falls by more than
+$t_{\downarrow} = 0.10$.
 
 \textbf{The image must not move far.} The third constraint requires
-$\lVert \mathbf{q} - \mathbf{b} \rVert_2 \,/\, \lVert \mathbf{b} \rVert_2 < 0.2$.
+$\lVert \mathbf{q} - \mathbf{b} \rVert_2 \,/\, \lVert \mathbf{b} \rVert_2 < t_r$, with
+$t_r = 0.2$.
 
 Let $n \in \{0,1,2,3\}$ be the number of constraints that hold. The output is
 \begin{equation}
@@ -77,13 +80,13 @@ Let $n \in \{0,1,2,3\}$ be the number of constraints that hold. The output is
 \qquad
 w = \begin{cases}
 1, & n \ge 2, \\[2pt]
-0.05 + 0.10\,\dfrac{n}{3}, & n < 2 .
+w_0 + w_1\,\dfrac{n}{3}, & n < 2 .
 \end{cases}
 \label{eq:blend}
 \end{equation}
-The candidate is accepted in full whenever any two constraints hold, so one violation does not by
-itself withhold the change. Below two the output falls back to the backbone while keeping five
-percent of the change when none holds and about eight when one does. This is a majority test on three
+with $w_0 = 0.05$ and $w_1 = 0.10$. The candidate is accepted in full whenever any two constraints
+hold, so one violation does not by itself withhold the change. Below two the output falls back to the
+backbone while keeping $w_0$ of the change when none holds and $w_0 + w_1/3$ when one does. This is a majority test on three
 measured conditions and not an enforcement of three bounds, and Section~\ref{sec:safety_check}
 reports how often each holds.
 

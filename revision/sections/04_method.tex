@@ -83,10 +83,10 @@ signed vote.
 
 Each property score is first turned into a soft failure signal by comparing it with its threshold,
 \begin{equation}
-f_i = \sigma\big(\kappa (\tau_i - s_i)\big), \qquad \kappa = 10 ,
+f_i = \sigma\big(\kappa_p (\tau_i - s_i)\big) ,
 \label{eq:soft_failure}
 \end{equation}
-so $f_i$ is near one when property $i$ is failing. The same soft comparison tests the cooperation map
+with sharpness $\kappa_p = 10$, so $f_i$ is near one when property $i$ is failing. The same soft comparison tests the cooperation map
 and the strength of a proposal against their own thresholds. Each corrector produces that strength as
 a per-pixel map from the backbone output and the failure maps it serves, large where its property is
 far below threshold, and it is multiplied by one half plus the demand map before the rules fire, so
@@ -100,21 +100,22 @@ The five rules follow. Rule one fires when the cooperation map is high and the p
 votes against changing the image. Rule two fires when the map is low and the proposal strong, and
 votes for. Rule three fires when a relevant property is failing, and votes for. Rule four fires when
 map and strength are both middling, and votes weakly for. Rule five fires when several correctors
-want the same pixel, and votes against. Written out, with $\mathrm{sg}(x,\tau) = \sigma(10(x-\tau))$,
-$\mathrm{sl}(x,\tau) = \sigma(10(\tau-x))$, $c$ the cooperation map, $\pi$ the proposal strength and
-$s_{\min}$ the smallest property score the corrector reads,
+want the same pixel, and votes against. Written out, with $c$ the cooperation map, $\pi$ the proposal
+strength and $s_{\min}$ the smallest property score the corrector reads,
 \begin{equation}
 \begin{aligned}
 r_1 &= \mathrm{AND}\big(\mathrm{sg}(c, \tau_{\mathrm{hc}}),\ \mathrm{sl}(\pi, \tau_{\mathrm{lp}})\big), \\
 r_2 &= \mathrm{AND}\big(\mathrm{sl}(c, \tau_{\mathrm{lc}}),\ \mathrm{sg}(\pi, \tau_{\mathrm{hp}})\big), \\
 r_3 &= \mathrm{sl}(s_{\min}, \tau_{\mathrm{pf}}), \qquad
 r_4 = \mathrm{AND}\big(m(c),\, m(\pi)\big), \\
-r_5 &= \mathrm{sg}\big(\textstyle\sum_j \mathrm{sg}(\pi_j, \tau_{\mathrm{cf}}),\ 1.5\big),
+r_5 &= \mathrm{sg}\big(\textstyle\sum_j \mathrm{sg}(\pi_j, \tau_{\mathrm{cf}}),\ n_\star\big),
 \end{aligned}
 \label{eq:rules}
 \end{equation}
-where $m(x) = \mathrm{AND}\big(\mathrm{sl}(x,0.7), \mathrm{sg}(x,0.3)\big)$ selects the middle band
-and the sum in $r_5$ runs over the correctors proposing at that pixel. The five thresholds
+where $\mathrm{sg}(x,\tau) = \sigma(\kappa_p(x-\tau))$, $\mathrm{sl}$ is the same with the sign
+reversed, $m(x) = \mathrm{AND}\big(\mathrm{sl}(x,u_{\mathrm{hi}}), \mathrm{sg}(x,u_{\mathrm{lo}})\big)$
+selects the middle band with $u_{\mathrm{lo}} = 0.3$ and $u_{\mathrm{hi}} = 0.7$, and the sum in
+$r_5$ runs over the correctors proposing at that pixel, firing above $n_\star = 1.5$ of them. The five thresholds
 $\tau_{\mathrm{hc}}$, $\tau_{\mathrm{lc}}$, $\tau_{\mathrm{hp}}$, $\tau_{\mathrm{lp}}$ and
 $\tau_{\mathrm{pf}}$ are trainable, start at 0.40, 0.55, 0.30, 0.10 and 0.75, and move slightly
 during fitting. They are not the six property thresholds $\tau_i$, which take no gradient. In the
