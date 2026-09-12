@@ -274,9 +274,9 @@ def table_components():
         ("One component removed",
          [("Full method", "lopo_none"), ("No rule layer", "comp_no_negotiator"),
           ("No edge branch", "comp_no_edge"), ("No cooperation map", "comp_no_uncertainty"),
-          ("No background smoothing", "comp_no_bg_smooth")]),
+          ("No bg smoothing", "comp_no_bg_smooth")]),
         ("Alternatives of similar complexity on the same backbone output",
-         [("Uniform allocation, trained", "matched_plain_eval"),
+         [("Uniform allocation", "matched_plain_eval"),
           ("Unsharp masking", "classical_unsharp"),
           ("Adaptive equalization", "classical_clahe")]))
     lines = []

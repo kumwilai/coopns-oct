@@ -68,12 +68,11 @@ method has never seen.
 \centering
 \includegraphics[width=0.56\textwidth]{figures/fig_predicate_maps.pdf}
 \caption{The six failure maps on one backbone output, with the score each property returns for the
-whole image. Dark means strong local evidence that the property is unsatisfied. The maps disagree
-with each other, which is the point of keeping six of them. Edge continuity and local contrast fire
-along the layer boundaries and through the textured tissue between them, speckle conformity fires
-almost everywhere on this image and drives its low score, and the remaining three are close to
-satisfied and stay pale. The allocation of Equation~\eqref{eq:allocation} is built from these maps,
-so a reader can see which property asked for a change at any pixel.}
+whole image. Dark means strong local evidence that the property is unsatisfied. The maps disagree,
+which is the point of keeping six. Edge continuity and local contrast fire along the layer boundaries
+and through the tissue between them, speckle conformity fires almost everywhere here and drives its
+low score, and the other three stay pale. The allocation of Equation~\eqref{eq:allocation} is built
+from these maps, so a reader can see which property asked for a change at any pixel.}
 \label{fig:predicate_maps}
 \end{figure*}
 
@@ -101,7 +100,26 @@ The five rules follow. Rule one fires when the cooperation map is high and the p
 votes against changing the image. Rule two fires when the map is low and the proposal strong, and
 votes for. Rule three fires when a relevant property is failing, and votes for. Rule four fires when
 map and strength are both middling, and votes weakly for. Rule five fires when several correctors
-want the same pixel, and votes against. Write $r_1$ to $r_5$ for the truth values.
+want the same pixel, and votes against. Written out, with $\mathrm{sg}(x,\tau) = \sigma(10(x-\tau))$,
+$\mathrm{sl}(x,\tau) = \sigma(10(\tau-x))$, $c$ the cooperation map, $\pi$ the proposal strength and
+$s_{\min}$ the smallest property score the corrector reads,
+\begin{equation}
+\begin{aligned}
+r_1 &= \mathrm{AND}\big(\mathrm{sg}(c, \tau_{\mathrm{hc}}),\ \mathrm{sl}(\pi, \tau_{\mathrm{lp}})\big), \\
+r_2 &= \mathrm{AND}\big(\mathrm{sl}(c, \tau_{\mathrm{lc}}),\ \mathrm{sg}(\pi, \tau_{\mathrm{hp}})\big), \\
+r_3 &= \mathrm{sl}(s_{\min}, \tau_{\mathrm{pf}}), \qquad
+r_4 = \mathrm{AND}\big(m(c),\, m(\pi)\big), \\
+r_5 &= \mathrm{sg}\big(\textstyle\sum_j \mathrm{sg}(\pi_j, \tau_{\mathrm{cf}}),\ 1.5\big),
+\end{aligned}
+\label{eq:rules}
+\end{equation}
+where $m(x) = \mathrm{AND}\big(\mathrm{sl}(x,0.7), \mathrm{sg}(x,0.3)\big)$ selects the middle band
+and the sum in $r_5$ runs over the correctors proposing at that pixel. The five thresholds
+$\tau_{\mathrm{hc}}$, $\tau_{\mathrm{lc}}$, $\tau_{\mathrm{hp}}$, $\tau_{\mathrm{lp}}$ and
+$\tau_{\mathrm{pf}}$ are trainable, start at 0.40, 0.55, 0.30, 0.10 and 0.75, and move slightly
+during fitting. They are not the six property thresholds $\tau_i$, which take no gradient. In the
+reported configuration the allocation is formed for one multiplicative proposal, so the sum in $r_5$
+has a single term and $r_5$ is zero everywhere.
 
 The allocation at each pixel is the bounded weighted vote
 \begin{equation}

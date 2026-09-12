@@ -14,25 +14,40 @@ A gate suppresses any change in the dark background,
 \label{eq:gate}
 \end{equation}
 where $q_{0.15}$ is the fifteenth percentile of the backbone output of that image, a percentile
-rather than a fixed level so the gate works across scanners of different brightness. The second form,
-used where the selection of Section~\ref{sec:weight_selection} chose it, is a soft step at the per
-image Otsu threshold followed by a maximum filter of fixed radius, so the gate is identically zero
-beyond that radius from tissue.
+rather than a fixed level so the gate works across scanners of different brightness. The second form, used where the
+selection of Section~\ref{sec:weight_selection} chose it, replaces the percentile by the per image
+Otsu threshold and dilates the result with a maximum filter of side $R$,
+\begin{equation}
+\mathbf{g} = \mathrm{maxpool}_{R}\big(\sigma(20\,(\mathbf{b} - \mathrm{otsu}(\mathbf{b})))\big),
+\quad R = 41 ,
+\label{eq:gate_halo}
+\end{equation}
+which widens the admitted region to a band around tissue, because the edge branch earns its contrast
+and texture gains just outside the tissue boundary. Both gates read the detached backbone output and
+carry no gradient. Neither is ever exactly zero, since a logistic is strictly positive and a maximum
+filter preserves that. Over the test scans the smallest value Equation~\eqref{eq:gate_halo} reaches
+is 0.017 to 0.071 by image and Equation~\eqref{eq:gate} 0.045 to 0.20, so the darkest background is
+attenuated by one to two orders of magnitude and not excluded, and the background measures of
+Section~\ref{sec:safety_check} are evidence rather than a property the gate guarantees.
 
 The gated gain is applied multiplicatively to give the change $\mathbf{v}$, with the brightening part
-smoothed before it is added so that it cannot create a new high frequency edge,
+smoothed before it is added, which attenuates high frequency variation in that contribution,
 \begin{equation}
 \mathbf{v} = \big(\,\mathrm{smooth}(\mathrm{ReLU}(\boldsymbol{\alpha}) \odot \mathbf{b})
  + (\boldsymbol{\alpha} - \mathrm{ReLU}(\boldsymbol{\alpha})) \odot \mathbf{b}\,\big) \odot \mathbf{g},
 \label{eq:apply}
 \end{equation}
 where $\mathrm{smooth}$ is a three by three mean filter, so a brightening is spread over a
-neighborhood while a darkening acts where it was proposed. In the background, the complement of the
-gate eroded by two pixels, a masked mean filter of the same size is blended in at half strength,
-which lowers the background standard deviation without letting blur cross into tissue. The edge
-proposal is then added and the result clipped to the valid range,
+neighborhood while a darkening acts where it was proposed. The background is then smoothed. Writing
+$\mathbf{u} = \mathbf{b} + \mathbf{v}$ for the image at that point,
+$\boldsymbol{\beta} = \tfrac{1}{2}\,\mathrm{erode}_5(\mathbf{1} - \mathbf{g})$ for the blend weight
+and $S(\mathbf{u})$ for a three by three mean taken over the masked pixels only, the smoothed image
+is $\tilde{\mathbf{u}} = (\mathbf{1} - \boldsymbol{\beta}) \odot \mathbf{u} + \boldsymbol{\beta} \odot S(\mathbf{u})$.
+The erosion keeps the blend away from the tissue border, and since $\mathbf{g}$ is never one the
+weight is small rather than zero inside tissue. The edge proposal is added after this, and the result
+is clipped,
 \begin{equation}
-\mathbf{q} = \mathrm{clamp}\big(\mathbf{b} + \mathbf{v} + \boldsymbol{\delta}_{\mathrm{e}} \odot \mathbf{g},\, 0,\, 1\big).
+\mathbf{q} = \mathrm{clamp}\big(\tilde{\mathbf{u}} + \boldsymbol{\delta}_{\mathrm{e}} \odot \mathbf{g},\, 0,\, 1\big).
 \label{eq:candidate}
 \end{equation}
 

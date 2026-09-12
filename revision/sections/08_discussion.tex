@@ -14,15 +14,16 @@ reads.
 Where the gain lands follows what each backbone leaves undone rather than how good it is overall. On
 boundary sharpness NAFNet starts furthest below the clean reference and gains most, while DnCNN
 starts above it and is the only one that falls. On edge preservation KBNet starts highest and is the
-only one left unchanged. SwinIR is the instructive case, since windowed attention smooths hard inside
-a window, leaving the most room on contrast and paying the least fidelity. A deployment that cannot
-afford the payment lowers the gain bound $\alpha_{\max}$, though only bypassing the wrapper returns
-the backbone output exactly.
+only one left flat. SwinIR is the instructive case, since windowed attention smooths hard inside a
+window, leaving the most room on contrast and paying the least fidelity. A deployment that cannot
+afford the payment lowers $\alpha_{\max}$, which attenuates the multiplicative branch but leaves the
+edge branch and the background operation active, so only bypassing the wrapper returns the backbone
+output exactly.
 
 \subsection{Limitations}
-The correction is bounded by construction, so a backbone that destroyed a structure cannot be made to
-recover it. Two safety measures move against it, the rate at which an edge appears where the reference has none
-and the retention of the weakest structures, both in Section~\ref{sec:safety_check}. Neither cost is
+The correction is bounded, so a backbone that destroyed a structure cannot be made to recover it. Two
+safety measures move against it, the rate at which an edge appears where the reference has none and
+the retention of the weakest structures, both in Section~\ref{sec:safety_check}. Neither cost is
 zero, and the criterion that chose the operating point scores six measures and fidelity and sees
 neither. We measured that blindness on validation, so the test split is spent once. The runner up setting for
 NAFNet keeps more weak structure, 43.9 percent against 37.7, and invents fewer edges, so a user who

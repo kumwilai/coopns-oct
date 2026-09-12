@@ -5,8 +5,8 @@
 Algorithm~\ref{alg:supp_training} states the procedure. The backbone is frozen throughout and
 receives no gradient. The objective is evaluated on the candidate, because the acceptance rule is
 skipped while the model is in training mode, so Equation~(\EqObjective) of the main paper is
-optimized at $\mathbf{q}$ and not at $\hat{\mathbf{x}}$. The first stage activates only the clinical terms, so the correctors learn a
-useful direction. The second stage activates the fidelity term, so they learn how far to go.
+optimized at $\mathbf{q}$ and not at $\hat{\mathbf{x}}$. In the first stage every term but fidelity is active, so the correctors learn a
+useful direction. The second stage adds the fidelity term, so they learn how far to go.
 
 \subsection{Schedule and optimizer settings}
 We use AdamW with decoupled weight decay of $10^{-4}$, random crops of $96 \times 96$ pixels, and a
@@ -22,7 +22,8 @@ Algorithm~\ref{alg:supp_training}.
 \label{alg:supp_training}
 \begin{algorithmic}[1]
 \Require frozen backbone $f_\theta$, paired training set, number of epochs $E$
-\State initialize the wrapper parameters, set each property threshold to its literature value
+\State restore the submitted wrapper checkpoint for this backbone, rule layer included
+    \State create a fresh optimizer state
 \For{$e = 1$ to $E$}
   \For{each batch of crops}
     \State compute the backbone output, with no gradient to $\theta$
@@ -39,6 +40,13 @@ Algorithm~\ref{alg:supp_training}.
 \EndFor
 \end{algorithmic}
 \end{algorithm}
+
+\subsection{Where the method is written}
+\label{sec:supp_forward}
+Nothing of the method is kept here. The two gates, the five rule truth values, the allocation, the
+bounded change, the background smoothing and the safety decision are all written out in the main
+paper, which is complete without this file. What follows is the training recipe in the detail a
+reviewer asked for, the exact quantities of the loss and the exact selection rule.
 
 \subsection{The nine quantities of the clinical term}
 \label{sec:supp_clinical_terms}
@@ -95,9 +103,9 @@ on the fewest measures and labels the outcome as no selection.
 That last branch is the one two backbones took. NAFNet and SwinIR were admitted at the strict level,
 with scores of $+1.15$ and $+1.77$. No setting in the grid cleared any of the four levels for
 DnCNN or KBNet, whose best scores were $-1.95$ and $-0.05$, so for those two the reported
-setting is the least bad of the grid and not a setting that met a stated bound. They are also the two
-backbones with a clinical measure that falls on test, which is consistent with a grid that had
-nothing admissible to offer. Seeds 0, 1 and 2 are used throughout, and the seed 0 checkpoint of the
+setting is the least bad of the grid and not a setting that met a stated bound. They are also the two weakest on test, DnCNN alone
+losing boundary sharpness and KBNet alone flat on edge preservation, at $+0.0005$ percent with one of
+its three seeds negative, which is consistent with a grid that had nothing admissible to offer. Seeds 0, 1 and 2 are used throughout, and the seed 0 checkpoint of the
 selected setting is the one every figure draws.
 
 \subsection{Constants that carry a design decision}
@@ -107,7 +115,10 @@ it was chosen. A constant marked \emph{measured} was set from a property of the 
 marked \emph{selected} was chosen on the validation split and never on the test split. A constant
 marked \emph{fixed} is a structural choice that was not tuned.
 
-The networks use the default initialization of their layers. Two exceptions are deliberate. The bias
+The reported revision runs are warm started, not initialized from scratch. For each backbone we
+restore the complete submitted wrapper checkpoint, the rule layer included, and optimize it for ten
+epochs with a fresh optimizer state. What follows describes the earlier model that checkpoint came
+from. Its networks used the default initialization of their layers, with two deliberate exceptions. The bias
 of the brightness head starts at a small positive value so that the multiplicative branch begins from
 a mild brightening rather than from zero, which avoids a flat region of the loss at the start of
 training. The threshold of each property is declared as a trainable parameter and set to the value reported in
@@ -137,7 +148,9 @@ $\kappa$ & 10 & Eq.~(\EqFailure) of the main paper & fixed \\
 $B_{\min}, B_{\max}$ & 0.25, 0.50 & base of Eq.~(\EqAllocation) of the main paper & fixed by budget \\
 $C_1 \ldots C_5$ & 0.15, 0.25, 0.15, 0.10, 0.10 & rule votes & fixed by budget \\
 $\tau_1 \ldots \tau_6$ & 0.6, 0.5, 0.75, 0.5, 0.3, 0.7 & Eq.~(\EqFailure) of the main paper & fixed \\
-$\beta, \theta_1 \ldots \theta_5$ & learned & Eq.~(\EqAllocation) of the main paper & learned \\
+$\beta, \theta_1 \ldots \theta_4$ & learned & Eq.~(\EqAllocation) of the main paper & learned \\
+$\theta_5$ & 0.1 & Eq.~(\EqAllocation) of the main paper & declared learnable, inactive \\
+rule thresholds & see Sec.~\ref{sec:supp_selection} & Eq.~(\EqRules) of the main paper & learned \\
 energy tolerance & 0.10 & constraint one & set in development \\
 Pareto tolerance & 0.10 & constraint two & set in development \\
 change bound & 0.2 & constraint three & set in development \\

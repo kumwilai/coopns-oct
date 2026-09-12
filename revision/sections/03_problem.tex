@@ -87,8 +87,8 @@ fall by more than a fixed tolerance while another rises, and the relative change
 output should stay below a fixed bound. How many hold decides how much of the change is kept, so the
 rule is a majority test and not three hard guarantees. Every logical connective is a piecewise linear
 surrogate, so the objective is differentiable in $\phi$ including the rule layer and is solved with
-AdamW~\cite{loshchilov2019decoupled}. The constraints are not relaxed into the
-objective. They are evaluated exactly, per image, at test time only. The objective is therefore
-optimized at $\mathbf{q}$ and not at $\hat{\mathbf{x}}$, since the acceptance rule separating the two
-does not run while the wrapper is fitted. They coincide whenever the rule accepts in full, which
+AdamW~\cite{loshchilov2019decoupled}. The constraints are not relaxed into the objective.
+They are evaluated exactly, per image, at test time only, so the objective is optimized at
+$\mathbf{q}$ and not at $\hat{\mathbf{x}}$, the acceptance rule not running while the wrapper is
+fitted. The two coincide whenever the rule accepts in full, which
 Section~\ref{sec:safety_check} reports is every test image.

@@ -3,9 +3,7 @@
 
 We presented a post-correction layer for OCT denoising, attached to a frozen denoiser rather than
 replacing it. It states six clinical properties in closed form and turns them into an inspectable per-pixel
-allocation for the multiplicative gain through five named rules, alongside a separately learned edge
-correction and a background operation that do not pass through that allocation, and it limits how far
-any of them may move the image. Across four backbone families the same rules, budgets and loss
-weights raise the clinical measures at a fidelity cost below one decibel, and on three of the four no
-measure falls. The exception is boundary sharpness on DnCNN, which starts above the clean reference,
-where the method has no room to act. The measures are proxies, and the next step is a reader study.
+allocation for the multiplicative gain through five named rules, alongside an edge correction and a
+background operation that do not pass through that allocation, and bounds how far any may move the
+image. Across four backbone families the same rules, budgets and weights raise the clinical measures
+at a fidelity cost below one decibel, and on three of the four no measure falls. The measures are proxies, and a reader study is the next step.

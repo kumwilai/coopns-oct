@@ -84,6 +84,43 @@ describe, the per cell seed spreads of Tables 3 and 4, and a restatement of the 
 - The 173 test pairs come from five clean image identities, which the measures paragraph now says.
 - The loss weights are now given numerically, and the inactive learned weight path is disclosed.
 
+## Round five, the method made complete in the main paper
+
+The paper is self contained. A general reader needs no supplementary file, which is submitted for
+review only.
+
+- The tissue-bounded gate was said to be identically zero beyond its radius, and the code comment
+  went further and called the background measures provable because of it. Both are false. The gate is
+  a logistic followed by a maximum filter, so it is strictly positive, and measured on real scans its
+  smallest value is 0.017 to 0.071 by image, with the percentile gate at 0.045 to 0.20. Not one pixel
+  of any test scan is below a thousandth. The paper now prints the gate, gives the measured minima,
+  and says the background measures are evidence and not a guarantee.
+- The five rule truth functions were described in words. They are now written out as Equation 7,
+  with the soft comparison, the conjunction and every threshold. Rule five is zero by construction
+  when one corrector proposes, which is why its weight never trains.
+- The five rule layer thresholds are learned and had been omitted from the inventory. They move
+  slightly during fitting and are listed with their fitted values. They are not the six property
+  thresholds, which take no gradient.
+- Background smoothing was described in prose but absent from the candidate equation. The equation
+  now carries it through an intermediate image, with the eroded mask, the masked mean and the half
+  strength blend, and says the edge proposal is added after it.
+- The brightening smooth was said to prevent a new high frequency edge. It attenuates high frequency
+  variation in that contribution, which is what a mean filter does.
+- Algorithm 1 began with initialization. It restores the submitted checkpoint and creates a fresh
+  optimizer, and the default initialization is labelled as belonging to the earlier model.
+- The first training stage was called clinical terms only. Every term but fidelity is active.
+- The letter now gives both Lipschitz constants with their domains in responses 3.12 and 3.19,
+  calls the budget identities sufficient rather than derived in 1.4 and 3.17, points 1.2 at the heat
+  map that exists rather than a table that does not, and drops the orphan sentence in 1.3, the stale
+  literature claim in 1.5, the conflated sensitivity claim in 3.9 and the self criticism in 3.18.
+- The adapted diagnostic reports the Duke2013 signal to noise as minus 5.29 percent against plus 9.29
+  frozen, a difference of 14.58 percentage points, and no longer implies that decline holds per
+  subject. The closing reference to p values is gone with the column.
+- Table S2 splits the learned row, since theta five is declared learnable and is not.
+- Significance language is out of the safety section. The effects are reported as effect sizes, the
+  weak structure fall as 2.9 points or 7.2 percent of baseline, and the boundary shift as an absence
+  of measured movement with no equivalence test claimed.
+
 ## Round four, the letter synchronised and the remaining gaps closed
 
 - Response 2.2 asserted that tightening the third constraint moves the output toward the backbone and

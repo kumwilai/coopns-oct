@@ -26,7 +26,7 @@ WANT = {
     "eq:cnr_bound": "EqCnrBound", "eq:loss_fid": "EqLossFid",
     "eq:loss_clin": "EqLossClin", "eq:loss_pred": "EqLossPred",
     "eq:loss_coop": "EqLossCoop", "eq:loss_edge": "EqLossEdge",
-    "eq:loss_reg": "EqLossReg",
+    "eq:loss_reg": "EqLossReg", "eq:gate_halo": "EqGateHalo", "eq:rules": "EqRules",
 }
 
 
