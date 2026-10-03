@@ -1,10 +1,11 @@
-# CoopNS-OCT, anonymous release for peer review
+# CoopNS-OCT
 
 This repository contains the code, the data lists, the trained weights and the scripts that produce
 every number and every figure in the revised manuscript. It requires no password and no account.
 
-The archive is anonymous. Author names, institutional paths and version control history have been
-removed for double blind review. A permanent citable archive will replace it on acceptance.
+Maintained by Wuttipong Kumwilaisak, Department of Electronic and Telecommunication Engineering,
+King Mongkut's University of Technology Thonburi (KMUTT), Bangkok, Thailand. A permanent citable
+archive will be added on acceptance.
 
 ## What is here
 
